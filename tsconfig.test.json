@@ -1,0 +1,31 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "types": [
+      "jest",
+      "@testing-library/jest-dom",
+      "cypress",
+      "node"
+    ],
+    "moduleResolution": "node",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "__tests__/**/*",
+    "cypress/**/*",
+    "jest.setup.js",
+    "jest.config.js"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out"
+  ]
+}

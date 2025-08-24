@@ -1,0 +1,248 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Custom fields
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Profile information
+  fullName    String?
+  phone       String?
+  role        Role     @default(USER)
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  preferences String   @default("{}")
+  
+  // Relations
+  bookings Booking[]
+  paymentsProcessed Payment[] @relation("ProcessedBy")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Custom enums
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  DEPOSIT_PAID
+  FULLY_PAID
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+}
+
+enum PaymentType {
+  PAYMENT
+  REFUND
+  ADJUSTMENT
+}
+
+// Business models
+model Court {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  name        String
+  description String?
+  
+  basePrice      Int     // En centavos
+  priceMultiplier Float  @default(1.0)
+  
+  features String   // JSON string for SQLite
+  isActive Boolean @default(true)
+  operatingHours String @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
+  
+  bookings Booking[]
+}
+
+model Booking {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  courtId String
+  userId  String
+  
+  bookingDate     DateTime
+  startTime       String   // Stored as string "HH:MM"
+  endTime         String   // Stored as string "HH:MM"
+  durationMinutes Int      @default(90)
+  
+  totalPrice    Int // En centavos
+  depositAmount Int @default(0)
+  
+  status        BookingStatus  @default(PENDING)
+  paymentStatus PaymentStatus  @default(PENDING)
+  paymentMethod PaymentMethod?
+  
+  notes              String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  
+  // Relations
+  court   Court           @relation(fields: [courtId], references: [id], onDelete: Restrict)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  players BookingPlayer[]
+  payments Payment[]
+  
+  @@unique([courtId, bookingDate, startTime, endTime])
+}
+
+model BookingPlayer {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  bookingId String
+  
+  playerName  String
+  playerPhone String?
+  playerEmail String?
+  
+  hasPaid       Boolean        @default(false)
+  paidAmount    Int            @default(0)
+  paidAt        DateTime?
+  paymentMethod PaymentMethod?
+  
+  position Int? // 1-4
+  notes    String?
+  
+  // Relations
+  booking  Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payments Payment[]
+  
+  @@unique([bookingId, position])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  bookingId     String
+  playerId      String?
+  processedById String?
+  
+  amount        Int         // En centavos
+  paymentMethod PaymentMethod
+  paymentType   PaymentType @default(PAYMENT)
+  
+  referenceNumber String?
+  notes           String?
+  status          String   @default("completed") // pending, completed, failed, refunded
+  
+  // Relations
+  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  player      BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  processedBy User?          @relation("ProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  key         String  @unique
+  value       String
+  description String?
+  category    String  @default("general")
+  isPublic    Boolean @default(false)
+}
+
+// Modelo de Productos
+model Producto {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  nombre    String
+  precio    Float
+  stock     Int      @default(0)
+  categoria String
+  activo    Boolean  @default(true)
+
+  @@index([categoria])
+  @@index([activo])
+}
+
+// Admin Whitelist - Sistema flexible de administradores
+model AdminWhitelist {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email       String  @unique
+  isActive    Boolean @default(true)
+  addedBy     String? // Email del admin que agregó este email
+  notes       String?
+
+  @@index([email])
+  @@index([isActive])
+}

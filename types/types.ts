@@ -1,0 +1,81 @@
+// Tipos principales del sistema de reservas de padel
+
+export interface TimeSlot {
+  id: string;
+  time: string;
+  startTime?: string;
+  endTime?: string;
+  timeRange?: string;
+  available: boolean;
+  isAvailable?: boolean;
+  price: number;
+  courtId: string;
+  courtName?: string;
+  date?: Date;
+  duration?: number;
+  bookingId?: string;
+}
+
+export interface Court {
+  id: string;
+  name: string;
+  description: string;
+  features: string[];
+  priceMultiplier: number;
+  color: string;
+  bgColor: string;
+  textColor: string;
+  base_price?: number;
+  isActive?: boolean;
+}
+
+export interface Player {
+  name: string;
+  email: string;
+  phone: string;
+  isRegistered: boolean;
+  hasPaid: boolean;
+}
+
+export interface Booking {
+  id: string;
+  courtId: string;
+  courtName: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  timeRange: string;
+  location: string;
+  price: number;
+  totalPrice: number;
+  deposit: number;
+  status: 'confirmed' | 'pending' | 'cancelled';
+  paymentStatus: 'Paid' | 'Deposit Paid' | 'Pending';
+  type: 'current' | 'past';
+  players: Player[];
+  userId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SlotsResponse {
+  date: string;
+  courtId: string;
+  courtName: string;
+  slots: TimeSlot[];
+  totalSlots: number;
+  availableSlots: number;
+  occupiedSlots: number;
+  summary?: {
+    rate: number;
+  };
+}
