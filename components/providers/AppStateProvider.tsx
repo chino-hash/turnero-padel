@@ -431,16 +431,47 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      isRefreshing: isRefreshingMultipleSlots
    } = useOptimizedMultipleSlots(courts, selectedDate)
   
-  // Hook para actualizaciones en tiempo real (deshabilitado para evitar peticiones repetitivas)
-  const shouldUseRealTime = false // Deshabilitado completamente para evitar peticiones repetitivas
+  // Configurar Server-Sent Events para invalidar caché cuando se actualicen las canchas
+  useEffect(() => {
+    const eventSource = new EventSource('/api/courts/events')
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        // Escuchar eventos de actualización de canchas
+        if (data.action === 'updated' || data.action === 'created' || data.type === 'courtsUpdated') {
+          console.log('Canchas actualizadas, invalidando caché de slots...')
+          // Invalidar caché y refrescar slots automáticamente
+          if (isUnifiedView) {
+            refreshMultipleSlots()
+          } else {
+            refreshSlots()
+          }
+          // Mostrar notificación al usuario
+          setNotification({ 
+            message: 'Precios actualizados automáticamente', 
+            type: 'success' 
+          })
+          // Auto-ocultar notificación después de 3 segundos
+          setTimeout(() => setNotification(null), 3000)
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error)
+      }
+    }
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error)
+    }
+
+    // Cleanup al desmontar el componente
+    return () => {
+      eventSource.close()
+    }
+  }, [isUnifiedView, refreshMultipleSlots, refreshSlots])
   
-  // Memoizamos las funciones de callback para evitar recreaciones innecesarias
-  const handleDataUpdate = useCallback(() => {
-    // Refrescar datos cuando se reciban actualizaciones (DESHABILITADO para evitar peticiones repetitivas)
-    console.log('Actualización en tiempo real recibida - retry deshabilitado para evitar peticiones repetitivas')
-    // retrySlots() // Deshabilitado
-    // retryMultipleSlots() // Deshabilitado
-  }, [])
+  // Hook para actualizaciones en tiempo real (solo para otros eventos, no para canchas)
+  const shouldUseRealTime = false // Mantenemos deshabilitado para evitar duplicación
   
   const handleNotification = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error') => {
     // Mostrar notificación al usuario
@@ -451,7 +482,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   const { isConnected } = useDashboardRealTimeUpdates({
     enabled: shouldUseRealTime,
-    onDataUpdate: handleDataUpdate,
+    onDataUpdate: () => {}, // Vacío ya que manejamos las canchas por separado
     onNotification: handleNotification
   })
   

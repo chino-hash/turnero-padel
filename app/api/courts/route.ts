@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { getCourts, createCourt, updateCourt } from '@/lib/services/courts'
+import { getCourts, getAllCourts, createCourt, updateCourt } from '@/lib/services/courts'
 import { eventEmitters } from '@/lib/sse-events'
 
 export async function GET() {
@@ -11,7 +11,9 @@ export async function GET() {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const courts = await getCourts()
+    // Si es administrador, obtener todas las canchas (activas e inactivas)
+    // Si es usuario normal, solo las activas
+    const courts = session.user.isAdmin ? await getAllCourts() : await getCourts()
     return NextResponse.json(courts)
   } catch (error) {
     console.error('Error en GET /api/courts:', error)

@@ -1,3 +1,9 @@
+/*
+ * ⚠️ ARCHIVO PROTEGIDO - NO MODIFICAR SIN AUTORIZACIÓN
+ * Este archivo es crítico para usuarios finales y no debe modificarse sin autorización.
+ * Cualquier cambio requiere un proceso formal de revisión y aprobación.
+ * Contacto: Administrador del Sistema
+ */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -98,7 +104,7 @@ export default function TurneroApp() {
                           else if (typeof court.features === 'string') features = JSON.parse(court.features || '[]')
                         } catch {}
                         const isIndoor = features.some((f: string) => /indoor|covered|climate/i.test(f))
-                        const price = Math.round((court.basePrice || 0) / 100)
+                        const price = Math.round((court.base_price || 0) / 100)
                         return (
                           <div key={court.id} className="rounded-xl border p-4 flex flex-col gap-2 bg-white">
                             <span className="text-[11px] text-gray-600">{isIndoor ? 'Indoor' : ''}</span>

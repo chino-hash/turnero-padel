@@ -4,7 +4,7 @@ import type { Court } from '@/types/types'
 export interface CreateCourtData {
   name: string
   description?: string
-  basePrice: number
+  base_price: number
   priceMultiplier?: number
   features?: string[]
   operatingHours?: {
@@ -17,7 +17,7 @@ export interface CreateCourtData {
 export interface UpdateCourtData {
   name?: string
   description?: string
-  basePrice?: number
+  base_price?: number
   priceMultiplier?: number
   features?: string // JSON string in database
   operatingHours?: string // JSON string in database
@@ -73,7 +73,7 @@ function transformCourtData(court: any): Court {
     color: colors.color,
     bgColor: colors.bgColor,
     textColor: colors.textColor,
-    base_price: court.basePrice,
+    base_price: court.basePrice / 100,
     isActive: court.isActive
   }
 }
@@ -89,6 +89,19 @@ export async function getCourts(): Promise<Court[]> {
   } catch (error) {
     console.error('Error obteniendo canchas:', error)
     throw new Error('Error al obtener las canchas')
+  }
+}
+
+// Obtener todas las canchas (para administración)
+export async function getAllCourts(): Promise<Court[]> {
+  try {
+    const courts = await prisma.court.findMany({
+      orderBy: { name: 'asc' }
+    })
+    return courts.map(transformCourtData)
+  } catch (error) {
+    console.error('Error obteniendo todas las canchas:', error)
+    throw new Error('Error al obtener todas las canchas')
   }
 }
 
@@ -112,7 +125,7 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
       data: {
         name: data.name,
         description: data.description,
-        basePrice: data.basePrice,
+        basePrice: Math.round(data.base_price * 100),
         priceMultiplier: data.priceMultiplier || 1.0,
         features: JSON.stringify(data.features || []),
         operatingHours: JSON.stringify(data.operatingHours || {
@@ -132,9 +145,16 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 // Actualizar cancha
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
+    // Convertir base_price a centavos si está presente
+    const updateData = { ...data }
+    if (updateData.base_price !== undefined) {
+      updateData.basePrice = Math.round(updateData.base_price * 100)
+      delete updateData.base_price
+    }
+    
     const court = await prisma.court.update({
       where: { id },
-      data
+      data: updateData
     })
     return transformCourtData(court)
   } catch (error) {

@@ -31,7 +31,7 @@ export default function ProductosPage() {
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null)
   const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null)
 
-  const categorias = ['Todas', 'Bebidas', 'Accesorios', 'Equipamiento', 'Consumibles']
+  const categorias = ['Todas', 'Alquiler', 'Pelotas', 'Toallas', 'Bebidas', 'Snacks', 'Otros']
 
   const productosFiltrados = productos.filter(producto => {
     const coincideBusqueda = producto.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -71,37 +71,40 @@ export default function ProductosPage() {
         setProductos(data.data)
       } else {
         toast.error('Error al cargar productos')
-        // Fallback a datos mock si la API falla - Sincronizado con modal de extras
+        // Fallback a datos mock si la API falla - Sincronizado con modal de extras de AdminTurnos
         setProductos([
-          // Bebidas (12 productos)
-          { id: 1, nombre: 'Agua Pequeña', precio: 1500, stock: 50, categoria: 'Bebidas', activo: true },
-          { id: 2, nombre: 'Agua Grande', precio: 2500, stock: 30, categoria: 'Bebidas', activo: true },
-          { id: 3, nombre: 'Coca Cola Pequeña', precio: 2000, stock: 25, categoria: 'Bebidas', activo: true },
-          { id: 4, nombre: 'Coca Cola Grande', precio: 3000, stock: 20, categoria: 'Bebidas', activo: true },
-          { id: 5, nombre: 'Fanta Pequeña', precio: 2000, stock: 15, categoria: 'Bebidas', activo: true },
-          { id: 6, nombre: 'Fanta Grande', precio: 3000, stock: 12, categoria: 'Bebidas', activo: true },
-          { id: 7, nombre: 'Sprite Pequeña', precio: 2000, stock: 18, categoria: 'Bebidas', activo: true },
-          { id: 8, nombre: 'Sprite Grande', precio: 3000, stock: 10, categoria: 'Bebidas', activo: true },
-          { id: 9, nombre: 'Cerveza Lata', precio: 4000, stock: 24, categoria: 'Bebidas', activo: true },
-          { id: 10, nombre: 'Cerveza Botella', precio: 4500, stock: 18, categoria: 'Bebidas', activo: true },
-          { id: 11, nombre: 'Gatorade Pequeño', precio: 3500, stock: 20, categoria: 'Bebidas', activo: true },
-          { id: 12, nombre: 'Gatorade Grande', precio: 5000, stock: 15, categoria: 'Bebidas', activo: true },
-          // Accesorios (6 productos)
-          { id: 13, nombre: 'Grip', precio: 8000, stock: 30, categoria: 'Accesorios', activo: true },
-          { id: 14, nombre: 'Protector de Paletas', precio: 12000, stock: 25, categoria: 'Accesorios', activo: true },
-          { id: 15, nombre: 'Alquiler de Paletas', precio: 15000, stock: 10, categoria: 'Accesorios', activo: true },
-          { id: 16, nombre: 'Pelotas x1', precio: 5000, stock: 40, categoria: 'Accesorios', activo: true },
-          { id: 17, nombre: 'Pelotas x2', precio: 9000, stock: 35, categoria: 'Accesorios', activo: true },
-          { id: 18, nombre: 'Pelotas x3', precio: 13000, stock: 30, categoria: 'Accesorios', activo: true },
-          // Equipamiento (3 productos)
-          { id: 19, nombre: 'Paletas Profesionales', precio: 85000, stock: 6, categoria: 'Equipamiento', activo: true },
-          { id: 20, nombre: 'Redes de Repuesto', precio: 25000, stock: 8, categoria: 'Equipamiento', activo: true },
-          { id: 21, nombre: 'Kit de Mantenimiento', precio: 45000, stock: 5, categoria: 'Equipamiento', activo: true },
-          // Consumibles (4 productos)
-          { id: 22, nombre: 'Toallas', precio: 8000, stock: 20, categoria: 'Consumibles', activo: true },
-          { id: 23, nombre: 'Protector Solar', precio: 12000, stock: 15, categoria: 'Consumibles', activo: true },
-          { id: 24, nombre: 'Vendas Deportivas', precio: 6000, stock: 25, categoria: 'Consumibles', activo: true },
-          { id: 25, nombre: 'Gel Energético', precio: 4500, stock: 30, categoria: 'Consumibles', activo: true }
+          // PRODUCTOS PRINCIPALES DEL MODAL DE EXTRAS
+          // Alquiler de Raqueta
+          { id: 1, nombre: 'Alquiler de Raqueta', precio: 15000, stock: 10, categoria: 'Alquiler', activo: true },
+          { id: 2, nombre: 'Alquiler de Raqueta Premium', precio: 20000, stock: 5, categoria: 'Alquiler', activo: true },
+          
+          // Pelotas
+          { id: 3, nombre: 'Pelota de Pádel', precio: 5000, stock: 50, categoria: 'Pelotas', activo: true },
+          { id: 4, nombre: 'Pelotas x2', precio: 9000, stock: 30, categoria: 'Pelotas', activo: true },
+          { id: 5, nombre: 'Pelotas x3', precio: 13000, stock: 25, categoria: 'Pelotas', activo: true },
+          
+          // Toallas
+          { id: 6, nombre: 'Toalla', precio: 8000, stock: 20, categoria: 'Toallas', activo: true },
+          { id: 7, nombre: 'Toalla Premium', precio: 12000, stock: 15, categoria: 'Toallas', activo: true },
+          
+          // Bebidas
+          { id: 8, nombre: 'Bebida', precio: 3000, stock: 40, categoria: 'Bebidas', activo: true },
+          { id: 9, nombre: 'Agua Mineral', precio: 2000, stock: 50, categoria: 'Bebidas', activo: true },
+          { id: 10, nombre: 'Gatorade', precio: 4000, stock: 30, categoria: 'Bebidas', activo: true },
+          { id: 11, nombre: 'Coca Cola', precio: 3500, stock: 35, categoria: 'Bebidas', activo: true },
+          { id: 12, nombre: 'Cerveza', precio: 5000, stock: 25, categoria: 'Bebidas', activo: true },
+          
+          // Snacks
+          { id: 13, nombre: 'Snack', precio: 4000, stock: 30, categoria: 'Snacks', activo: true },
+          { id: 14, nombre: 'Barrita Energética', precio: 3500, stock: 40, categoria: 'Snacks', activo: true },
+          { id: 15, nombre: 'Frutos Secos', precio: 4500, stock: 25, categoria: 'Snacks', activo: true },
+          { id: 16, nombre: 'Sandwich', precio: 8000, stock: 15, categoria: 'Snacks', activo: true },
+          
+          // Otros productos adicionales
+          { id: 17, nombre: 'Otro', precio: 5000, stock: 20, categoria: 'Otros', activo: true },
+          { id: 18, nombre: 'Grip Antideslizante', precio: 6000, stock: 30, categoria: 'Otros', activo: true },
+          { id: 19, nombre: 'Protector de Paletas', precio: 10000, stock: 20, categoria: 'Otros', activo: true },
+          { id: 20, nombre: 'Muñequeras', precio: 7000, stock: 25, categoria: 'Otros', activo: true }
         ])
       }
     } catch (error) {

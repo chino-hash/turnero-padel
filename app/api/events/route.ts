@@ -3,52 +3,78 @@ import { addConnection, removeConnection, type SSEEvent } from '@/lib/sse-events
 
 // Endpoint GET para establecer conexión SSE
 export async function GET(request: NextRequest) {
-  // Configurar headers para SSE
+  // Configurar headers para SSE con mejores prácticas
   const responseHeaders = new Headers({
     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control',
+    'Access-Control-Allow-Headers': 'Cache-Control, Last-Event-ID',
+    'Access-Control-Allow-Methods': 'GET',
+    'X-Accel-Buffering': 'no', // Nginx: deshabilitar buffering
   })
 
   // Crear stream para mantener la conexión abierta
   const stream = new ReadableStream({
     start(controller) {
-      // Agregar conexión al set
-      addConnection(controller)
-      
-      // Enviar evento inicial de conexión
-      const initialEvent: SSEEvent = {
-        type: 'admin_change',
-        data: { message: 'Conectado al sistema de notificaciones en tiempo real' },
-        timestamp: Date.now()
-      }
-      
-      const message = `data: ${JSON.stringify(initialEvent)}\n\n`
-      controller.enqueue(new TextEncoder().encode(message))
-      
-      // Configurar heartbeat cada 30 segundos
-      const heartbeat = setInterval(() => {
-        try {
-          const heartbeatEvent = `data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`
-          controller.enqueue(new TextEncoder().encode(heartbeatEvent))
-        } catch (error) {
-          clearInterval(heartbeat)
+      try {
+        // Enviar evento inicial de conexión con ID único
+        const connectionId = Math.random().toString(36).substr(2, 9)
+        controller.enqueue(new TextEncoder().encode(`id: ${connectionId}\n`))
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ 
+          type: 'connection', 
+          message: 'Conectado al servidor SSE',
+          connectionId,
+          timestamp: Date.now()
+        })}\n\n`))
+        
+        // Configurar heartbeat cada 25 segundos (menor que timeout típico de 30s)
+        const heartbeatInterval = setInterval(() => {
+          try {
+            if (!controller.desiredSize || controller.desiredSize <= 0) {
+              console.log('Cliente desconectado, limpiando heartbeat')
+              clearInterval(heartbeatInterval)
+              return
+            }
+            
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ 
+              type: 'heartbeat', 
+              timestamp: Date.now(),
+              connectionId
+            })}\n\n`))
+          } catch (error) {
+            console.error('Error enviando heartbeat:', error)
+            clearInterval(heartbeatInterval)
+          }
+        }, 25000)
+        
+        // Agregar esta conexión a la lista de conexiones activas
+        addConnection(controller)
+        
+        // Limpiar al cerrar la conexión
+        const cleanup = () => {
+          clearInterval(heartbeatInterval)
           removeConnection(controller)
+          console.log(`Conexión SSE cerrada: ${connectionId}`)
         }
-      }, 30000)
-      
-      // Limpiar cuando se cierre la conexión
-      request.signal.addEventListener('abort', () => {
-        clearInterval(heartbeat)
-        removeConnection(controller)
-        controller.close()
-      })
+        
+        request.signal.addEventListener('abort', cleanup)
+        
+        // Cleanup adicional para casos edge
+        setTimeout(() => {
+          if (request.signal.aborted) {
+            cleanup()
+          }
+        }, 100)
+        
+      } catch (error) {
+        console.error('Error inicializando conexión SSE:', error)
+        controller.error(error)
+      }
     },
     
     cancel() {
-      // Limpiar conexión cuando se cancele
+      console.log('Stream SSE cancelado por el cliente')
     }
   })
 

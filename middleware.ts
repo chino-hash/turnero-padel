@@ -1,3 +1,10 @@
+/*
+ * ⚠️ ARCHIVO PROTEGIDO - NO MODIFICAR SIN AUTORIZACIÓN
+ * Este archivo es crítico para usuarios finales y no debe modificarse sin autorización.
+ * Cualquier cambio requiere un proceso formal de revisión y aprobación.
+ * Contacto: Administrador del Sistema
+ */
+
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
@@ -22,23 +29,34 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Si no está logueado y no es ruta pública, redirigir a login
-  if (!isLoggedIn && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/login', nextUrl))
+  // Prevenir bucles de redirección: si ya está en login o error, no redirigir
+  if (nextUrl.pathname === '/login' || nextUrl.pathname === '/auth/error') {
+    return NextResponse.next()
   }
 
-  // Si está logueado y trata de acceder a login, redirigir a home
+  // Si no está logueado y no es ruta pública, redirigir a login con callbackUrl
+  if (!isLoggedIn && !isPublicRoute) {
+    const loginUrl = new URL('/login', nextUrl)
+    loginUrl.searchParams.set('callbackUrl', nextUrl.pathname + nextUrl.search)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Si está logueado y trata de acceder a login, redirigir según callbackUrl
   if (isLoggedIn && nextUrl.pathname === '/login') {
-    return NextResponse.redirect(new URL('/', nextUrl))
+    const callbackUrl = nextUrl.searchParams.get('callbackUrl')
+    const redirectUrl = callbackUrl && callbackUrl !== '/login' ? callbackUrl : '/'
+    return NextResponse.redirect(new URL(redirectUrl, nextUrl))
   }
 
   // Rutas de administrador
   const adminRoutes = ['/admin']
   const isAdminRoute = adminRoutes.some(route => nextUrl.pathname.startsWith(route))
 
-  // Si trata de acceder a ruta de admin sin ser admin
+  // Si trata de acceder a ruta de admin sin ser admin, redirigir con error
   if (isAdminRoute && !isAdmin) {
-    return NextResponse.redirect(new URL('/', nextUrl))
+    const errorUrl = new URL('/auth/error', nextUrl)
+    errorUrl.searchParams.set('error', 'AccessDenied')
+    return NextResponse.redirect(errorUrl)
   }
 
   return NextResponse.next()

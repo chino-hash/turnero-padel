@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 interface Court {
   id: string
   name: string
-  basePrice: number
+  base_price: number
   priceMultiplier: number
   isActive: boolean
   description?: string
@@ -39,14 +39,14 @@ export function useCourtPrices() {
   const getCourtPrice = (courtName: string): number => {
     const court = courts.find(c => c.name === courtName)
     if (!court) return 0
-    return (court.basePrice * court.priceMultiplier) / 4 // Precio por persona
+    return (court.base_price * court.priceMultiplier) / 4 // Precio por persona
   }
 
   // Función para obtener precio total de la cancha
   const getCourtTotalPrice = (courtName: string): number => {
     const court = courts.find(c => c.name === courtName)
     if (!court) return 0
-    return court.basePrice * court.priceMultiplier
+    return court.base_price * court.priceMultiplier
   }
 
   // Función para verificar si una cancha está activa

@@ -25,6 +25,12 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
       return
     }
 
+    // Evitar múltiples conexiones simultáneas
+    if (eventSourceRef.current && eventSourceRef.current.readyState === EventSource.CONNECTING) {
+      console.log('Conexión SSE ya en progreso, evitando duplicado')
+      return
+    }
+
     // Limpiar conexión anterior si existe
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -40,16 +46,17 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
     try {
       console.log('Estableciendo conexión SSE...')
       
-      // Agregar un pequeño delay para evitar conexiones múltiples
-      setTimeout(() => {
-        const eventSource = new EventSource('/api/events')
-        eventSourceRef.current = eventSource
-        
-        eventSource.onopen = () => {
-          console.log('Conexión SSE establecida')
-          reconnectAttemptsRef.current = 0 // Reset contador de reintentos
-          options.onConnect?.()
-        }
+      // Crear EventSource con configuración mejorada
+      const eventSource = new EventSource('/api/events', {
+        withCredentials: false // Evitar problemas CORS
+      })
+      eventSourceRef.current = eventSource
+      
+      eventSource.onopen = () => {
+        console.log('Conexión SSE establecida exitosamente')
+        reconnectAttemptsRef.current = 0 // Reset contador de reintentos
+        options.onConnect?.()
+      }
 
         eventSource.onmessage = (event) => {
           try {
@@ -85,27 +92,33 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
         }
 
         eventSource.onerror = (error) => {
-          console.error('Error en conexión SSE:', error)
+          console.error('Error en conexión SSE:', error, 'ReadyState:', eventSource.readyState)
           options.onError?.(error)
           
-          // Solo intentar reconectar si la conexión estaba establecida
-          if (eventSource.readyState !== EventSource.CONNECTING) {
-            // Intentar reconectar con backoff exponencial
-            if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-              const delay = baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current)
-              
-              reconnectTimeoutRef.current = setTimeout(() => {
-                reconnectAttemptsRef.current++
-                console.log(`Reintentando conexión SSE (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
-                connect()
-              }, delay)
-            } else {
-              console.error('Máximo número de reintentos alcanzado para conexión SSE')
-              options.onDisconnect?.()
-            }
+          // Mejorar lógica de reconexión basada en el estado
+          const shouldReconnect = 
+            eventSource.readyState === EventSource.CLOSED || 
+            (eventSource.readyState === EventSource.CONNECTING && reconnectAttemptsRef.current === 0)
+          
+          if (shouldReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
+            const delay = Math.min(
+              baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current),
+              30000 // Máximo 30 segundos
+            )
+            
+            console.log(`Programando reconexión SSE en ${delay}ms (intento ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`)
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttemptsRef.current++
+              console.log(`Reintentando conexión SSE (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
+              connect()
+            }, delay)
+          } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
+            console.error('Máximo número de reintentos alcanzado para conexión SSE')
+            eventSourceRef.current = null
+            options.onDisconnect?.()
           }
         }
-      }, 100) // Delay de 100ms
 
     } catch (error) {
       console.error('Error al crear EventSource:', error)

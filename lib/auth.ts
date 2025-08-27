@@ -1,3 +1,10 @@
+/*
+ * ⚠️ ARCHIVO PROTEGIDO - NO MODIFICAR SIN AUTORIZACIÓN
+ * Este archivo es crítico para usuarios finales y no debe modificarse sin autorización.
+ * Cualquier cambio requiere un proceso formal de revisión y aprobación.
+ * Contacto: Administrador del Sistema
+ */
+
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { isAdminEmail, logAdminAccess } from "@/lib/admin-system"
@@ -12,7 +19,37 @@ export const config = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 días
+    maxAge: 7 * 24 * 60 * 60, // 7 días (reducido para mayor seguridad)
+    updateAge: 4 * 60 * 60, // Actualizar cada 4 horas (más frecuente)
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL?.replace(/https?:\/\//, '') : undefined
+      }
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   },
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -35,17 +72,37 @@ export const config = {
       return true
     },
 
-    async jwt({ token, user }) {
-      // Agregar información del usuario al token en el primer login
-      if (user) {
+    async jwt({ token, user, account, trigger }) {
+      // Verificar si es un nuevo sign-in o actualización
+      if (account && user) {
+        // Verificar si el email está en la lista de administradores
         const isAdmin = await isAdminEmail(user.email!)
+        
+        // Log del acceso de administrador
+        if (isAdmin) {
+          await logAdminAccess(user.email!, 'login')
+        }
+        
+        // Asignar rol basado en si es admin o no
         token.role = isAdmin ? 'ADMIN' : 'USER'
         token.isAdmin = isAdmin
-        // opcional: mantener name/email/picture en el token
-        token.name = user.name
         token.email = user.email
+        token.name = user.name
+        token.picture = user.image
       }
-
+      
+      // Renovar información de admin en cada actualización de token
+      if (trigger === 'update' && token.email) {
+        try {
+          const isAdmin = await isAdminEmail(token.email as string)
+          token.role = isAdmin ? 'ADMIN' : 'USER'
+          token.isAdmin = isAdmin
+        } catch (error) {
+          console.error('Error verificando estado de admin:', error)
+          // Mantener el estado anterior en caso de error
+        }
+      }
+      
       return token
     },
 
@@ -71,11 +128,23 @@ export const config = {
         logAdminAccess(user.email!, true, 'google', `new_user_${isAdmin ? 'admin' : 'user'}`)
       }
     },
-    async signOut() {
-      // El callback signOut no recibe parámetros útiles en NextAuth v4
-      // El logging de signOut se puede manejar en el cliente si es necesario
-    }
-  },
+    async signOut({ session, token }) {
+      console.log('🔓 Usuario cerró sesión:', session?.user?.email || token?.email)
+    },
+   },
+   logger: {
+     error(code, metadata) {
+       console.error('❌ NextAuth Error:', code, metadata)
+     },
+     warn(code) {
+       console.warn('⚠️ NextAuth Warning:', code)
+     },
+     debug(code, metadata) {
+       if (process.env.NODE_ENV === 'development') {
+         console.log('🐛 NextAuth Debug:', code, metadata)
+       }
+     }
+   },
   debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig
 

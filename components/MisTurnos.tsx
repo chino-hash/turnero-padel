@@ -1,3 +1,9 @@
+/*
+ * ⚠️ ARCHIVO PROTEGIDO - NO MODIFICAR SIN AUTORIZACIÓN
+ * Este archivo es crítico para usuarios finales y no debe modificarse sin autorización.
+ * Cualquier cambio requiere un proceso formal de revisión y aprobación.
+ * Contacto: Administrador del Sistema
+ */
 import React, { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
