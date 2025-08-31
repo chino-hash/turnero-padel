@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import Link from 'next/link'
+import { Suspense } from 'react'
 
 interface AuthErrorPageProps {
   searchParams: Promise<{
@@ -12,7 +13,7 @@ interface AuthErrorPageProps {
   }>
 }
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
@@ -139,5 +140,13 @@ export default function AuthErrorPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <AuthErrorContent />
+    </Suspense>
   )
 }

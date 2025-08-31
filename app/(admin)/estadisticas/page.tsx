@@ -1,27 +1,45 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, TrendingUp, Users, Calendar, DollarSign, Clock } from 'lucide-react'
+import { BarChart3, TrendingUp, Users, Calendar, DollarSign, Clock, RefreshCw, AlertCircle } from 'lucide-react'
+import { useEstadisticas } from '@/hooks/useEstadisticas'
+import { Button } from '@/components/ui/button'
 
 export default function EstadisticasPage() {
-  // Datos simulados para las estadísticas
-  const estadisticas = {
-    reservasHoy: 12,
-    reservasSemana: 85,
-    ingresosMes: 15420,
-    ocupacionPromedio: 78,
-    usuariosActivos: 156,
-    canchasMasUsadas: [
-      { nombre: 'Cancha 1', reservas: 45, porcentaje: 85 },
-      { nombre: 'Cancha 2', reservas: 38, porcentaje: 72 },
-      { nombre: 'Cancha 3', reservas: 32, porcentaje: 61 }
-    ],
-    horariosPico: [
-      { hora: '18:00-19:00', reservas: 28 },
-      { hora: '19:00-20:00', reservas: 32 },
-      { hora: '20:00-21:00', reservas: 35 },
-      { hora: '21:00-22:00', reservas: 25 }
-    ]
+  const { estadisticas, loading, error, refetch } = useEstadisticas()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center space-x-2">
+          <RefreshCw className="w-6 h-6 animate-spin" />
+          <span>Cargando estadísticas...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="flex items-center space-x-2 text-red-600">
+          <AlertCircle className="w-6 h-6" />
+          <span>Error al cargar estadísticas: {error}</span>
+        </div>
+        <Button onClick={refetch} variant="outline">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Reintentar
+        </Button>
+      </div>
+    )
+  }
+
+  if (!estadisticas) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <span>No hay datos disponibles</span>
+      </div>
+    )
   }
 
   return (
@@ -32,63 +50,60 @@ export default function EstadisticasPage() {
           <h1 className="text-3xl font-bold text-gray-900">Estadísticas</h1>
           <p className="text-gray-600 mt-1">Análisis de ocupación y rendimiento del complejo</p>
         </div>
+        <Button 
+          onClick={refetch} 
+          variant="outline" 
+          disabled={loading}
+          className="flex items-center space-x-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span>Actualizar</span>
+        </Button>
       </div>
 
       {/* Métricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Reservas Hoy</p>
-                <p className="text-2xl font-semibold text-gray-900">{estadisticas.reservasHoy}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reservas Hoy</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estadisticas.reservasHoy}</div>
+            <p className="text-xs text-muted-foreground">Reservas del día actual</p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Reservas Semana</p>
-                <p className="text-2xl font-semibold text-gray-900">{estadisticas.reservasSemana}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Reservas Semana</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estadisticas.reservasSemana}</div>
+            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Ingresos Mes</p>
-                <p className="text-2xl font-semibold text-gray-900">${estadisticas.ingresosMes.toLocaleString()}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${estadisticas.ingresosMes.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Mes actual</p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Ocupación Promedio</p>
-                <p className="text-2xl font-semibold text-gray-900">{estadisticas.ocupacionPromedio}%</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Ocupación Promedio</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{estadisticas.ocupacionPromedio}%</div>
+            <p className="text-xs text-muted-foreground">Promedio mensual</p>
           </CardContent>
         </Card>
       </div>
@@ -171,12 +186,38 @@ export default function EstadisticasPage() {
               <div className="text-sm text-gray-600 mt-1">Usuarios Activos</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">89%</div>
+              <div className="text-3xl font-bold text-green-600">{estadisticas.satisfaccion}/5</div>
               <div className="text-sm text-gray-600 mt-1">Satisfacción</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">2.3</div>
+              <div className="text-3xl font-bold text-purple-600">{estadisticas.promedioReservasPorUsuario}</div>
               <div className="text-sm text-gray-600 mt-1">Reservas por Usuario</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Resumen Financiero */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <DollarSign className="w-5 h-5 mr-2" />
+            Resumen Financiero
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Recaudado</span>
+              <span className="font-semibold text-green-600">${estadisticas.financiero.totalRecaudado.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Saldo Pendiente</span>
+              <span className="font-semibold text-orange-600">${estadisticas.financiero.saldoPendiente.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Reservas</span>
+              <span className="font-semibold">{estadisticas.financiero.totalReservas}</span>
             </div>
           </div>
         </CardContent>

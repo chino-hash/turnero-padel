@@ -1,161 +1,169 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-import { getCourtById } from "@/lib/services/courts"
-import { createBooking, getBookingById } from "@/lib/services/bookings"
+import { bookingService } from "@/lib/services/BookingService"
+import { withRateLimit } from "@/lib/rate-limit"
+import { bookingFiltersSchema, createBookingSchema } from "@/lib/validations/booking"
+import { formatZodError } from "@/lib/validations/common"
+import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
 
 export const runtime = 'nodejs'
 
-function isHHMM(s: string) {
-  return /^\d{2}:\d{2}$/.test(s)
-}
-
-export async function POST(req: NextRequest) {
+// GET /api/bookings - Obtener reservas con filtros y paginación
+export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticación
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-    }
-
-    let body
-    try {
-      body = await req.json()
-    } catch (error) {
       return NextResponse.json(
-        { error: 'Datos inválidos' },
-        { status: 400 }
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
       )
     }
 
-    const courtId = body?.courtId as string
-    const dateStr = body?.date as string // YYYY-MM-DD
-    const startTime = body?.startTime as string
-    const endTime = body?.endTime as string
-    const notes = body?.notes as string | undefined
-
-    if (!courtId || !dateStr || !startTime || !endTime) {
-      return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
-        { status: 400 }
-      )
-    }
-
-    // Validar formato de fecha
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-    if (!dateRegex.test(dateStr)) {
-      return NextResponse.json(
-        { error: 'Formato de fecha inválido' },
-        { status: 400 }
-      )
-    }
-
-    if (!isHHMM(startTime) || !isHHMM(endTime)) {
-       return NextResponse.json(
-         { error: 'Formato de hora inválido' },
-         { status: 400 }
-       )
-     }
-
-    // Validar formato de hora primero
-    const startHour = parseInt(startTime.split(':')[0])
-    const startMinute = parseInt(startTime.split(':')[1])
-    const endHour = parseInt(endTime.split(':')[0])
-    const endMinute = parseInt(endTime.split(':')[1])
+    // Aplicar rate limiting
+    const rateLimitResult = await withRateLimit(
+      request,
+      'booking-read',
+      session.user.id
+    )
     
-    if (isNaN(startHour) || isNaN(startMinute) || isNaN(endHour) || isNaN(endMinute) ||
-        startHour < 0 || startHour > 23 || startMinute < 0 || startMinute > 59 ||
-        endHour < 0 || endHour > 23 || endMinute < 0 || endMinute > 59) {
+    if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: 'Formato de hora inválido' },
-        { status: 400 }
-      )
-    }
-    
-    // Validar que la hora de fin sea posterior a la de inicio
-    const startTimeMinutes = startHour * 60 + startMinute
-    const endTimeMinutes = endHour * 60 + endMinute
-    
-    if (endTimeMinutes <= startTimeMinutes) {
-      return NextResponse.json(
-        { error: 'La hora de fin debe ser posterior a la hora de inicio' },
-        { status: 400 }
+        { 
+          success: false, 
+          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { status: 429 }
       )
     }
 
-    // Validar que la fecha no sea en el pasado
-    const bookingDate = new Date(`${dateStr}T00:00:00`)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Obtener parámetros de consulta
+    const { searchParams } = new URL(request.url)
+    const queryParams = {
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '10'),
+      courtId: searchParams.get('courtId') || undefined,
+      userId: searchParams.get('userId') || undefined,
+      status: searchParams.get('status') || undefined,
+      paymentStatus: searchParams.get('paymentStatus') || undefined,
+      dateFrom: searchParams.get('dateFrom') || undefined,
+      dateTo: searchParams.get('dateTo') || undefined,
+      sortBy: searchParams.get('sortBy') || 'bookingDate',
+      sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
+    }
+
+    // Validar parámetros
+    const validatedParams = bookingFiltersSchema.parse(queryParams)
+
+    // Si no es admin, solo puede ver sus propias reservas
+    if (session.user.role !== 'admin' && !validatedParams.userId) {
+      validatedParams.userId = session.user.id
+    }
+
+    // Obtener reservas
+    const result = await bookingService.getAllBookings(validatedParams)
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error in GET /api/bookings:', error)
     
-    if (bookingDate < today) {
+    if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: 'No se pueden hacer reservas en fechas pasadas' },
+        { 
+          success: false, 
+          error: 'Parámetros de consulta inválidos',
+          details: formatZodError(error)
+        },
         { status: 400 }
       )
     }
 
-    const court = await getCourtById(courtId)
-    if (!court) {
-      return NextResponse.json({ error: "Cancha no encontrada" }, { status: 404 })
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/bookings - Crear nueva reserva
+export async function POST(request: NextRequest) {
+  try {
+    // Verificar autenticación
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      )
     }
 
-    if (!court.isActive) {
-      return NextResponse.json({ error: "La cancha no está disponible" }, { status: 400 })
+    // Aplicar rate limiting más estricto para creación
+    const rateLimitResult = await withRateLimit(
+      request,
+      'booking-create',
+      session.user.id
+    )
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Demasiadas solicitudes de creación. Intenta de nuevo más tarde.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { status: 429 }
+      )
     }
 
-    // Calcular precios (precio fijo por reserva)
-    const totalPrice = Math.round((court.base_price || 0) * (court.priceMultiplier || 1))
-
-    // Obtener porcentaje de depósito (fallback 50)
-    const setting = await prisma.systemSetting.findUnique({ where: { key: 'deposit_percentage' } })
-    const pct = Number(setting?.value ?? 50)
-    const depositAmount = Math.round(totalPrice * (isNaN(pct) ? 0.5 : pct / 100))
-
-    // Crear booking (usa checkAvailability internamente)
-    const booking = await createBooking({
-      courtId,
-      userId: session.user.id,
-      bookingDate,
-      startTime,
-      endTime,
-      totalPrice,
-      depositAmount,
-      notes,
+    // Obtener y validar datos del cuerpo
+    const body = await request.json()
+    const validatedData = createBookingSchema.parse({
+      ...body,
+      userId: session.user.id // Asegurar que use el ID del usuario autenticado
     })
 
-    // Crear jugadores
-    const p1Name = session.user.name || 'Jugador 1'
-    await prisma.bookingPlayer.createMany({
-      data: [
-        { bookingId: booking.id, position: 1, playerName: p1Name },
-        { bookingId: booking.id, position: 2, playerName: 'Jugador 2' },
-        { bookingId: booking.id, position: 3, playerName: 'Jugador 3' },
-        { bookingId: booking.id, position: 4, playerName: 'Jugador 4' },
-      ],
-    })
+    // Crear reserva usando el servicio optimizado
+    const result = await bookingService.createBooking(validatedData)
 
-    const full = await getBookingById(booking.id)
-    
-    // Emitir evento SSE para notificar nueva reserva
+    if (!result.success) {
+      return NextResponse.json(result, { status: 400 })
+    }
+
+    // Emitir eventos SSE para actualizaciones en tiempo real
     eventEmitters.bookingsUpdated({
       action: 'created',
-      booking: full,
-      message: `Nueva reserva creada para ${dateStr} ${startTime}-${endTime}`
+      booking: result.data,
+      message: `Nueva reserva creada para ${validatedData.bookingDate} ${validatedData.startTime}-${validatedData.endTime}`
     })
     
-    // También emitir actualización de slots ya que la disponibilidad cambió
     eventEmitters.slotsUpdated({
       action: 'availability_changed',
-      courtId: booking.courtId,
-      date: dateStr,
-      message: `Disponibilidad actualizada para ${dateStr}`
+      courtId: validatedData.courtId,
+      date: validatedData.bookingDate,
+      message: `Disponibilidad actualizada para ${validatedData.bookingDate}`
     })
-    
-    return NextResponse.json({ id: booking.id, booking: full }, { status: 201 })
+
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
-    console.error('Error creating booking:', error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error('Error in POST /api/bookings:', error)
+    
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Datos de reserva inválidos',
+          details: formatZodError(error)
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }
 

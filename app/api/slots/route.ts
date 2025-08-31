@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     if (!validationResult.success) {
       return NextResponse.json({ 
         error: 'Parámetros inválidos', 
-        details: validationResult.error.errors 
+        details: validationResult.error.issues 
       }, { status: 400 })
     }
 
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
     const startHour = 14
     const endHour = 24
     const slotDuration = 1.5 // 90 minutos
-    const basePrice = court.basePrice || 6000
+    const basePrice = court.base_price || 6000
     const priceMultiplier = court.priceMultiplier || 1
     const finalPrice = Math.round(basePrice * priceMultiplier)
 
@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ 
         error: 'Datos de entrada inválidos',
-        details: err.errors,
+        details: err.issues,
         responseTime
       }, { status: 400 })
     }

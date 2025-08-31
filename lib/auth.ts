@@ -80,7 +80,7 @@ export const config = {
         
         // Log del acceso de administrador
         if (isAdmin) {
-          await logAdminAccess(user.email!, 'login')
+          logAdminAccess(user.email!, true, 'google', 'login')
         }
         
         // Asignar rol basado en si es admin o no
@@ -128,13 +128,13 @@ export const config = {
         logAdminAccess(user.email!, true, 'google', `new_user_${isAdmin ? 'admin' : 'user'}`)
       }
     },
-    async signOut({ session, token }) {
-      console.log('🔓 Usuario cerró sesión:', session?.user?.email || token?.email)
+    async signOut() {
+      console.log('🔓 Usuario cerró sesión')
     },
    },
    logger: {
-     error(code, metadata) {
-       console.error('❌ NextAuth Error:', code, metadata)
+     error(error) {
+       console.error('❌ NextAuth Error:', error)
      },
      warn(code) {
        console.warn('⚠️ NextAuth Warning:', code)

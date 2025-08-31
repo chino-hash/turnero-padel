@@ -59,7 +59,7 @@ const getTextClasses = (isDarkMode: boolean, variant: 'primary' | 'secondary' | 
   const variants = {
     primary: isDarkMode ? 'text-white' : 'text-gray-900',
     secondary: isDarkMode ? 'text-gray-300' : 'text-gray-600',
-    muted: isDarkMode ? 'text-gray-400' : 'text-gray-500'
+    muted: isDarkMode ? 'text-gray-400' : 'text-gray-600'
   }
   return variants[variant]
 }
@@ -157,7 +157,7 @@ const BookingCard = React.memo<{
               variant="outline"
               size="sm"
               onClick={() => onCancelBooking(booking.id)}
-              className={`text-xs px-2 py-1 h-auto border ${isDarkMode ? 'border-red-600 text-red-400 hover:bg-red-900/20' : 'border-red-300 text-red-600 hover:bg-red-50'}`}
+              className={`text-xs px-2 py-1 h-auto border ${isDarkMode ? 'border-red-600 text-red-400 hover:bg-red-900/20' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
             >
               Cancelar
             </Button>
@@ -197,7 +197,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
             className={`transition-all duration-300 ${
               isDarkMode
                 ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
-                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
             }`}
           >
             <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
@@ -247,7 +247,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                   />
                 ))
               ) : (
-                <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"} empty sin-reservas`} data-testid="empty-bookings">
+                <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-600"} empty sin-reservas`} data-testid="empty-bookings">
                   <div className="mb-4">
                     <div className={`text-4xl mb-3 ${isDarkMode ? "text-gray-600" : "text-gray-300"}`}>
                       📅
@@ -255,7 +255,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                       No tienes turnos reservados
                     </h3>
-                    <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    <p className={`text-sm mb-6 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
                       ¡Reserva tu cancha de pádel y comienza a jugar!
                     </p>
                   </div>
@@ -306,7 +306,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                   />
                 ))
               ) : (
-                <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-500"} empty sin-reservas`} data-testid="empty-past-bookings">
+                <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-600"} empty sin-reservas`} data-testid="empty-past-bookings">
                   <div className="mb-4">
                     <div className={`text-4xl mb-3 ${isDarkMode ? "text-gray-600" : "text-gray-300"}`}>
                       📋
@@ -314,7 +314,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
                       Sin historial de reservas
                     </h3>
-                    <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                    <p className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
                       Aquí aparecerán tus turnos completados
                     </p>
                   </div>

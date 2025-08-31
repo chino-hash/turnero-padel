@@ -1,87 +1,257 @@
-import { NextResponse } from "next/server"
-import { getBookingById } from "@/lib/services/bookings"
-import { auth } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-import { eventEmitters } from "@/lib/sse-events"
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { bookingService } from '@/lib/services/BookingService'
+import { withRateLimit } from '@/lib/rate-limit'
+import { updateBookingSchema } from '@/lib/validations/booking'
+import { formatZodError } from '@/lib/validations/common'
+import { ZodError } from 'zod'
+import { eventEmitters } from '@/lib/sse-events'
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export const runtime = 'nodejs'
+
+interface RouteParams {
+  params: Promise<{
+    id: string
+  }>
+}
+
+// GET /api/bookings/[id] - Obtener reserva específica
+export async function GET(
+  request: NextRequest,
+  { params }: RouteParams
+) {
   try {
-    const { id } = await params
-    const b = await getBookingById(id)
-    if (!b) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(b)
-  } catch (e:any) {
-    return NextResponse.json({ error: e?.message || 'Error' }, { status: 500 })
+    // Verificar autenticación
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      )
+    }
+
+    // Aplicar rate limiting
+    const rateLimitResult = await withRateLimit(
+      request,
+      'booking-read',
+      session.user.id
+    )
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { status: 429 }
+      )
+    }
+
+    const { id: bookingId } = await params
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, error: 'ID de reserva requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Obtener reserva
+    const result = await bookingService.getBookingById(bookingId)
+
+    if (!result.success) {
+      return NextResponse.json(result, { status: 404 })
+    }
+
+    // Verificar permisos: solo admin o propietario pueden ver la reserva
+    if (session.user.role !== 'admin' && result.data.userId !== session.user.id) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permisos para ver esta reserva' },
+        { status: 403 }
+      )
+    }
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error in GET /api/bookings/[id]:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+// PUT /api/bookings/[id] - Actualizar reserva
+export async function PUT(
+  request: NextRequest,
+  { params }: RouteParams
+) {
   try {
+    // Verificar autenticación
     const session = await auth()
-    if (!session?.user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      )
     }
 
-    const { id } = await params
-    const { status, cancellationReason } = await request.json()
-
-    // Verificar que la reserva existe
-    const existingBooking = await prisma.booking.findUnique({
-      where: { id },
-      include: { court: true }
-    })
-
-    if (!existingBooking) {
-      return NextResponse.json({ error: 'Reserva no encontrada' }, { status: 404 })
-    }
-
-    // Verificar permisos: el usuario debe ser el propietario o admin
-    const isOwner = existingBooking.userId === session.user.id
-    const isAdmin = session.user.role === 'ADMIN'
+    // Aplicar rate limiting más estricto para actualizaciones
+    const rateLimitResult = await withRateLimit(
+      request,
+      'booking-update',
+      session.user.id
+    )
     
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json({ error: 'Sin permisos para modificar esta reserva' }, { status: 403 })
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Demasiadas solicitudes de actualización. Intenta de nuevo más tarde.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { status: 429 }
+      )
     }
 
-    // Solo permitir cancelación si el status es CANCELLED
-    if (status !== 'CANCELLED') {
-      return NextResponse.json({ error: 'Solo se permite cancelar reservas' }, { status: 400 })
+    const { id: bookingId } = await params
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, error: 'ID de reserva requerido' },
+        { status: 400 }
+      )
     }
 
-    // Actualizar la reserva
-    const updatedBooking = await prisma.booking.update({
-      where: { id },
-      data: {
-        status: 'CANCELLED',
-        cancellationReason: cancellationReason || 'Cancelada por el usuario',
-        updatedAt: new Date()
-      },
-      include: {
-        court: true,
-        user: true,
-        players: true
-      }
+    // Obtener y validar datos del cuerpo
+    const body = await request.json()
+    const validatedData = updateBookingSchema.parse(body)
+
+    // Actualizar reserva
+    const result = await bookingService.updateBooking(
+      bookingId,
+      validatedData,
+      session.user.id,
+      session.user.role === 'admin'
+    )
+
+    if (!result.success) {
+      const statusCode = result.error.includes('No encontrada') ? 404 :
+                        result.error.includes('permisos') ? 403 : 400
+      return NextResponse.json(result, { status: statusCode })
+    }
+
+    // Emitir evento SSE para actualizaciones en tiempo real
+    eventEmitters.bookingsUpdated({
+      action: 'updated',
+      booking: result.data,
+      message: `Reserva ${bookingId} actualizada`
     })
 
-    // Emitir eventos SSE
+    // Si se cambió la fecha/hora, actualizar disponibilidad
+    if (validatedData.bookingDate || validatedData.startTime || validatedData.endTime) {
+      eventEmitters.slotsUpdated({
+        action: 'availability_changed',
+        courtId: result.data.courtId,
+        date: result.data.bookingDate,
+        message: `Disponibilidad actualizada para ${result.data.bookingDate}`
+      })
+    }
+
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error in PUT /api/bookings/[id]:', error)
+    
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Datos de actualización inválidos',
+          details: formatZodError(error)
+        },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/bookings/[id] - Eliminar reserva (soft delete)
+export async function DELETE(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    // Verificar autenticación
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      )
+    }
+
+    // Aplicar rate limiting
+    const rateLimitResult = await withRateLimit(
+      request,
+      'booking-update', // Usar el mismo límite que update
+      session.user.id
+    )
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
+          retryAfter: rateLimitResult.retryAfter
+        },
+        { status: 429 }
+      )
+    }
+
+    const { id: bookingId } = await params
+    if (!bookingId) {
+      return NextResponse.json(
+        { success: false, error: 'ID de reserva requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Eliminar reserva (soft delete)
+    const result = await bookingService.cancelBooking(
+      bookingId,
+      session.user.id,
+      session.user.role === 'admin'
+    )
+
+    if (!result.success) {
+      const statusCode = result.error.includes('No encontrada') ? 404 :
+                        result.error.includes('permisos') ? 403 : 400
+      return NextResponse.json(result, { status: statusCode })
+    }
+
+    // Emitir eventos SSE para actualizaciones en tiempo real
     eventEmitters.bookingsUpdated({
       action: 'cancelled',
-      booking: updatedBooking,
-      message: `Reserva cancelada: ${existingBooking.court.name} - ${existingBooking.startTime}`
+      booking: result.data,
+      message: `Reserva ${bookingId} cancelada`
     })
 
     eventEmitters.slotsUpdated({
-      action: 'booking_cancelled',
-      courtId: existingBooking.courtId,
-      date: existingBooking.startTime,
-      message: `Horario liberado en ${existingBooking.court.name}`
+      action: 'availability_changed',
+      courtId: result.data.courtId,
+      date: result.data.bookingDate,
+      message: `Disponibilidad actualizada para ${result.data.bookingDate}`
     })
 
-    return NextResponse.json(updatedBooking)
-  } catch (error: any) {
-    console.error('Error cancelando reserva:', error)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error('Error in DELETE /api/bookings/[id]:', error)
     return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     )
   }

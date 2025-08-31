@@ -41,13 +41,13 @@ function transformCourtData(court: any): Court {
   // Generate colors based on court name or ID
   const getCourtColors = (courtId: string, courtName: string) => {
     const name = courtName.toLowerCase()
-    if (name.includes('a') || courtId === 'court-a') {
+    if (name.includes('a') || courtId === 'cmew6nvsd0001u2jcngxgt8au') {
       return {
         color: '#8b5cf6',
         bgColor: 'bg-purple-100',
         textColor: 'text-purple-700'
       }
-    } else if (name.includes('b') || courtId === 'court-b') {
+    } else if (name.includes('b') || courtId === 'cmew6nvsd0002u2jcc24nirbn') {
       return {
         color: '#ef4444',
         bgColor: 'bg-red-100',
@@ -145,16 +145,16 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 // Actualizar cancha
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
-    // Convertir base_price a centavos si está presente
-    const updateData = { ...data }
-    if (updateData.base_price !== undefined) {
-      updateData.basePrice = Math.round(updateData.base_price * 100)
-      delete updateData.base_price
+    // Preparar datos para Prisma, convirtiendo base_price a basePrice si está presente
+    const prismaData: any = { ...data }
+    if (data.base_price !== undefined) {
+      prismaData.basePrice = Math.round(data.base_price * 100)
+      delete prismaData.base_price
     }
     
     const court = await prisma.court.update({
       where: { id },
-      data: updateData
+      data: prismaData
     })
     return transformCourtData(court)
   } catch (error) {

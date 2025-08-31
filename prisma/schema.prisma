@@ -1,16 +1,15 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  extensions = [pg_trgm]
 }
 
-// NextAuth.js required tables
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -24,10 +23,11 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId]) // Cuentas por usuario
+  @@index([provider]) // Filtrar por proveedor
 }
 
 model Session {
@@ -36,32 +36,36 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId]) // Sesiones por usuario
+  @@index([expires]) // Limpiar sesiones expiradas
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  
-  // Custom fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Profile information
-  fullName    String?
-  phone       String?
-  role        Role     @default(USER)
-  isActive    Boolean  @default(true)
-  lastLogin   DateTime?
-  preferences String   @default("{}")
-  
-  // Relations
-  bookings Booking[]
+  id                String    @id @default(cuid())
+  name              String?
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? // Soft delete
+  fullName          String?
+  phone             String?
+  role              Role      @default(USER)
+  isActive          Boolean   @default(true)
+  lastLogin         DateTime?
+  preferences       String    @default("{}")
+  accounts          Account[]
+  bookings          Booking[]
   paymentsProcessed Payment[] @relation("ProcessedBy")
+  sessions          Session[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model VerificationToken {
@@ -72,7 +76,153 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Custom enums
+model Court {
+  id              String    @id @default(cuid())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime? // Soft delete
+  name            String
+  description     String?
+  basePrice       Int
+  priceMultiplier Float     @default(1.0)
+  features        String
+  isActive        Boolean   @default(true)
+  operatingHours  String    @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
+  bookings        Booking[]
+
+  @@index([isActive])
+  @@index([name])
+  @@index([deletedAt])
+}
+
+model Booking {
+  id                 String          @id @default(cuid())
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  deletedAt          DateTime?       // Soft delete
+  courtId            String
+  userId             String
+  bookingDate        DateTime
+  startTime          String
+  endTime            String
+  durationMinutes    Int             @default(90)
+  totalPrice         Int
+  depositAmount      Int             @default(0)
+  status             BookingStatus   @default(PENDING)
+  paymentStatus      PaymentStatus   @default(PENDING)
+  paymentMethod      PaymentMethod?
+  notes              String?
+  cancelledAt        DateTime?
+  cancellationReason String?
+  court              Court           @relation(fields: [courtId], references: [id])
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  players            BookingPlayer[]
+  payments           Payment[]
+
+  @@unique([courtId, bookingDate, startTime, endTime])
+  // Índices para consultas frecuentes
+  @@index([courtId, bookingDate]) // Disponibilidad por cancha y fecha
+  @@index([userId, bookingDate]) // Reservas del usuario por fecha
+  @@index([status, bookingDate]) // Filtrar por estado y fecha
+  @@index([paymentStatus]) // Filtrar por estado de pago
+  @@index([bookingDate, startTime]) // Ordenar por fecha y hora
+  @@index([createdAt]) // Ordenar por fecha de creación
+  @@index([deletedAt]) // Soft delete queries
+  @@index([courtId, status, bookingDate]) // Consulta compuesta frecuente
+}
+
+model BookingPlayer {
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  deletedAt     DateTime?      // Soft delete
+  bookingId     String
+  playerName    String
+  playerPhone   String?
+  playerEmail   String?
+  hasPaid       Boolean        @default(false)
+  paidAmount    Int            @default(0)
+  paidAt        DateTime?
+  paymentMethod PaymentMethod?
+  position      Int?
+  notes         String?
+  booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+
+  @@unique([bookingId, position])
+  @@index([bookingId]) // Consultas por reserva
+  @@index([hasPaid]) // Filtrar por estado de pago
+  @@index([playerEmail]) // Buscar por email
+  @@index([deletedAt]) // Soft delete queries
+}
+
+model Payment {
+  id              String         @id @default(cuid())
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?      // Soft delete
+  bookingId       String
+  playerId        String?
+  processedById   String?
+  amount          Int
+  paymentMethod   PaymentMethod
+  paymentType     PaymentType    @default(PAYMENT)
+  referenceNumber String?
+  notes           String?
+  status          String         @default("completed")
+  booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  player          BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  processedBy     User?          @relation("ProcessedBy", fields: [processedById], references: [id])
+
+  @@index([bookingId]) // Pagos por reserva
+  @@index([playerId]) // Pagos por jugador
+  @@index([processedById]) // Pagos procesados por usuario
+  @@index([paymentMethod]) // Filtrar por método de pago
+  @@index([paymentType]) // Filtrar por tipo de pago
+  @@index([status]) // Filtrar por estado
+  @@index([createdAt]) // Ordenar por fecha
+  @@index([referenceNumber]) // Buscar por número de referencia
+  @@index([deletedAt]) // Soft delete queries
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  key         String   @unique
+  value       String
+  description String?
+  category    String   @default("general")
+  isPublic    Boolean  @default(false)
+}
+
+model Producto {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  nombre    String
+  precio    Float
+  stock     Int      @default(0)
+  categoria String
+  activo    Boolean  @default(true)
+
+  @@index([categoria])
+  @@index([activo])
+}
+
+model AdminWhitelist {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  addedBy   String?
+  notes     String?
+
+  @@index([email])
+  @@index([isActive])
+}
+
 enum Role {
   USER
   ADMIN
@@ -102,147 +252,4 @@ enum PaymentType {
   PAYMENT
   REFUND
   ADJUSTMENT
-}
-
-// Business models
-model Court {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  name        String
-  description String?
-  
-  basePrice      Int     // En centavos
-  priceMultiplier Float  @default(1.0)
-  
-  features String   // JSON string for SQLite
-  isActive Boolean @default(true)
-  operatingHours String @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
-  
-  bookings Booking[]
-}
-
-model Booking {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  courtId String
-  userId  String
-  
-  bookingDate     DateTime
-  startTime       String   // Stored as string "HH:MM"
-  endTime         String   // Stored as string "HH:MM"
-  durationMinutes Int      @default(90)
-  
-  totalPrice    Int // En centavos
-  depositAmount Int @default(0)
-  
-  status        BookingStatus  @default(PENDING)
-  paymentStatus PaymentStatus  @default(PENDING)
-  paymentMethod PaymentMethod?
-  
-  notes              String?
-  cancelledAt        DateTime?
-  cancellationReason String?
-  
-  // Relations
-  court   Court           @relation(fields: [courtId], references: [id], onDelete: Restrict)
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  players BookingPlayer[]
-  payments Payment[]
-  
-  @@unique([courtId, bookingDate, startTime, endTime])
-}
-
-model BookingPlayer {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  bookingId String
-  
-  playerName  String
-  playerPhone String?
-  playerEmail String?
-  
-  hasPaid       Boolean        @default(false)
-  paidAmount    Int            @default(0)
-  paidAt        DateTime?
-  paymentMethod PaymentMethod?
-  
-  position Int? // 1-4
-  notes    String?
-  
-  // Relations
-  booking  Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  payments Payment[]
-  
-  @@unique([bookingId, position])
-}
-
-model Payment {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  
-  bookingId     String
-  playerId      String?
-  processedById String?
-  
-  amount        Int         // En centavos
-  paymentMethod PaymentMethod
-  paymentType   PaymentType @default(PAYMENT)
-  
-  referenceNumber String?
-  notes           String?
-  status          String   @default("completed") // pending, completed, failed, refunded
-  
-  // Relations
-  booking     Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  player      BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  processedBy User?          @relation("ProcessedBy", fields: [processedById], references: [id], onDelete: SetNull)
-}
-
-model SystemSetting {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  key         String  @unique
-  value       String
-  description String?
-  category    String  @default("general")
-  isPublic    Boolean @default(false)
-}
-
-// Modelo de Productos
-model Producto {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  nombre    String
-  precio    Float
-  stock     Int      @default(0)
-  categoria String
-  activo    Boolean  @default(true)
-
-  @@index([categoria])
-  @@index([activo])
-}
-
-// Admin Whitelist - Sistema flexible de administradores
-model AdminWhitelist {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  email       String  @unique
-  isActive    Boolean @default(true)
-  addedBy     String? // Email del admin que agregó este email
-  notes       String?
-
-  @@index([email])
-  @@index([isActive])
 }

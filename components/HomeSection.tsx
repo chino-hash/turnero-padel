@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import SlotModal from './SlotModal'
+
 import { TimeSlot } from '@/types/types'
 import { useAppState } from '@/components/providers/AppStateProvider'
 
@@ -149,7 +150,7 @@ export default function HomeSection({
               className={`transition-all duration-300 ${
                 isDarkMode
                   ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
               }`}
             >
               {isDarkMode ? (
@@ -176,6 +177,8 @@ export default function HomeSection({
             Reserva tu horario preferido para una experiencia increíble de padel
           </p>
         </div>
+
+
 
         {/* Court Info Card */}
         <Card
@@ -230,7 +233,7 @@ export default function HomeSection({
                     </div>
                   </div>
                   
-                  <p className={`text-sm mt-3 leading-relaxed ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  <p className={`text-sm mt-3 leading-relaxed ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
                     {selectedCourtData.description}
                   </p>
                 </div>
@@ -241,7 +244,7 @@ export default function HomeSection({
                 <div className={`rounded-lg p-4 border ${
                   isDarkMode 
                     ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600' 
-                    : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200'
+                    : 'bg-gradient-to-br from-white to-gray-100 border-gray-200'
                 }`}>
                   <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : selectedCourtData.textColor}`}>
                     ${Math.round(6000 * selectedCourtData.priceMultiplier).toLocaleString()}
@@ -249,7 +252,7 @@ export default function HomeSection({
                   <div className={`text-sm font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                     por persona
                   </div>
-                  <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-300" : "bg-gray-200 text-gray-600"}`}>
+                  <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-300" : "bg-gray-200/50 text-gray-600"}`}>
                     Total: ${Math.round(24000 * selectedCourtData.priceMultiplier).toLocaleString()}
                   </div>
                 </div>
@@ -277,7 +280,7 @@ export default function HomeSection({
                     ? isDarkMode 
                       ? 'bg-gray-700 border-gray-500 shadow-xl'
                       : `${court.bgColor} border-current shadow-xl`
-                    : `${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} hover:border-gray-300 shadow-lg`
+                    : `${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} hover:border-gray-300 shadow-md`
                 }`}
               >
                 {/* Availability Badge */}
@@ -288,8 +291,8 @@ export default function HomeSection({
 
                 {/* Court Illustration */}
                 <div className={`mx-auto mb-4 w-24 h-32 rounded-lg border-2 border-white/30 relative ${
-                  court.id === 'court-a' ? 'bg-gradient-to-b from-purple-400 to-purple-600' :
-                  court.id === 'court-b' ? 'bg-gradient-to-b from-red-400 to-red-600' :
+                  court.id === 'cmew6nvsd0001u2jcngxgt8au' ? 'bg-gradient-to-b from-purple-400 to-purple-600' :
+                  court.id === 'cmew6nvsd0002u2jcc24nirbn' ? 'bg-gradient-to-b from-red-400 to-red-600' :
                   'bg-gradient-to-b from-green-400 to-green-600'
                 }`}>
                   {/* Court lines */}
@@ -499,7 +502,7 @@ export default function HomeSection({
                           ? "bg-blue-500 text-white shadow-lg"
                           : isDarkMode
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
-                            : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
+                            : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
                       <div className="flex flex-col">
@@ -514,7 +517,7 @@ export default function HomeSection({
                           {dayNumber}
                         </div>
                         <div className={`text-xs ${
-                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-500"
+                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-600"
                         }`}>
                           {monthName}
                         </div>
@@ -547,7 +550,7 @@ export default function HomeSection({
                           ? "bg-blue-500 text-white shadow-lg"
                           : isDarkMode
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
-                            : "bg-white text-gray-900 hover:bg-gray-50 border border-gray-200"
+                            : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                       }`}
                     >
                       <div className="flex flex-col">
@@ -557,7 +560,7 @@ export default function HomeSection({
                           {dayName}
                         </div>
                         <div className={`text-sm ${
-                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-500"
+                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-600"
                         }`}>
                           {dayNumber} {monthName}
                         </div>
@@ -592,7 +595,7 @@ export default function HomeSection({
                   variant="outline"
                   size="sm"
                   disabled={isRefreshing}
-                  className={`flex items-center gap-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
                 >
                   <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   {isRefreshing ? 'Actualizando...' : 'Actualizar'}
@@ -660,11 +663,11 @@ export default function HomeSection({
                     }
                     // Colores por defecto basados en el ID de la cancha
                     switch (courtId) {
-                      case 'court-a':
+                      case 'cmew6nvsd0001u2jcngxgt8au':
                         return '#a855f7' // purple-500 - más claro y visible
-                      case 'court-b':
+                      case 'cmew6nvsd0002u2jcc24nirbn':
                         return '#dc2626' // red-600
-                      case 'court-c':
+                      case 'cmew6nvi40000u2jcmer3av60':
                         return '#008000' // green específico
                       default:
                         return '#4b5563' // gray-600

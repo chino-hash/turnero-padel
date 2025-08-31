@@ -6,9 +6,42 @@ import { Court } from '@/types/types'
 
 // Datos de prueba
 const testCourts: Court[] = [
-  { id: '1', name: 'Cancha 1', type: 'padel', isActive: true },
-  { id: '2', name: 'Cancha 2', type: 'padel', isActive: true },
-  { id: '3', name: 'Cancha 3', type: 'padel', isActive: true }
+  { 
+    id: '1', 
+    name: 'Cancha 1', 
+    description: 'Cancha de prueba 1',
+    features: ['techada', 'iluminada'],
+    priceMultiplier: 1.0,
+    color: '#8b5cf6',
+    bgColor: 'bg-purple-100',
+    textColor: 'text-purple-700',
+    base_price: 6000,
+    isActive: true 
+  },
+  { 
+    id: '2', 
+    name: 'Cancha 2', 
+    description: 'Cancha de prueba 2',
+    features: ['al aire libre'],
+    priceMultiplier: 0.9,
+    color: '#ef4444',
+    bgColor: 'bg-red-100',
+    textColor: 'text-red-700',
+    base_price: 5500,
+    isActive: true 
+  },
+  { 
+    id: '3', 
+    name: 'Cancha 3', 
+    description: 'Cancha de prueba 3',
+    features: ['premium', 'climatizada'],
+    priceMultiplier: 1.2,
+    color: '#22c55e',
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-700',
+    base_price: 7000,
+    isActive: true 
+  }
 ]
 
 const SlotsTest: React.FC = () => {
@@ -22,7 +55,7 @@ const SlotsTest: React.FC = () => {
     summary,
     loading,
     error,
-    fetchSlots,
+    retry,
     clearCache,
     courtName,
     courtId,
@@ -43,21 +76,18 @@ const SlotsTest: React.FC = () => {
     summariesByCourt,
     loading: multipleLoading,
     error: multipleError,
-    fetchSlots: fetchMultipleSlots,
+    retry: retryMultiple,
     clearAllCache,
     clearCacheForCourt,
     getCacheStats
   } = useMultipleSlots(testCourts, selectedDate)
 
   const handleFetchSingle = () => {
-    const dateStr = formatDate(selectedDate)
-    fetchSlots(selectedCourtId, dateStr)
+    retry()
   }
 
   const handleFetchMultiple = () => {
-    const dateStr = formatDate(selectedDate)
-    const courtIds = testCourts.map(court => court.id)
-    fetchMultipleSlots(courtIds, [dateStr])
+    retryMultiple()
   }
 
   const handleClearCache = async () => {

@@ -7,7 +7,7 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.ts'],
   setupFiles: ['<rootDir>/jest-setup-globals.js'],
   testEnvironment: 'jsdom',
   testPathIgnorePatterns: [
@@ -57,10 +57,18 @@ const customJestConfig = {
     '**/__tests__/**/*.(js|jsx|ts|tsx)',
     '**/*.(test).(js|jsx|ts|tsx)',
     '!**/tests/e2e/**/*.(spec).(js|jsx|ts|tsx)',
+    '**/__tests__/**/*.test.ts',
+    '**/__tests__/**/*.test.tsx'
   ],
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    '^.+\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
+  
+  // Configuración específica para tests de CRUD
+  testTimeout: 10000,
+  clearMocks: true,
+  restoreMocks: true,
+  verbose: true,
   transformIgnorePatterns: [
     'node_modules/(?!(next-auth|@auth/core)/)',
     '^.+\\.module\\.(css|sass|scss)$',

@@ -84,8 +84,10 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
       setError(null)
       
       try {
+        const dateStr = ymd(currentDate)
+        console.log('🔍 Fetching slots:', { courtId, date: dateStr, currentDate })
         const res = await fetch(
-          `/api/slots?courtId=${courtId}&date=${ymd(currentDate)}`,
+          `/api/slots?courtId=${courtId}&date=${dateStr}`,
           { signal }
         )
         

@@ -1,10 +1,3 @@
-/*
- * ⚠️ ARCHIVO PROTEGIDO - NO MODIFICAR SIN AUTORIZACIÓN
- * Este archivo es crítico para usuarios finales y no debe modificarse sin autorización.
- * Cualquier cambio requiere un proceso formal de revisión y aprobación.
- * Contacto: Administrador del Sistema
- */
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -15,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { removeDuplicates } from '@/lib/utils/array-utils'
 import { useAppState } from '@/components/providers/AppStateProvider'
 import { useCourtPrices } from '@/hooks/useCourtPrices'
+import CalendarModal from './CalendarModal'
 
-// Interfaces segÃºn especificaciones del documento
+// Interfaces según especificaciones del documento
 interface Booking {
   id: string
   courtName: string
@@ -40,23 +34,15 @@ interface Booking {
     player3: 'pagado' | 'pendiente'
     player4: 'pagado' | 'pendiente'
   }
-  paymentDetails: {
-    player1: { lastPaymentDate?: string; pendingAmount?: number }
-    player2: { lastPaymentDate?: string; pendingAmount?: number }
-    player3: { lastPaymentDate?: string; pendingAmount?: number }
-    player4: { lastPaymentDate?: string; pendingAmount?: number }
-  }
   extras: Extra[]
-  lastUpdated?: number
 }
 
 interface Extra {
   id: string
-  type: 'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro'
+  type: 'pelotas' | 'bebida' | 'paleta'
   name: string
   cost: number
-  assignedTo: 'all' | 'player1' | 'player2' | 'player3' | 'player4' | 'individual'
-  individualEnabled?: boolean
+  assignedTo: 'all' | 'player1' | 'player2' | 'player3' | 'player4'
 }
 
 interface AdminTurnosProps {
@@ -67,7 +53,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
   const { isDarkMode, getPaymentStatusColor, getStatusColor } = useAppState()
   const { courts, getCourtTotalPrice, getCourtPrice, isCourtActive } = useCourtPrices()
   
-  // Estados del componente segÃºn especificaciones
+  // Estados del componente según especificaciones
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(false)
@@ -80,32 +66,32 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
-  const [selectedExtraType, setSelectedExtraType] = useState<'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro' | null>(null)
+  const [selectedExtraType, setSelectedExtraType] = useState<'pelotas' | 'bebida' | 'paleta' | null>(null)
   const [extraCost, setExtraCost] = useState(0)
-  const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4' | 'individual'>('all')
-  const [isIndividualEnabled, setIsIndividualEnabled] = useState(false)
-  const [extraIndividualEnabled, setExtraIndividualEnabled] = useState(false)
-  const [productos, setProductos] = useState<any[]>([])
-  const [loadingProductos, setLoadingProductos] = useState(false)
+  const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
 
-  // Datos mock para desarrollo segÃºn especificaciones
+  // Estados para la modal de calendario
+  const [showCalendarModal, setShowCalendarModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(new Date())
+
+  // Datos mock para desarrollo según especificaciones
   const mockBookings: Booking[] = [
     {
       id: '1',
       courtName: 'Cancha 1',
       date: '2024-01-20',
       timeRange: '10:00 - 11:30',
-      userName: 'Juan PÃ©rez',
+      userName: 'Juan Pérez',
       userEmail: 'juan@email.com',
       status: 'confirmado',
       paymentStatus: 'parcial',
       totalPrice: 8000,
       createdAt: '2024-01-19T10:00:00Z',
       players: {
-        player1: 'Juan PÃ©rez',
-        player2: 'Jugador 2',
-        player3: 'Jugador 3',
-        player4: 'Jugador 4'
+        player1: 'Juan Pérez',
+        player2: 'María García',
+        player3: 'Carlos López',
+        player4: 'Ana Martín'
       },
       individualPayments: {
         player1: 'pagado',
@@ -113,16 +99,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
         player3: 'pendiente',
         player4: 'pagado'
       },
-      paymentDetails: {
-        player1: { lastPaymentDate: '2024-01-19', pendingAmount: 0 },
-        player2: { lastPaymentDate: '2024-01-19', pendingAmount: 0 },
-        player3: { lastPaymentDate: undefined, pendingAmount: 2375 },
-        player4: { lastPaymentDate: '2024-01-19', pendingAmount: 0 }
-      },
       extras: [
         {
           id: 'extra1',
-          type: 'pelota',
+          type: 'pelotas',
           name: 'Pelotas Wilson',
           cost: 1500,
           assignedTo: 'all'
@@ -134,29 +114,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       courtName: 'Cancha 2',
       date: '2024-01-20',
       timeRange: '14:00 - 15:30',
-      userName: 'Pedro RodrÃ­guez',
+      userName: 'Pedro Rodríguez',
       userEmail: 'pedro@email.com',
       status: 'completado',
       paymentStatus: 'pagado',
       totalPrice: 12000,
       createdAt: '2024-01-19T14:00:00Z',
       players: {
-        player1: 'Pedro RodrÃ­guez',
-        player2: 'Jugador 2',
-        player3: 'Jugador 3',
-        player4: 'Jugador 4'
+        player1: 'Pedro Rodríguez',
+        player2: 'Laura Sánchez',
+        player3: 'Miguel Torres',
+        player4: 'Carmen Ruiz'
       },
       individualPayments: {
         player1: 'pagado',
         player2: 'pagado',
         player3: 'pagado',
         player4: 'pagado'
-      },
-      paymentDetails: {
-        player1: { lastPaymentDate: '2024-01-20', pendingAmount: 0 },
-        player2: { lastPaymentDate: '2024-01-20', pendingAmount: 0 },
-        player3: { lastPaymentDate: '2024-01-20', pendingAmount: 0 },
-        player4: { lastPaymentDate: '2024-01-20', pendingAmount: 0 }
       },
       extras: [
         {
@@ -168,7 +142,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
         },
         {
           id: 'extra3',
-          type: 'alquiler_raqueta',
+          type: 'paleta',
           name: 'Paleta Bullpadel',
           cost: 2500,
           assignedTo: 'player3'
@@ -180,27 +154,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       courtName: 'Cancha 3',
       date: '2024-01-21',
       timeRange: '16:00 - 17:30',
-      userName: 'Ana LÃ³pez',
+      userName: 'Ana López',
       userEmail: 'ana@email.com',
       status: 'confirmado',
       paymentStatus: 'pendiente',
       totalPrice: 10000,
       createdAt: '2024-01-20T16:00:00Z',
       players: {
-        player1: 'Ana LÃ³pez',
-        player2: 'Jugador 2'
+        player1: 'Ana López',
+        player2: 'Roberto Silva'
       },
       individualPayments: {
         player1: 'pendiente',
         player2: 'pendiente',
         player3: 'pendiente',
         player4: 'pendiente'
-      },
-      paymentDetails: {
-        player1: { lastPaymentDate: undefined, pendingAmount: 5000 },
-        player2: { lastPaymentDate: undefined, pendingAmount: 5000 },
-        player3: { lastPaymentDate: undefined, pendingAmount: 0 },
-        player4: { lastPaymentDate: undefined, pendingAmount: 0 }
       },
       extras: []
     }
@@ -211,60 +179,41 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
   // Eliminar declaraciones duplicadas de getPaymentStatusColor y getStatusColor
   // ya que se están importando desde useAppState()
   
-  // Función para determinar el estado del turno basado en la fecha y hora actual
-  const getBookingStatus = (booking: Booking): 'Confirmado' | 'Completado' => {
-    const now = new Date()
-    const bookingDate = new Date(booking.date)
-    
-    // Extraer la hora de inicio del timeRange (formato: "HH:MM - HH:MM")
-    const timeStart = booking.timeRange.split(' - ')[0]
-    const [hours, minutes] = timeStart.split(':').map(Number)
-    
-    // Crear fecha completa del turno con la hora de inicio
-    const bookingDateTime = new Date(bookingDate)
-    bookingDateTime.setHours(hours, minutes, 0, 0)
-    
-    // Comparar con la hora actual
-    return now >= bookingDateTime ? 'Completado' : 'Confirmado'
+  // Convertir reservas al formato de eventos del calendario
+  const convertBookingsToCalendarEvents = () => {
+    return filteredBookings.map(booking => ({
+      id: booking.id,
+      title: `${booking.userName} - ${booking.courtName}`,
+      date: booking.date,
+      time: booking.timeRange,
+      court: booking.courtName,
+      status: booking.status,
+      players: Object.values(booking.players).filter(Boolean).length,
+      price: booking.totalPrice
+    }))
   }
-
-  // Función para obtener el nombre del jugador según la nueva lógica
-  const getPlayerDisplayName = (playerKey: string, playerName: string): string => {
-    if (playerKey === 'player1') {
-      return playerName // Usar el nombre real del titular
-    }
-    // Usar nombres genéricos para los demás jugadores
-    const playerNumber = playerKey.slice(-1)
-    return `Jugador ${playerNumber}`
-  }
-
+  
   // Función para calcular monto individual de cada jugador
   const calculatePlayerAmount = (booking: Booking, playerKey: keyof Booking['players']): number => {
     const totalPlayers = Object.keys(booking.players).filter(key => booking.players[key as keyof Booking['players']]).length
     const baseAmount = booking.totalPrice / totalPlayers
     
-    // Calcular extras
-    const extrasAmount = booking.extras.reduce((sum, extra) => {
+    // Agregar extras asignados al jugador específico
+    const playerExtras = booking.extras.filter(extra => 
+      extra.assignedTo === playerKey || extra.assignedTo === 'all'
+    )
+    
+    const extrasAmount = playerExtras.reduce((sum, extra) => {
       if (extra.assignedTo === 'all') {
-        // Extras para todos los jugadores se dividen entre todos
         return sum + (extra.cost / totalPlayers)
-      } else if (extra.assignedTo === 'individual') {
-        // Extras individuales se dividen entre todos los jugadores solo si están habilitados
-        if (extra.individualEnabled) {
-          return sum + (extra.cost / totalPlayers)
-        }
-        return sum
-      } else if (extra.assignedTo === playerKey) {
-        // Extras asignados específicamente a este jugador
-        return sum + extra.cost
       }
-      return sum
+      return sum + extra.cost
     }, 0)
     
     return baseAmount + extrasAmount
   }
 
-  // Funciones para gestiÃ³n de extras
+  // Funciones para gestión de extras
   const addExtra = (bookingId: string, extra: Omit<Extra, 'id'>) => {
     const newExtra: Extra = {
       ...extra,
@@ -290,63 +239,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     )
   }
 
-  // Función para calcular precio total considerando extras individuales
-  const calculateTotalPrice = (booking: Booking) => {
-    const basePrice = booking.totalPrice;
-    const extrasPrice = booking.extras.reduce((sum, extra) => {
-      // Si es individual y no está habilitado, no se suma al precio
-      if (extra.assignedTo === 'individual' && !extra.individualEnabled) {
-        return sum;
-      }
-      return sum + extra.cost;
-    }, 0);
-    return basePrice + extrasPrice;
-  }
-
-  const toggleIndividualExtra = (bookingId: string, extraId: string) => {
-    setBookings(prevBookings => 
-      prevBookings.map(booking => {
-        if (booking.id === bookingId) {
-          const updatedExtras = booking.extras.map(extra => {
-            if (extra.id === extraId && extra.assignedTo === 'individual') {
-              return { ...extra, individualEnabled: !extra.individualEnabled }
-            }
-            return extra
-          })
-          
-          // Crear booking temporal con extras actualizados para recalcular montos
-          const tempBooking = { ...booking, extras: updatedExtras }
-          
-          // Recalcular paymentDetails para todos los jugadores
-          const updatedPaymentDetails = Object.keys(booking.paymentDetails).reduce((acc, key) => {
-            const playerKey = key as keyof typeof booking.paymentDetails
-            const currentDetails = booking.paymentDetails[playerKey]
-            const newPendingAmount = booking.individualPayments[playerKey] === 'pendiente' 
-              ? calculatePlayerAmount(tempBooking, playerKey)
-              : 0
-            
-            acc[playerKey] = {
-              lastPaymentDate: currentDetails?.lastPaymentDate || '',
-              pendingAmount: newPendingAmount
-            }
-            return acc
-          }, {} as typeof booking.paymentDetails)
-          
-          return { 
-            ...booking, 
-            extras: updatedExtras,
-            paymentDetails: updatedPaymentDetails,
-            // Agregar timestamp para forzar re-renderización
-            lastUpdated: Date.now()
-          }
-        }
-        return booking
-      })
-    )
-    // Forzar actualización del estado filtrado
-    setFilteredBookings(prev => [...prev])
-  }
-
   const openExtrasModal = (bookingId: string) => {
     setSelectedBookingId(bookingId)
     setShowExtrasModal(true)
@@ -363,82 +255,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     setExtraAssignedTo('all')
   }
 
-  // Cargar productos desde la API
-  const loadProductos = async () => {
-    setLoadingProductos(true)
-    try {
-      const response = await fetch('/api/productos')
-      if (response.ok) {
-        const result = await response.json()
-        // La API devuelve { success: true, data: productos[] }
-        if (result.success && Array.isArray(result.data)) {
-          setProductos(result.data)
-        } else {
-          console.warn('API response format unexpected:', result)
-          setProductos([])
-        }
-      } else {
-        console.error('Failed to fetch productos:', response.status)
-        setProductos([])
-      }
-    } catch (error) {
-      console.error('Error loading productos:', error)
-      setProductos([])
-    } finally {
-      setLoadingProductos(false)
-    }
-  }
-
-  // Obtener precio del producto según el tipo de extra
-  const getProductPrice = (extraType: string) => {
-    const productMap = {
-      'alquiler_raqueta': 'Alquiler de Raqueta',
-      'pelota': 'Pelota de Pádel', 
-      'toalla': 'Toalla',
-      'bebida': 'Bebida',
-      'snack': 'Snack',
-      'otro': 'Otro'
-    }
-    
-    // Validar que productos sea un array antes de usar find
-    if (!Array.isArray(productos)) {
-      console.warn('productos is not an array:', productos)
-      return 0
-    }
-    
-    const productName = productMap[extraType]
-    const product = productos.find(p => p.nombre === productName && p.activo)
-    return product ? product.precio : 0
-  }
-
-  // Manejar cambio de tipo de extra y actualizar precio automáticamente
-  const handleExtraTypeChange = (type: string) => {
-    setSelectedExtraType(type as 'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro')
-    const price = getProductPrice(type)
-    setExtraCost(price)
-  }
-
   const handleAddExtra = () => {
     if (!selectedBookingId || !selectedExtraType || extraCost <= 0) return
     
     const extraNames = {
-      alquiler_raqueta: 'Alquiler de Raqueta',
-      pelota: 'Pelota de Pádel',
-      toalla: 'Toalla',
+      pelotas: 'Pelotas de Pádel',
       bebida: 'Bebida',
-      snack: 'Snack',
-      otro: 'Otro'
+      paleta: 'Paleta de Pádel'
     }
     
-    const newExtra = {
+    addExtra(selectedBookingId, {
       type: selectedExtraType,
       name: extraNames[selectedExtraType],
       cost: extraCost,
-      assignedTo: extraAssignedTo,
-      ...(extraAssignedTo === 'individual' && { individualEnabled: true })
-    }
-    
-    addExtra(selectedBookingId, newExtra)
+      assignedTo: extraAssignedTo
+    })
     
     closeExtrasModal()
   }
@@ -461,21 +292,14 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     loadBookings()
   }, [])
 
-  // Cargar productos cuando se abre el modal de extras
-  useEffect(() => {
-    if (showExtrasModal) {
-      loadProductos()
-    }
-  }, [showExtrasModal])
-
-  // Filtrar reservas con exclusiÃ³n automÃ¡tica de turnos pendientes
+  // Filtrar reservas con exclusión automática de turnos pendientes
   useEffect(() => {
     let filtered = [...bookings]
 
-    // Filtro automÃ¡tico: excluir turnos pendientes SIEMPRE
+    // Filtro automático: excluir turnos pendientes SIEMPRE
     filtered = filtered.filter(booking => booking.status !== 'pendiente')
 
-    // Filtrar por tÃ©rmino de bÃºsqueda
+    // Filtrar por término de búsqueda
     if (searchTerm) {
       filtered = filtered.filter(booking => 
         booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -484,7 +308,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       )
     }
 
-    // Filtrar por estado especÃ­fico
+    // Filtrar por estado específico
     if (statusFilter !== 'all') {
       filtered = filtered.filter(booking => booking.status === statusFilter)
     }
@@ -539,22 +363,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     setBookings(prevBookings => 
       prevBookings.map(booking => {
         if (booking.id === bookingId) {
-          const newPaymentStatus = booking.individualPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
           const newPayments = {
             ...booking.individualPayments,
-            [playerKey]: newPaymentStatus
-          }
-          
-          // Actualizar paymentDetails
-          const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
-          const currentDate = new Date().toISOString().split('T')[0] // Formato YYYY-MM-DD
-          
-          const newPaymentDetails = {
-            ...booking.paymentDetails,
-            [playerKey]: {
-              lastPaymentDate: newPaymentStatus === 'pagado' ? currentDate : booking.paymentDetails[playerKey as keyof typeof booking.paymentDetails]?.lastPaymentDate,
-              pendingAmount: newPaymentStatus === 'pagado' ? 0 : playerAmount
-            }
+            [playerKey]: booking.individualPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
           }
           
           // Recalcular estado general de pago
@@ -573,7 +384,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
           return {
             ...booking,
             individualPayments: newPayments,
-            paymentDetails: newPaymentDetails,
             paymentStatus
           }
         }
@@ -582,16 +392,17 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     )
   }
 
-  // Calcular estadÃ­sticas
+  // Calcular estadísticas
   const totalBookings = filteredBookings.length
   const confirmedBookings = filteredBookings.filter(b => b.status === 'confirmado').length
   const totalRevenue = filteredBookings.reduce((sum, booking) => {
-    return sum + calculateTotalPrice(booking)
+    const totalAmount = booking.totalPrice + booking.extras.reduce((extraSum, extra) => extraSum + extra.cost, 0)
+    return sum + totalAmount
   }, 0)
   
   const totalCollected = filteredBookings.reduce((sum, booking) => {
     if (booking.paymentStatus === 'pagado') {
-      return sum + calculateTotalPrice(booking)
+      return sum + booking.totalPrice + booking.extras.reduce((extraSum, extra) => extraSum + extra.cost, 0)
     } else if (booking.paymentStatus === 'parcial') {
       const paidPlayers = Object.entries(booking.individualPayments).filter(([_, status]) => status === 'pagado')
       const paidAmount = paidPlayers.reduce((playerSum, [playerKey, _]) => {
@@ -621,7 +432,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 id="turnos-title" className="text-2xl font-bold text-gray-900">GestiÃ³n de Turnos</h2>
+          <h2 id="turnos-title" className="text-2xl font-bold text-gray-900">Gestión de Turnos</h2>
           <p className="text-gray-600" id="turnos-description">Administra y supervisa todas las reservas</p>
         </div>
         
@@ -638,11 +449,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
             Lista
           </Button>
           <Button
-            variant={viewMode === 'calendar' ? 'default' : 'outline'}
+            variant={showCalendarModal ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setViewMode('calendar')}
-            aria-pressed={viewMode === 'calendar'}
-            aria-label="Vista de calendario"
+            onClick={() => setShowCalendarModal(true)}
+            aria-pressed={showCalendarModal}
+            aria-label="Abrir vista de calendario"
             data-testid="view-calendar-button"
           >
             <Calendar className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -651,7 +462,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
         </nav>
       </header>
 
-      {/* EstadÃ­sticas RÃ¡pidas - 3 columnas */}
+      {/* Estadísticas Rápidas - 3 columnas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -809,8 +620,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-blue-600" />
                       {booking.courtName}
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getBookingStatus(booking).toLowerCase(), 'current', isDarkMode)}`}>
-                        {getBookingStatus(booking)}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status, 'current', isDarkMode)}`}>
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                       </span>
                     </CardTitle>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
@@ -827,82 +638,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                         {booking.userName}
                       </span>
                     </div>
-                    
-                    {/* Información adicional de pago en el header */}
-                    <div className="mt-2 text-xs text-gray-500">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* Monto pagado */}
-                        <span className="text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
-                          Pagado: ${(() => {
-                            const totalAmount = calculateTotalPrice(booking);
-                            const pendingAmount = Object.values(booking.paymentDetails).reduce((sum, details) => sum + (details?.pendingAmount || 0), 0);
-                            return (totalAmount - pendingAmount).toLocaleString();
-                          })()}
-                        </span>
-                        
-                        {/* Monto pendiente */}
-                        <span className="text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
-                          Pendiente: ${Object.values(booking.paymentDetails).reduce((sum, details) => sum + (details?.pendingAmount || 0), 0).toLocaleString()}
-                        </span>
-                        
-                        {/* Fecha del último pago si existe */}
-                        {booking.paymentStatus === 'pagado' && (
-                          <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                            Último pago: {Object.values(booking.paymentDetails).find(details => details?.lastPaymentDate)?.lastPaymentDate || 'N/A'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
-                      ${calculateTotalPrice(booking).toLocaleString()}
+                      ${(booking.totalPrice + booking.extras.reduce((sum, extra) => sum + extra.cost, 0)).toLocaleString()}
                     </span>
-                    
-                    {/* Botón toggle de pago general */}
-                    <Button
-                      variant={booking.paymentStatus === 'pagado' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => {
-                        // Toggle del estado de pago general
-                        const newStatus = booking.paymentStatus === 'pagado' ? 'pendiente' : 'pagado'
-                        setBookings(prev => prev.map(b => 
-                          b.id === booking.id 
-                            ? { 
-                                ...b, 
-                                paymentStatus: newStatus,
-                                // Actualizar todos los pagos individuales al mismo estado
-                                individualPayments: Object.keys(b.individualPayments).reduce((acc, key) => {
-                                  acc[key as keyof typeof b.individualPayments] = newStatus
-                                  return acc
-                                }, {} as typeof b.individualPayments),
-                                // Actualizar paymentDetails para todos los jugadores
-                                paymentDetails: Object.keys(b.paymentDetails).reduce((acc, key) => {
-                                  const currentDetails = b.paymentDetails[key as keyof typeof b.paymentDetails]
-                                  acc[key as keyof typeof b.paymentDetails] = {
-                                    lastPaymentDate: newStatus === 'pagado' ? new Date().toISOString().split('T')[0] : currentDetails?.lastPaymentDate || '',
-                                    pendingAmount: newStatus === 'pagado' ? 0 : calculatePlayerAmount(b, key as keyof Booking['players'])
-                                  }
-                                  return acc
-                                }, {} as typeof b.paymentDetails)
-                              } 
-                            : b
-                        ))
-                      }}
-                      className={`text-xs transition-all duration-200 transform hover:scale-105 ${
-                        booking.paymentStatus === 'pagado' 
-                          ? 'bg-green-600 hover:bg-green-700 text-white shadow-md border-2 border-green-600' 
-                          : 'border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-white'
-                      }`}
-                      data-testid={`payment-toggle-${booking.id}`}
-                    >
-                      {booking.paymentStatus === 'pagado' ? (
-                        <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                      ) : (
-                        <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
-                      )}
-                    </Button>
-                    
                     <Button
                       variant="ghost"
                       size="sm"
@@ -923,7 +663,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
               {expandedBooking === booking.id && (
                 <CardContent className="pt-0">
                   <div className="border-t pt-4 space-y-4">
-                    {/* InformaciÃ³n de jugadores y pagos */}
+                    {/* Información de jugadores y pagos */}
                     <div>
                       <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -931,63 +671,41 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                           if (!playerName) return null
                           const paymentStatus = booking.individualPayments[playerKey as keyof typeof booking.individualPayments]
                           const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
-                          const paymentDetails = booking.paymentDetails[playerKey as keyof typeof booking.paymentDetails]
-                          const pendingAmount = paymentDetails?.pendingAmount || 0
-                          const lastPaymentDate = paymentDetails?.lastPaymentDate
-                          
                           return (
-                            <div key={playerKey} className="flex flex-col p-3 bg-gray-50 rounded-lg space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <p className="font-medium text-sm">{getPlayerDisplayName(playerKey, playerName)}</p>
-                                  <p className="text-xs text-gray-600">
-                                    {playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    Total: ${playerAmount.toLocaleString()}
-                                  </p>
-                                </div>
-                                <Button
-                                  variant={paymentStatus === 'pagado' ? 'default' : 'outline'}
-                                  size="sm"
-                                  onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
-                                  className={`text-xs transition-all duration-200 transform hover:scale-105 ${
-                                    paymentStatus === 'pagado' 
-                                      ? 'bg-green-600 hover:bg-green-700 text-white shadow-md border-2 border-green-600' 
-                                      : 'border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 bg-white'
-                                  }`}
-                                  data-testid={`payment-${booking.id}-${playerKey}`}
-                                >
-                                  {paymentStatus === 'pagado' ? (
-                                    <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                                  ) : (
-                                    <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
-                                  )}
-                                </Button>
+                            <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div>
+                                <p className="font-medium text-sm">{playerName}</p>
+                                <p className="text-xs text-gray-600">
+                                  {playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  ${playerAmount.toLocaleString()}
+                                </p>
                               </div>
-                              
-                              {/* Información adicional de pago */}
-                              <div className="flex justify-between items-center text-xs">
-                                <div className="flex items-center gap-4">
-                                  {paymentStatus === 'pendiente' && pendingAmount > 0 && (
-                                    <span className="text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
-                                      Debe: ${pendingAmount.toLocaleString()}
-                                    </span>
-                                  )}
-                                  {paymentStatus === 'pagado' && lastPaymentDate && (
-                                    <span className="text-green-600 bg-green-50 px-2 py-1 rounded">
-                                      Pagado: {new Date(lastPaymentDate).toLocaleDateString('es-ES')}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                              <Button
+                                variant={paymentStatus === 'pagado' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
+                                className={`text-xs ${
+                                  paymentStatus === 'pagado' 
+                                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                    : 'border-red-300 text-red-600 hover:bg-red-50'
+                                }`}
+                                data-testid={`payment-${booking.id}-${playerKey}`}
+                              >
+                                {paymentStatus === 'pagado' ? (
+                                  <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
+                                ) : (
+                                  <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
+                                )}
+                              </Button>
                             </div>
                           )
                         })}
                       </div>
                     </div>
 
-                    {/* SecciÃ³n de extras */}
+                    {/* Sección de extras */}
                     {booking.extras.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
@@ -1002,27 +720,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                                 <span className="text-sm text-gray-900">{extra.name}</span>
                                 <span className="text-xs text-gray-500">
                                   ({extra.assignedTo === 'all' ? 'Todos' : 
-                                    extra.assignedTo === 'individual' ? 'Individual' :
                                     Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                {extra.assignedTo === 'individual' && (
-                                  <Button
-                                    variant={extra.individualEnabled ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => toggleIndividualExtra(booking.id, extra.id)}
-                                    className={`h-6 w-6 p-0 rounded transition-all duration-200 ${
-                                      extra.individualEnabled 
-                                        ? 'bg-green-500 hover:bg-green-600 border-green-500 text-white shadow-sm' 
-                                        : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    {extra.individualEnabled && (
-                                      <CheckCircle className="w-3 h-3" />
-                                    )}
-                                  </Button>
-                                )}
                                 <span className="text-sm font-medium text-gray-900">${extra.cost.toLocaleString()}</span>
                                 <Button
                                   variant="ghost"
@@ -1039,7 +740,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                       </div>
                     )}
 
-                    {/* Acciones de administraciÃ³n */}
+                    {/* Acciones de administración */}
                     <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
@@ -1099,9 +800,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                 <label className="block text-sm font-medium mb-2">Tipo de Extra</label>
                 <select 
                   className="w-full p-2 border rounded-md"
-                  value={selectedExtraType || ''}
-                  onChange={(e) => handleExtraTypeChange(e.target.value)}
-                  disabled={loadingProductos}
+                  value={selectedExtraType}
+                  onChange={(e) => setSelectedExtraType(e.target.value as 'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro')}
                 >
                   <option value="">Seleccionar tipo</option>
                   <option value="alquiler_raqueta">Alquiler de Raqueta</option>
@@ -1111,21 +811,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                   <option value="snack">Snack</option>
                   <option value="otro">Otro</option>
                 </select>
-                {loadingProductos && (
-                  <p className="text-sm text-gray-500 mt-1">Cargando precios...</p>
-                )}
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-2">Costo (Solo lectura)</label>
+                <label className="block text-sm font-medium mb-2">Costo</label>
                 <Input
                   type="number"
                   placeholder="0.00"
                   value={extraCost}
-                  readOnly
-                  className="bg-gray-100 cursor-not-allowed"
+                  onChange={(e) => setExtraCost(e.target.value)}
                 />
-                <p className="text-xs text-gray-500 mt-1">El precio se obtiene automáticamente de la base de datos de productos</p>
               </div>
               
               <div>
@@ -1133,20 +828,13 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                 <select 
                   className="w-full p-2 border rounded-md"
                   value={extraAssignedTo}
-                  onChange={(e) => {
-                    const value = e.target.value as 'all' | 'player1' | 'player2' | 'player3' | 'player4' | 'individual';
-                    setExtraAssignedTo(value);
-                    if (value !== 'individual') {
-                      setIsIndividualEnabled(false);
-                    }
-                  }}
+                  onChange={(e) => setExtraAssignedTo(e.target.value)}
                 >
-                  <option value="all">Todos los jugadores</option>
-                  <option value="player1">Solo titular</option>
-                  <option value="player2">Solo jugador 2</option>
-                  <option value="player3">Solo jugador 3</option>
-                  <option value="player4">Solo jugador 4</option>
-                  <option value="individual">Individual</option>
+                  <option value="todos">Todos los jugadores</option>
+                  <option value="titular">Solo titular</option>
+                  <option value="jugador2">Solo jugador 2</option>
+                  <option value="jugador3">Solo jugador 3</option>
+                  <option value="jugador4">Solo jugador 4</option>
                 </select>
               </div>
             </div>
@@ -1166,6 +854,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Calendario */}
+       <CalendarModal
+         isOpen={showCalendarModal}
+         onOpenChange={setShowCalendarModal}
+         events={convertBookingsToCalendarEvents()}
+         selectedDate={selectedDate}
+         onDateSelect={setSelectedDate}
+       />
     </section>
   )
 }

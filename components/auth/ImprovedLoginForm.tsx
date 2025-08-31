@@ -127,7 +127,7 @@ export function ImprovedLoginForm({ callbackUrl = '/', error }: ImprovedLoginFor
           <Button
             onClick={handleGoogleSignIn}
             disabled={loading || success}
-            className="w-full h-12 bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 bg-white text-gray-700 border border-gray-300 hover:bg-gray-100 hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             variant="outline"
           >
             {loading ? (
@@ -189,7 +189,7 @@ export function ImprovedLoginForm({ callbackUrl = '/', error }: ImprovedLoginFor
           
           {/* Indicador de progreso */}
           {loading && (
-            <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+            <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
               <div className="h-full bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full animate-pulse"></div>
             </div>
           )}

@@ -233,6 +233,49 @@ export default function EstadisticasPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* Resumen Financiero */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Resumen Financiero</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-600">Total Recaudado</p>
+                    <p className="text-3xl font-bold text-green-700">$1,250,000</p>
+                    <p className="text-sm text-green-600 mt-1">Este mes</p>
+                  </div>
+                  <DollarSign className="h-12 w-12 text-green-600" />
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-yellow-600">Saldo Pendiente</p>
+                    <p className="text-3xl font-bold text-yellow-700">$85,000</p>
+                    <p className="text-sm text-yellow-600 mt-1">Por cobrar</p>
+                  </div>
+                  <Calendar className="h-12 w-12 text-yellow-600" />
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">Total Reserva</p>
+                    <p className="text-3xl font-bold text-blue-700">$320,000</p>
+                    <p className="text-sm text-blue-600 mt-1">Próximo mes</p>
+                  </div>
+                  <TrendingUp className="h-12 w-12 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

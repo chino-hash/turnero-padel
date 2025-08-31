@@ -179,8 +179,8 @@ const mockBookings = [
 
 const courts: Court[] = removeDuplicatesByKey([
   {
-    id: "court-a",
-    name: "Cancha 1",
+    id: "cmew6nvsd0001u2jcngxgt8au",
+    name: "Cancha 1 - Premium",
     description: "Professional court with LED lighting",
     color: "from-purple-500 to-purple-600",
     bgColor: "bg-purple-50",
@@ -189,8 +189,8 @@ const courts: Court[] = removeDuplicatesByKey([
     priceMultiplier: 1.0,
   },
   {
-    id: "court-b",
-    name: "Cancha 2",
+    id: "cmew6nvsd0002u2jcc24nirbn",
+    name: "Cancha 2 - Estándar",
     description: "Standard court with natural lighting",
     color: "from-red-500 to-red-600",
     bgColor: "bg-red-50",
@@ -199,8 +199,8 @@ const courts: Court[] = removeDuplicatesByKey([
     priceMultiplier: 0.9,
   },
   {
-    id: "court-c",
-    name: "Cancha 3",
+    id: "cmew6nvi40000u2jcmer3av60",
+    name: "Cancha 3 - Económica",
     description: "Deluxe court with premium amenities",
     color: "from-green-500 to-green-600",
     bgColor: "bg-green-50",
@@ -355,23 +355,31 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Estados básicos
   const [activeNavItem, setActiveNavItem] = useState("inicio")
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const [selectedCourt, setSelectedCourt] = useState("court-a")
+  const [selectedCourt, setSelectedCourt] = useState("cmew6nvsd0001u2jcngxgt8au")
   const [selectedDateState, setSelectedDateState] = useState(() => {
-    // Intentar cargar fecha guardada desde localStorage
+    // Limpiar localStorage y usar fecha actual
     if (typeof window !== 'undefined') {
-      const savedDate = localStorage.getItem('selectedDate')
-      if (savedDate) {
-        const parsedDate = new Date(savedDate)
-        if (!isNaN(parsedDate.getTime())) {
-          parsedDate.setHours(0, 0, 0, 0)
-          return parsedDate
-        }
-      }
+      localStorage.removeItem('selectedDate')
+      localStorage.clear() // Limpiar todo el localStorage
     }
-    // Si no hay fecha guardada, usar fecha actual
+    
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return today
+    const cutoffDate = new Date('2024-12-31') // Fecha límite para considerar válida
+    
+    let validDate
+    if (today > cutoffDate) {
+      // Usar una fecha válida basada en la fecha del sistema (15 días después)
+      validDate = new Date(today)
+      validDate.setDate(validDate.getDate() + 15)
+    } else {
+      validDate = new Date(today)
+    }
+    
+    validDate.setHours(0, 0, 0, 0)
+    
+    console.log('🗓️ Fecha del sistema:', today.toISOString().split('T')[0])
+    console.log('🗓️ Fecha inicializada:', validDate.toISOString().split('T')[0])
+    return validDate
   })
   
   // Estabilizar la fecha para evitar re-renderizados
@@ -749,7 +757,7 @@ const generateTimeSlots = (): TimeSlot[] => {
         available: Math.random() > 0.3,
         isAvailable: Math.random() > 0.3,
         price: 12000,
-        courtId: 'court-a',
+        courtId: 'cmew6nvsd0001u2jcngxgt8au',
         duration: 90
       })
     }
@@ -762,9 +770,9 @@ const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
   
   // Horarios completamente diferenciados por cancha
   const courtSchedules = {
-    'court-a': ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30'], // Cancha 1: 6 turnos desde 9:00
-    'court-b': ['08:30', '10:00', '11:30', '14:00', '15:30', '17:00'], // Cancha 2: 6 turnos desde 8:30
-    'court-c': ['10:00', '11:30', '13:00', '14:30', '16:00', '17:30']  // Cancha 3: 6 turnos desde 10:00
+    'cmew6nvsd0001u2jcngxgt8au': ['09:00', '10:30', '12:00', '13:30', '15:00', '16:30'], // Cancha 1: 6 turnos desde 9:00
+    'cmew6nvsd0002u2jcc24nirbn': ['08:30', '10:00', '11:30', '14:00', '15:30', '17:00'], // Cancha 2: 6 turnos desde 8:30
+    'cmew6nvi40000u2jcmer3av60': ['10:00', '11:30', '13:00', '14:30', '16:00', '17:30']  // Cancha 3: 6 turnos desde 10:00
   }
   
   courts.forEach(court => {
