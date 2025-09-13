@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import {
   getCourts,
   getCourtById,
@@ -13,14 +14,14 @@ import type { Court } from '@prisma/client'
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     court: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
     },
     booking: {
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findFirst: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))

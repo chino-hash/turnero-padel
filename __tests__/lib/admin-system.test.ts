@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import {
   getAllAdmins,
   addAdmin,
@@ -15,15 +16,15 @@ import type { AdminWhitelist } from '@prisma/client'
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     adminWhitelist: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      updateMany: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     adminAccess: {
-      create: jest.fn(),
+      create: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))

@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { CrudService } from '../../lib/services/crud-service';
 import { ValidationError, NotFoundError } from '../../lib/utils/error-handler';
@@ -27,8 +28,8 @@ jest.mock('../../lib/utils/error-handler', () => ({
     }
   },
   createSuccessResponse: jest.fn((data, message) => ({ success: true, data, message })),
-  handleError: jest.fn(error => ({ success: false, error: error.message })),
-  logError: jest.fn(),
+  handleError: jest.fn(error => ({ success: false, error: (error as Error).message })),
+  logError: jest.fn() as any as jest.MockedFunction<any>,
   sanitizeInput: jest.fn(data => data),
 }));
 

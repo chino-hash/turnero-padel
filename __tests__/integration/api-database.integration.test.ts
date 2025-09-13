@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 /**
  * Pruebas de integración para validar la interacción entre APIs y base de datos
  * Estas pruebas verifican el flujo completo desde la API hasta la base de datos
@@ -5,42 +6,42 @@
 
 // Mock de autenticación
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
 }))
 
 // Mock de Prisma con implementación más realista
 jest.mock('@/lib/prisma', () => {
   const mockPrisma = {
     user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     court: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     booking: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
+      count: jest.fn() as any as jest.MockedFunction<any>,
     },
     systemSetting: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      upsert: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      upsert: jest.fn() as any as jest.MockedFunction<any>,
     },
-    $transaction: jest.fn(),
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
+    $transaction: jest.fn() as any as jest.MockedFunction<any>,
+    $connect: jest.fn() as any as jest.MockedFunction<any>,
+    $disconnect: jest.fn() as any as jest.MockedFunction<any>,
   }
   
   return { prisma: mockPrisma }
@@ -611,7 +612,7 @@ describe('API-Database Integration Tests', () => {
       // Por ahora, solo verificamos el comportamiento del mock
       try {
         await getCourts()
-      } catch (error) {
+      } catch (error: unknown) {
         // Primer intento falla
         expect(error).toBeDefined()
       }

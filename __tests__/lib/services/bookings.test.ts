@@ -76,7 +76,6 @@ describe('Bookings Service', () => {
     paymentMethod: null,
     notes: null,
     cancellationReason: null,
-    cancelledBy: null,
     cancelledAt: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),

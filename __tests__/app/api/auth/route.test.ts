@@ -1,8 +1,9 @@
+/// <reference types="@types/jest" />
 // Mock NextAuth configuration
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
-  signIn: jest.fn(),
-  signOut: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
+  signIn: jest.fn() as any as jest.MockedFunction<any>,
+  signOut: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
       id: 'google',
@@ -16,8 +17,8 @@ jest.mock('@/lib/auth', () => ({
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
-      jwt: jest.fn(),
-      session: jest.fn(),
+      jwt: jest.fn() as any as jest.MockedFunction<any>,
+      session: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))
@@ -26,19 +27,19 @@ jest.mock('@/lib/auth', () => ({
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
     },
     account: {
-      findFirst: jest.fn(),
-      create: jest.fn(),
+      findFirst: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
     },
     session: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))
@@ -97,7 +98,7 @@ describe('/api/auth', () => {
 
   describe('Authentication Flow', () => {
     it('should authenticate user with valid credentials', async () => {
-      mockAuth.mockResolvedValue(mockSession)
+mockAuth.mockResolvedValue(mockSession as any)
       
       const session = await auth()
       
@@ -175,7 +176,7 @@ describe('/api/auth', () => {
       })
       
       // Simular el callback de JWT que maneja la creación de usuarios
-      const jwtCallback = jest.fn().mockResolvedValue({
+      const jwtCallback = (jest.fn() as any).mockResolvedValue({
         sub: 'new-user-123',
         email: newUser.email,
         name: newUser.name,
@@ -366,11 +367,11 @@ describe('/api/auth', () => {
       
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       
-      validEmails.forEach(email => {
+      validEmails.forEach((email: any) => {
         expect(emailRegex.test(email)).toBe(true)
       })
       
-      invalidEmails.forEach(email => {
+      invalidEmails.forEach((email: any) => {
         expect(emailRegex.test(email)).toBe(false)
       })
     })

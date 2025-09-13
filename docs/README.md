@@ -6,18 +6,21 @@ Bienvenido a la documentación técnica del sistema de turnos para canchas de pa
 
 ```
 docs/
-├── README.md                    # Este archivo - Índice principal
-├── DOCUMENTATION-STANDARDS.md   # Estándares de documentación
-├── templates/                   # Plantillas de documentación
-│   ├── COMPONENT-TEMPLATE.md    # Plantilla para componentes React
-│   ├── API-TEMPLATE.md          # Plantilla para APIs y endpoints
-│   ├── SERVICE-TEMPLATE.md      # Plantilla para servicios y utilidades
-│   └── HOOK-TEMPLATE.md         # Plantilla para hooks personalizados
-├── architecture/                # Documentación de arquitectura
-├── api/                        # Documentación de APIs
-├── components/                 # Documentación de componentes
-├── services/                   # Documentación de servicios
-└── guides/                     # Guías y tutoriales
+├── README.md                           # Este archivo - Índice principal
+├── DOCUMENTATION-STANDARDS.md          # Estándares de documentación
+├── FRONTEND_PROTECTION_POLICIES.md     # Políticas de protección del frontend
+├── frontend-interfaces-report.md       # Reporte detallado de interfaces del frontend
+├── technical-interfaces-specification.md # Especificación técnica de interfaces
+├── templates/                          # Plantillas de documentación
+│   ├── COMPONENT-TEMPLATE.md           # Plantilla para componentes React
+│   ├── API-TEMPLATE.md                 # Plantilla para APIs y endpoints
+│   ├── SERVICE-TEMPLATE.md             # Plantilla para servicios y utilidades
+│   └── HOOK-TEMPLATE.md                # Plantilla para hooks personalizados
+├── architecture/                       # Documentación de arquitectura
+├── api/                               # Documentación de APIs
+├── components/                        # Documentación de componentes
+├── services/                          # Documentación de servicios
+└── guides/                            # Guías y tutoriales
 ```
 
 ## 🎯 Propósito de la Documentación
@@ -29,6 +32,35 @@ Esta documentación tiene como objetivo:
 - **Documentar decisiones técnicas** y patrones utilizados
 - **Proporcionar referencias rápidas** para el equipo de desarrollo
 - **Establecer estándares** de calidad y mejores prácticas
+
+## 🖥️ Documentación de Interfaces del Frontend
+
+### 📊 [Reporte de Interfaces](./frontend-interfaces-report.md)
+
+Reporte completo y detallado de las interfaces principales del sistema:
+- **Dashboard de Usuario** (`/dashboard`): Interfaz para usuarios finales
+- **Panel de Administración** (`/admin`): Interfaz administrativa
+- Análisis comparativo de funcionalidades
+- Componentes y tecnologías utilizadas
+- Flujos de navegación y UX
+
+### 🔧 [Especificación Técnica](./technical-interfaces-specification.md)
+
+Documentación técnica detallada que incluye:
+- Arquitectura de rutas y componentes
+- Diagramas de flujo y secuencia
+- Interfaces TypeScript y estructuras de datos
+- Integración con backend y APIs
+- Estrategias de performance y optimización
+- Cobertura de testing y métricas de calidad
+
+### 🛡️ [Políticas de Protección](./FRONTEND_PROTECTION_POLICIES.md)
+
+Documento que define:
+- Archivos y componentes protegidos
+- Rutas de usuario vs. administrativas
+- Procesos de autorización para modificaciones
+- Separación de responsabilidades entre interfaces
 
 ## 📋 Estándares de Documentación
 

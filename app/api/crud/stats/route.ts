@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { crudService } from '@/lib/services/crud-service';
-import { getServerSession } from 'next-auth';
-import { config as authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 // Modelos disponibles para estadísticas
 const AVAILABLE_MODELS = [
@@ -17,7 +16,7 @@ const AVAILABLE_MODELS = [
 
 // Verificar permisos de administrador
 async function checkAdminPermission() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return session?.user?.role === 'ADMIN';
 }
 
@@ -50,49 +49,49 @@ export async function GET(request: NextRequest) {
 
       switch (type) {
         case 'table':
-          result = await crudService.getTableStats(model);
+          result = await crudService.getTableStats({ userRole: 'ADMIN' });
           break;
         case 'count':
           const where = {}; // Puedes agregar filtros aquí
-          result = await crudService.count(model, where);
+          result = await crudService.count(where, { userRole: 'ADMIN' });
           break;
         default:
           // Estadísticas generales del modelo
           const [tableStats, totalCount, activeCount] = await Promise.all([
-            crudService.getTableStats(model),
-            crudService.count(model, {}),
-            crudService.count(model, { deletedAt: null })
+            crudService.getTableStats({ userRole: 'ADMIN' }),
+            crudService.count({}, { userRole: 'ADMIN' }),
+            crudService.count({ deletedAt: null }, { userRole: 'ADMIN' })
           ]);
 
           result = {
             success: true,
             data: {
               model,
-              tableStats: tableStats.data,
+              tableStats: tableStats.success ? tableStats.data : null,
               counts: {
-                total: totalCount.data,
-                active: activeCount.data,
-                deleted: totalCount.data - activeCount.data
+                total: totalCount.success ? totalCount.data : 0,
+                active: activeCount.success ? activeCount.data : 0,
+                deleted: (totalCount.success && activeCount.success) ? (totalCount.data || 0) - (activeCount.data || 0) : 0
               }
             }
           };
       }
     } else {
       // Estadísticas generales de toda la base de datos
-      const stats = {};
+      const stats: Record<string, any> = {};
       
       for (const modelName of AVAILABLE_MODELS) {
         try {
           const [totalCount, activeCount] = await Promise.all([
-            crudService.count(modelName, {}),
-            crudService.count(modelName, { deletedAt: null })
+            crudService.count({}, { userRole: 'ADMIN' }),
+            crudService.count({ deletedAt: null }, { userRole: 'ADMIN' })
           ]);
 
           stats[modelName] = {
             total: totalCount.success ? totalCount.data : 0,
             active: activeCount.success ? activeCount.data : 0,
             deleted: totalCount.success && activeCount.success 
-              ? totalCount.data - activeCount.data 
+              ? (totalCount.data || 0) - (activeCount.data || 0) 
               : 0
           };
         } catch (error) {
@@ -101,7 +100,7 @@ export async function GET(request: NextRequest) {
             total: 0,
             active: 0,
             deleted: 0,
-            error: error.message
+            error: error instanceof Error ? error.message : 'Error desconocido'
           };
         }
       }
@@ -159,7 +158,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const results = {};
+    const results: Record<string, any> = {};
 
     for (const query of queries) {
       const { name, model, operation, filters = {} } = query;
@@ -184,7 +183,7 @@ export async function POST(request: NextRequest) {
             result = await crudService.count(model, filters);
             break;
           case 'read':
-            result = await crudService.read(model, { where: filters, take: 100 });
+            result = await crudService.read(model);
             break;
           case 'stats':
             result = await crudService.getTableStats(model);

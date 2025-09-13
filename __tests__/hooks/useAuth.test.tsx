@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import { renderHook, act } from '@testing-library/react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { useAuth } from '@/hooks/useAuth'
@@ -6,9 +7,9 @@ import React from 'react'
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-  signIn: jest.fn(),
-  signOut: jest.fn(),
+  useSession: jest.fn() as any as jest.MockedFunction<any>,
+  signIn: jest.fn() as any as jest.MockedFunction<any>,
+  signOut: jest.fn() as any as jest.MockedFunction<any>,
   SessionProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
@@ -30,7 +31,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'unauthenticated',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
     })
 
@@ -72,7 +73,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: { user: mockUser },
         status: 'authenticated',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
     })
 
@@ -125,7 +126,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: { user: mockAdminUser },
         status: 'authenticated',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
     })
 
@@ -156,7 +157,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: null,
         status: 'loading',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
     })
 
@@ -184,7 +185,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: { user: userWithoutName },
         status: 'authenticated',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
 
       const { result } = renderHook(() => useAuth(), { wrapper })
@@ -206,7 +207,7 @@ describe('useAuth hook', () => {
       mockUseSession.mockReturnValue({
         data: { user: userWithoutIsAdmin },
         status: 'authenticated',
-        update: jest.fn(),
+        update: jest.fn() as any as jest.MockedFunction<any>,
       })
 
       const { result } = renderHook(() => useAuth(), { wrapper })

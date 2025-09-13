@@ -1,6 +1,7 @@
+/// <reference types="@types/jest" />
 // Mock the auth module
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
       id: 'google',
@@ -26,12 +27,12 @@ jest.mock('@/lib/services/courts')
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     booking: {
-      findMany: jest.fn(),
-      create: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     court: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))

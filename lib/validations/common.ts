@@ -77,6 +77,16 @@ export type PaginationParams = z.infer<typeof paginationSchema>;
 export type DateRangeParams = z.infer<typeof dateRangeSchema>;
 export type RateLimitConfig = z.infer<typeof rateLimitSchema>;
 
+// Tipo para respuestas paginadas
+export type PaginatedResponse<T> = ApiResponse<T[]> & {
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 // Funciones helper para respuestas
 export const createSuccessResponse = <T>(
   message: string,
@@ -102,7 +112,7 @@ export const createErrorResponse = (
 
 // Función para formatear errores de Zod
 export const formatZodErrors = (error: z.ZodError): Array<{ field: string; message: string }> => {
-  return error.errors.map((err) => ({
+  return error.issues.map((err: z.ZodIssue) => ({
     field: err.path.join('.'),
     message: err.message
   }));

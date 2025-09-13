@@ -11,8 +11,8 @@ test.describe('Flujo de Usuario Completo - Diagnóstico Integral', () => {
     test('debe cargar la página principal sin errores críticos', async ({ page }) => {
       // Verificar que no hay errores de JavaScript críticos
       const errors: string[] = [];
-      page.on('pageerror', (error) => {
-        errors.push(error.message);
+      page.on('pageerror', (error: any) => {
+        errors.push((error as Error).message);
       });
 
       await page.waitForTimeout(3000);
@@ -22,7 +22,7 @@ test.describe('Flujo de Usuario Completo - Diagnóstico Integral', () => {
       await expect(mainContent.first()).toBeVisible({ timeout: 10000 });
       
       // Verificar que no hay errores críticos
-      const criticalErrors = errors.filter(error => 
+      const criticalErrors = errors.filter((error: any) => 
         error.includes('TypeError') || 
         error.includes('ReferenceError') ||
         error.includes('Cannot read property')
@@ -163,7 +163,7 @@ test.describe('Flujo de Usuario Completo - Diagnóstico Integral', () => {
       
       // Verificar que los elementos son touch-friendly
       const clickableElements = page.locator(
-        'button, .slot, .time-slot, a[href]'
+        'button, .slot, .time-slot, (a as any)[href]'
       );
       
       const elementsCount = await clickableElements.count();
@@ -199,7 +199,7 @@ test.describe('Flujo de Usuario Completo - Diagnóstico Integral', () => {
   test.describe('Manejo de Estados de Carga', () => {
     test('debe mostrar indicadores de carga apropiados', async ({ page }) => {
       // Interceptar requests para simular carga lenta
-      await page.route('**/api/**', async (route) => {
+      await page.route('**/api/**', async (route: any) => {
         await page.waitForTimeout(1000); // Simular latencia
         await route.continue();
       });
@@ -221,7 +221,7 @@ test.describe('Flujo de Usuario Completo - Diagnóstico Integral', () => {
 
     test('debe manejar errores de red graciosamente', async ({ page }) => {
       // Simular error de red
-      await page.route('**/api/courts', (route) => {
+      await page.route('**/api/courts', (route: any) => {
         route.abort('failed');
       });
       

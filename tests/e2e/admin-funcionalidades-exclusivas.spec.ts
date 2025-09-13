@@ -352,7 +352,7 @@ test.describe('Verificación Dashboard Público - Sin Funcionalidades Admin', ()
       'text=Mis turnos, text=turnos',
       'text=Canchas, text=canchas',
       'text=Horarios, text=horarios',
-      'button, a[href]' // Elementos interactivos generales
+      'button, (a as any)[href]' // Elementos interactivos generales
     ];
 
     let userFeaturesFound = 0;

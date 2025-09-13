@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
-import { withRateLimit } from '@/lib/rate-limit'
-import { bulkUpdateBookingSchema } from '@/lib/validations/booking'
-import { formatZodError } from '@/lib/validations/common'
+import { withRateLimit, bookingBulkRateLimit } from '@/lib/rate-limit'
+import { bulkUpdateBookingsSchema } from '@/lib/validations/booking'
+import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
 
@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Solo administradores pueden realizar operaciones bulk
-    if (session.user.role !== 'admin') {
+    if (session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden realizar operaciones masivas' },
         { status: 403 }
@@ -30,106 +30,65 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Aplicar rate limiting más estricto para operaciones bulk
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-bulk',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingBulkRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes de operaciones masivas. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener y validar datos del cuerpo
     const body = await request.json()
-    const validatedData = bulkUpdateBookingSchema.parse(body)
+    const validatedData = bulkUpdateBookingsSchema.parse(body)
 
-    const { bookingIds, operation, data } = validatedData
+    const { bookingIds, updates } = validatedData
 
-    let result
     let eventAction: string
     let eventMessage: string
 
-    switch (operation) {
-      case 'cancel':
-        result = await bookingService.bulkCancelBookings(
-          bookingIds,
-          data?.cancellationReason || 'Cancelación masiva por administrador'
-        )
-        eventAction = 'bulk_cancelled'
-        eventMessage = `${bookingIds.length} reservas canceladas masivamente`
-        break
-
-      case 'update_status':
-        if (!data?.status) {
-          return NextResponse.json(
-            { success: false, error: 'Estado requerido para actualización masiva' },
-            { status: 400 }
-          )
-        }
-        result = await bookingService.bulkUpdateStatus(
-          bookingIds,
-          data.status
-        )
-        eventAction = 'bulk_status_updated'
-        eventMessage = `${bookingIds.length} reservas actualizadas a estado ${data.status}`
-        break
-
-      case 'update_payment_status':
-        if (!data?.paymentStatus) {
-          return NextResponse.json(
-            { success: false, error: 'Estado de pago requerido para actualización masiva' },
-            { status: 400 }
-          )
-        }
-        result = await bookingService.bulkUpdatePaymentStatus(
-          bookingIds,
-          data.paymentStatus
-        )
-        eventAction = 'bulk_payment_updated'
-        eventMessage = `${bookingIds.length} reservas actualizadas a estado de pago ${data.paymentStatus}`
-        break
-
-      default:
-        return NextResponse.json(
-          { success: false, error: 'Operación no válida' },
-          { status: 400 }
-        )
+    // Determinar la operación basada en las actualizaciones
+    if (updates.status === 'CANCELLED') {
+      eventAction = 'bulk_cancelled'
+      eventMessage = `${bookingIds.length} reservas canceladas masivamente`
+    } else if (updates.status) {
+      eventAction = 'bulk_status_updated'
+      eventMessage = `Estado actualizado para ${bookingIds.length} reservas`
+    } else if (updates.paymentStatus) {
+      eventAction = 'bulk_payment_updated'
+      eventMessage = `Estado de pago actualizado para ${bookingIds.length} reservas`
+    } else {
+      eventAction = 'bulk_updated'
+      eventMessage = `${bookingIds.length} reservas actualizadas masivamente`
     }
+
+    // Realizar la actualización masiva
+    const result = await bookingService.bulkUpdateBookings(
+      { bookingIds, updates },
+      session.user.role
+    )
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
     }
-
     // Emitir evento SSE para actualizaciones en tiempo real
     eventEmitters.bookingsUpdated({
       action: eventAction,
-      bookings: result.data,
+      bookings: bookingIds, // Usar los IDs de las reservas actualizadas
       message: eventMessage,
       userId: session.user.id
     })
 
     // Si se cancelaron reservas, actualizar disponibilidad de slots
-    if (operation === 'cancel') {
-      const uniqueCourtDates = new Set(
-        result.data.map((booking: any) => `${booking.courtId}-${booking.bookingDate}`)
-      )
-      
-      uniqueCourtDates.forEach((courtDate) => {
-        const [courtId, date] = courtDate.split('-')
-        eventEmitters.slotsUpdated({
-          action: 'availability_changed',
-          courtId,
-          date,
-          message: `Disponibilidad actualizada para ${date}`
-        })
+    // Nota: No tenemos acceso directo a los datos de las reservas aquí,
+    // pero el evento SSE notificará a los clientes para que actualicen
+    if (updates.status === 'CANCELLED') {
+      // Emitir evento general de actualización de slots
+      // Los clientes deberán refrescar la disponibilidad
+      eventEmitters.slotsUpdated({
+        action: 'availability_changed',
+        courtId: 'all', // Indicar que múltiples canchas pueden estar afectadas
+        date: 'multiple', // Indicar que múltiples fechas pueden estar afectadas
+        message: 'Disponibilidad actualizada por cancelaciones masivas'
       })
     }
 
@@ -137,8 +96,8 @@ export async function PATCH(request: NextRequest) {
       success: true,
       message: eventMessage,
       data: {
-        updatedCount: result.data.length,
-        bookings: result.data
+        updatedCount: result.data?.count || 0,
+        bookingIds: bookingIds
       }
     })
   } catch (error) {
@@ -149,7 +108,7 @@ export async function PATCH(request: NextRequest) {
         { 
           success: false, 
           error: 'Datos de operación masiva inválidos',
-          details: formatZodError(error)
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )
@@ -175,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Solo administradores pueden realizar eliminaciones masivas
-    if (session.user.role !== 'admin') {
+    if (session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden realizar eliminaciones masivas' },
         { status: 403 }
@@ -183,21 +142,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-bulk',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingBulkRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes de eliminación masiva. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener IDs de reservas del cuerpo de la solicitud
@@ -217,10 +166,16 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Eliminar reservas masivamente
-    const result = await bookingService.bulkCancelBookings(
-      bookingIds,
-      reason || 'Eliminación masiva por administrador'
+    // Eliminar reservas masivamente (cancelar)
+    const result = await bookingService.bulkUpdateBookings(
+      {
+        bookingIds,
+        updates: {
+          status: 'CANCELLED',
+          cancellationReason: reason || 'Eliminación masiva por administrador'
+        }
+      },
+      session.user.role
     )
 
     if (!result.success) {
@@ -228,34 +183,19 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Emitir eventos SSE para actualizaciones en tiempo real
+    const deletedCount = result.data?.count || 0;
     eventEmitters.bookingsUpdated({
       action: 'bulk_deleted',
-      bookings: result.data,
-      message: `${bookingIds.length} reservas eliminadas masivamente`,
+      bookings: [],
+      message: `${deletedCount} reservas eliminadas masivamente`,
       userId: session.user.id
-    })
-
-    // Actualizar disponibilidad de slots
-    const uniqueCourtDates = new Set(
-      result.data.map((booking: any) => `${booking.courtId}-${booking.bookingDate}`)
-    )
-    
-    uniqueCourtDates.forEach((courtDate) => {
-      const [courtId, date] = courtDate.split('-')
-      eventEmitters.slotsUpdated({
-        action: 'availability_changed',
-        courtId,
-        date,
-        message: `Disponibilidad actualizada para ${date}`
-      })
     })
 
     return NextResponse.json({
       success: true,
-      message: `${bookingIds.length} reservas eliminadas exitosamente`,
+      message: `${deletedCount} reservas eliminadas exitosamente`,
       data: {
-        deletedCount: result.data.length,
-        bookings: result.data
+        deletedCount
       }
     })
   } catch (error) {

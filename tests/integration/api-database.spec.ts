@@ -23,8 +23,8 @@ test.describe('Integración API - Base de Datos', () => {
   test.describe('Operaciones CRUD de Slots', () => {
     test('debe sincronizar correctamente entre API y BD para slots', async ({ request }) => {
       // 1. Verificar estado inicial en BD
-      const initialSlots = await prisma.slot.findMany().catch(() => []);
-      const initialCount = initialSlots.length;
+      // Nota: No hay modelo de slots en la BD, solo verificamos la API
+      const initialCount = 0;
 
       // 2. Hacer request a la API
       const apiResponse = await request.get('/api/slots');
@@ -83,14 +83,9 @@ test.describe('Integración API - Base de Datos', () => {
           expect(createdSlot).toBeDefined();
           expect(createdSlot.id).toBeDefined();
 
-          // Verificar que se creó en la BD
-          const dbSlot = await prisma.slot.findUnique({
-            where: { id: createdSlot.id }
-          }).catch(() => null);
-
-          if (dbSlot) {
-            expect(dbSlot.id).toBe(createdSlot.id);
-          }
+          // Verificar que se creó correctamente
+          // Nota: No hay modelo de slots en la BD, solo verificamos la respuesta de la API
+          expect(createdSlot.id).toBeDefined();
         } else if (response.status() === 401 || response.status() === 403) {
           // Requiere autenticación - comportamiento esperado
           expect([401, 403]).toContain(response.status());
@@ -98,9 +93,9 @@ test.describe('Integración API - Base de Datos', () => {
           // Método no permitido - API puede no soportar POST
           expect(response.status()).toBe(405);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // API puede no existir o estar configurada diferente
-        console.log('API de slots no disponible para POST:', error.message);
+        console.log('API de slots no disponible para POST:', (error as Error).message);
       }
     });
   });
@@ -159,9 +154,9 @@ test.describe('Integración API - Base de Datos', () => {
         if (response.status() < 500) {
           expect([400, 401, 403, 404, 422]).toContain(response.status());
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // API puede no existir
-        console.log('API de bookings no disponible:', error.message);
+        console.log('API de bookings no disponible:', (error as Error).message);
       }
     });
   });
@@ -208,8 +203,8 @@ test.describe('Integración API - Base de Datos', () => {
           // Operación rechazada - verificar que no se crearon datos parciales
           expect(response.status()).toBeGreaterThanOrEqual(400);
         }
-      } catch (error) {
-        console.log('API de transacciones no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('API de transacciones no disponible:', (error as Error).message);
       }
     });
 
@@ -230,7 +225,7 @@ test.describe('Integración API - Base de Datos', () => {
         const responses = await Promise.allSettled(promises);
         
         // Solo una reserva debe ser exitosa
-        const successfulResponses = responses.filter(result => 
+        const successfulResponses = responses.filter((result: any) => 
           result.status === 'fulfilled' && 
           (result.value.status() === 200 || result.value.status() === 201)
         );
@@ -239,8 +234,8 @@ test.describe('Integración API - Base de Datos', () => {
         if (successfulResponses.length > 0) {
           expect(successfulResponses.length).toBeLessThanOrEqual(1);
         }
-      } catch (error) {
-        console.log('Test de concurrencia no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Test de concurrencia no disponible:', (error as Error).message);
       }
     });
   });
@@ -260,8 +255,8 @@ test.describe('Integración API - Base de Datos', () => {
 
         // Debe rechazar datos inválidos
         expect([400, 422, 401, 403, 405]).toContain(response.status());
-      } catch (error) {
-        console.log('Validación de datos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Validación de datos no disponible:', (error as Error).message);
       }
     });
 
@@ -292,8 +287,8 @@ test.describe('Integración API - Base de Datos', () => {
           // Rechazado apropiadamente
           expect(response.status()).toBeGreaterThanOrEqual(400);
         }
-      } catch (error) {
-        console.log('API de usuarios no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('API de usuarios no disponible:', (error as Error).message);
       }
     });
   });

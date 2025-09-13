@@ -1,59 +1,90 @@
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { config as authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
-// Configurar Redis para rate limiting
-// En desarrollo, usar memoria local; en producción, usar Upstash Redis
-const redis = process.env.NODE_ENV === 'production' && process.env.UPSTASH_REDIS_REST_URL
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : undefined;
+// Implementación simple de rate limiting en memoria para desarrollo
+// En producción se debería usar Redis o similar
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Función helper para limpiar entradas expiradas
+function cleanExpiredEntries() {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}
+
+// Función para verificar rate limit
+function checkRateLimit(key: string, limit: number, windowMs: number): { success: boolean; remaining: number } {
+  cleanExpiredEntries();
+  
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+  
+  if (!entry || now > entry.resetTime) {
+    // Nueva ventana de tiempo
+    rateLimitStore.set(key, {
+      count: 1,
+      resetTime: now + windowMs
+    });
+    return { success: true, remaining: limit - 1 };
+  }
+  
+  if (entry.count >= limit) {
+    return { success: false, remaining: 0 };
+  }
+  
+  entry.count++;
+  return { success: true, remaining: limit - entry.count };
+}
 
 // Rate limiters para diferentes operaciones
-export const bookingCreateRateLimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(5, '1 m'), // 5 requests per minute
-  analytics: true,
-  prefix: 'booking_create',
-});
+export const bookingCreateRateLimit = {
+  limit: async (identifier: string) => {
+    const result = checkRateLimit(`booking:${identifier}`, 5, 60000); // 5 requests per minute
+    return result;
+  }
+};
 
-export const bookingUpdateRateLimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 requests per minute
-  analytics: true,
-  prefix: 'booking_update',
-});
+export const bookingUpdateRateLimit = {
+  limit: async (identifier: string) => {
+    const result = checkRateLimit(`booking_update:${identifier}`, 10, 60000); // 10 requests per minute
+    return result;
+  }
+};
 
-export const bookingReadRateLimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(60, '1 m'), // 60 requests per minute
-  analytics: true,
-  prefix: 'booking_read',
-});
+export const bookingReadRateLimit = {
+  limit: async (identifier: string) => {
+    const result = checkRateLimit(`booking_read:${identifier}`, 60, 60000); // 60 requests per minute
+    return result;
+  }
+};
 
-export const bookingBulkRateLimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(2, '1 m'), // 2 requests per minute for bulk operations
-  analytics: true,
-  prefix: 'booking_bulk',
-});
+export const bookingBulkRateLimit = {
+  limit: async (identifier: string) => {
+    const result = checkRateLimit(`booking_bulk:${identifier}`, 2, 60000); // 2 requests per minute for bulk operations
+    return result;
+  }
+};
 
 // Rate limiter general para APIs
-export const generalApiRateLimit = new Ratelimit({
-  redis: redis,
-  limiter: Ratelimit.slidingWindow(100, '1 m'), // 100 requests per minute
-  analytics: true,
-  prefix: 'api_general',
-});
+export const generalApiRateLimit = {
+  limit: async (identifier: string) => {
+    const result = checkRateLimit(`general_api:${identifier}`, 100, 60000); // 100 requests per minute
+    return result;
+  }
+};
 
 // Función helper para obtener identificador único del usuario
 export const getUserIdentifier = async (request: NextRequest): Promise<string> => {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (session?.user?.id) {
       return `user_${session.user.id}`;
     }
@@ -69,16 +100,16 @@ export const getUserIdentifier = async (request: NextRequest): Promise<string> =
 
 // Función helper para aplicar rate limiting
 export const applyRateLimit = async (
-  rateLimit: Ratelimit,
+  rateLimit: { limit: (identifier: string) => Promise<{ success: boolean; remaining: number }> },
   identifier: string
 ): Promise<{ success: boolean; limit: number; remaining: number; reset: Date }> => {
   try {
     const result = await rateLimit.limit(identifier);
     return {
       success: result.success,
-      limit: result.limit,
+      limit: 100, // Valor por defecto
       remaining: result.remaining,
-      reset: new Date(result.reset)
+      reset: new Date(Date.now() + 60000) // 1 minuto desde ahora
     };
   } catch (error) {
     console.error('Rate limiting error:', error);
@@ -94,7 +125,7 @@ export const applyRateLimit = async (
 
 // Middleware helper para rate limiting
 export const withRateLimit = (
-  rateLimit: Ratelimit,
+  rateLimit: { limit: (identifier: string) => Promise<{ success: boolean; remaining: number }> },
   options: {
     skipSuccessfulRequests?: boolean;
     keyGenerator?: (request: NextRequest) => Promise<string>;
@@ -146,7 +177,7 @@ export const rateLimitConfigs = {
 } as const;
 
 // Función para obtener el rate limiter apropiado
-export const getRateLimiter = (method: string, path: string): Ratelimit => {
+export const getRateLimiter = (method: string, path: string) => {
   const key = `${method} ${path}` as keyof typeof rateLimitConfigs;
   return rateLimitConfigs[key] || generalApiRateLimit;
 };

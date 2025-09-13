@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
-import { withRateLimit } from '@/lib/rate-limit'
-import { bookingStatsSchema } from '@/lib/validations/booking'
-import { formatZodError } from '@/lib/validations/common'
+import { withRateLimit, bookingCreateRateLimit } from '@/lib/rate-limit'
+import { bookingReportSchema, bookingFiltersSchema } from '@/lib/validations/booking'
+import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 
 export const runtime = 'nodejs'
@@ -21,21 +21,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-read',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingCreateRateLimit);
+    const rateLimitResult = await rateLimitCheck(request);
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult;
     }
 
     // Obtener parámetros de consulta
@@ -49,15 +39,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Validar parámetros
-    const validatedParams = bookingStatsSchema.parse(queryParams)
+    const validatedParams = bookingFiltersSchema.parse(queryParams)
 
     // Los usuarios normales solo pueden ver sus propias estadísticas
-    if (session.user.role !== 'admin' && validatedParams.userId !== session.user.id) {
+    if (session.user.role !== 'ADMIN' && validatedParams.userId !== session.user.id) {
       validatedParams.userId = session.user.id
     }
 
     // Obtener estadísticas
-    const result = await bookingService.getBookingStats(validatedParams)
+    const result = await bookingService.getBookingStats(
+      validatedParams.dateFrom,
+      validatedParams.dateTo
+    )
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
@@ -69,10 +62,10 @@ export async function GET(request: NextRequest) {
     
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Parámetros de estadísticas inválidos',
-          details: formatZodError(error)
+        {
+          success: false,
+          error: 'Parámetros de consulta inválidos',
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )
@@ -98,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Solo administradores pueden generar reportes
-    if (session.user.role !== 'admin') {
+    if (session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden generar reportes' },
         { status: 403 }
@@ -106,29 +99,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Aplicar rate limiting más estricto para reportes
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-report',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingCreateRateLimit);
+    const rateLimitResult = await rateLimitCheck(request);
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes de reportes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult;
     }
 
     // Obtener y validar datos del cuerpo
     const body = await request.json()
-    const validatedData = bookingStatsSchema.parse(body)
+    const validatedData = bookingReportSchema.parse(body)
 
     // Generar reporte detallado
-    const result = await bookingService.generateBookingReport(validatedData)
+    const result = await bookingService.getBookingStats(validatedData.dateFrom, validatedData.dateTo)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
@@ -144,10 +127,10 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Parámetros de reporte inválidos',
-          details: formatZodError(error)
+        {
+          success: false,
+          error: 'Datos de entrada inválidos',
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )

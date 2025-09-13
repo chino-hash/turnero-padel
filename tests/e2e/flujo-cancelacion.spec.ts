@@ -93,7 +93,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
 
     test('debe mostrar confirmación antes de cancelar', async ({ page }) => {
       // Buscar una reserva existente o crear una
-      const reservedSlot = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")');
+      const reservedSlot = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")');
       
       if (await reservedSlot.count() === 0) {
         // Crear una reserva primero
@@ -111,7 +111,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
       }
       
       // Ahora buscar la reserva para cancelar
-      const targetReservation = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
+      const targetReservation = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
       
       if (await targetReservation.count() > 0) {
         await targetReservation.click();
@@ -156,7 +156,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
       });
       
       // Buscar una reserva para intentar cancelar
-      const reservedSlot = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")');
+      const reservedSlot = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")');
       
       if (await reservedSlot.count() === 0) {
         // Crear una reserva primero
@@ -173,7 +173,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
         }
       }
       
-      const targetReservation = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
+      const targetReservation = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
       
       if (await targetReservation.count() > 0) {
         await targetReservation.click();
@@ -198,7 +198,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
           }
         }
       } else {
-        console.log('No hay reservas para probar error de cancelación, saltando prueba');
+        console.log('No hay reservas para probar (error as Error) de cancelación, saltando prueba');
         test.skip();
       }
     });
@@ -234,7 +234,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
       // Esta prueba verificaría que no se pueden cancelar reservas muy próximas
       // Por ahora, solo verificamos que existe algún tipo de validación
       
-      const reservedSlot = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")');
+      const reservedSlot = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")');
       
       if (await reservedSlot.count() > 0) {
         await reservedSlot.click();
@@ -260,7 +260,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
     test('debe funcionar correctamente en dispositivos móviles', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 }); // iPhone SE
       
-      const reservedSlot = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")');
+      const reservedSlot = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")');
       
       if (await reservedSlot.count() === 0) {
         // Crear una reserva primero
@@ -277,7 +277,7 @@ test.describe('Flujo de Cancelación de Reservas', () => {
         }
       }
       
-      const targetReservation = page.locator('button[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
+      const targetReservation = page.locator('(button as any)[disabled]:has-text("Reservado"), button:has-text("Reservado")').first();
       
       if (await targetReservation.count() > 0) {
         // Verificar que el botón es clickeable en móvil

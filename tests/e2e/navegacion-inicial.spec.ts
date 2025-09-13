@@ -23,7 +23,7 @@ test.describe('Navegación Inicial - Diagnóstico Completo', () => {
       const timeCount = await timeElements.count();
       
       if (timeCount > 1) {
-        const times = [];
+        const times: any[] = [];
         for (let i = 0; i < Math.min(timeCount, 5); i++) {
           const timeText = await timeElements.nth(i).textContent();
           if (timeText) times.push(timeText.trim());

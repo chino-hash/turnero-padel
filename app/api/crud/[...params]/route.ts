@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { crudService } from '@/lib/services/crud-service';
 import { getTestDataByModel, getValidationRules } from '@/lib/services/test-data';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import { config as authOptions } from '@/lib/auth';
 
 // Modelos permitidos para operaciones CRUD
@@ -18,7 +18,7 @@ const ALLOWED_MODELS = [
 
 // Verificar permisos de administrador
 async function checkAdminPermission() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return session?.user?.role === 'ADMIN';
 }
 
@@ -30,9 +30,10 @@ function validateModel(model: string) {
 }
 
 // GET - Leer registros
-export async function GET(request: NextRequest, { params }: { params: { params: string[] } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ params: string[] }> }) {
   try {
-    const [model, id] = params.params;
+    const resolvedParams = await params;
+    const [model, id] = resolvedParams.params;
     
     if (!model) {
       return NextResponse.json(
@@ -97,13 +98,13 @@ export async function GET(request: NextRequest, { params }: { params: { params: 
     
     if (id) {
       // Obtener un registro específico
-      result = await crudService.readById(model, id, options);
+      result = await crudService.readById(id, options);
     } else if (search && searchFields.length > 0) {
       // Búsqueda de texto
-      result = await crudService.search(model, search, searchFields, options);
+      result = await crudService.search(search, searchFields, options);
     } else {
       // Obtener todos los registros
-      result = await crudService.read(model, options);
+      result = await crudService.read(options);
     }
 
     if (!result.success) {
@@ -116,8 +117,8 @@ export async function GET(request: NextRequest, { params }: { params: { params: 
       pagination: {
         page,
         limit,
-        total: result.count || 0,
-        pages: Math.ceil((result.count || 0) / limit)
+        total: result.data?.pagination?.total || 0,
+        pages: Math.ceil((result.data?.pagination?.total || 0) / limit)
       }
     };
 
@@ -132,9 +133,10 @@ export async function GET(request: NextRequest, { params }: { params: { params: 
 }
 
 // POST - Crear registro
-export async function POST(request: NextRequest, { params }: { params: { params: string[] } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ params: string[] }> }) {
   try {
-    const [model] = params.params;
+    const resolvedParams = await params;
+    const [model] = resolvedParams.params;
     
     if (!model) {
       return NextResponse.json(
@@ -159,7 +161,7 @@ export async function POST(request: NextRequest, { params }: { params: { params:
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
-    const result = await crudService.create(model, body, validationRules);
+    const result = await crudService.create(body, validationRules);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -176,9 +178,10 @@ export async function POST(request: NextRequest, { params }: { params: { params:
 }
 
 // PUT - Actualizar registro
-export async function PUT(request: NextRequest, { params }: { params: { params: string[] } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ params: string[] }> }) {
   try {
-    const [model, id] = params.params;
+    const resolvedParams = await params;
+    const [model, id] = resolvedParams.params;
     
     if (!model || !id) {
       return NextResponse.json(
@@ -203,7 +206,7 @@ export async function PUT(request: NextRequest, { params }: { params: { params: 
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
-    const result = await crudService.update(model, id, body, validationRules);
+    const result = await crudService.update(id, body, validationRules);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -220,9 +223,10 @@ export async function PUT(request: NextRequest, { params }: { params: { params: 
 }
 
 // DELETE - Eliminar registro (soft delete)
-export async function DELETE(request: NextRequest, { params }: { params: { params: string[] } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ params: string[] }> }) {
   try {
-    const [model, id] = params.params;
+    const resolvedParams = await params;
+    const [model, id] = resolvedParams.params;
     
     if (!model || !id) {
       return NextResponse.json(
@@ -247,9 +251,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { param
     
     let result;
     if (hard) {
-      result = await crudService.hardDelete(model, id);
+      result = await crudService.hardDelete(id);
     } else {
-      result = await crudService.delete(model, id);
+      result = await crudService.delete(id);
     }
     
     if (!result.success) {
@@ -267,9 +271,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { param
 }
 
 // PATCH - Operaciones especiales
-export async function PATCH(request: NextRequest, { params }: { params: { params: string[] } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ params: string[] }> }) {
   try {
-    const [model, id, action] = params.params;
+    const resolvedParams = await params;
+    const [model, id, action] = resolvedParams.params;
     
     if (!model) {
       return NextResponse.json(
@@ -299,16 +304,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { params
             { status: 400 }
           );
         }
-        result = await crudService.restore(model, id);
+        result = await crudService.restore(id);
         break;
         
       case 'count':
         const body = await request.json().catch(() => ({}));
-        result = await crudService.count(model, body.where || {});
+        result = await crudService.count(body.where || {});
         break;
         
       case 'stats':
-        result = await crudService.getTableStats(model);
+        result = await crudService.getTableStats();
         break;
         
       case 'seed':
@@ -325,7 +330,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { params
         const validationRules = getValidationRules(model);
         
         for (const data of testData) {
-          const seedResult = await crudService.create(model, data, validationRules);
+          const seedResult = await crudService.create(data, validationRules);
           seedResults.push(seedResult);
         }
         

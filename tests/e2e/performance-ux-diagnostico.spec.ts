@@ -45,7 +45,7 @@ test.describe('Diagnóstico de Performance y UX - Análisis Integral', () => {
       let totalResourceSize = 0;
       let resourceCount = 0;
       
-      page.on('response', (response) => {
+      page.on('response', (response: any) => {
         const contentLength = response.headers()['content-length'];
         if (contentLength) {
           totalResourceSize += parseInt(contentLength);
@@ -301,7 +301,7 @@ test.describe('Diagnóstico de Performance y UX - Análisis Integral', () => {
       );
       
       const errorCount = await errorMessages.count();
-      console.log(`Mensajes de error encontrados: ${errorCount}`);
+      console.log(`Mensajes de (error as Error) encontrados: ${errorCount}`);
       
       // La aplicación debe manejar errores sin crashear
       const pageTitle = await page.title();
@@ -358,7 +358,7 @@ test.describe('Diagnóstico de Performance y UX - Análisis Integral', () => {
       // Buscar elementos de navegación
       const navElements = page.locator(
         'nav, .navigation, .menu, .navbar, ' +
-        'a[href], button:has-text("Inicio"), button:has-text("Home")'
+        '(a as any)[href], button:has-text("Inicio"), button:has-text("Home")'
       );
       
       const navCount = await navElements.count();

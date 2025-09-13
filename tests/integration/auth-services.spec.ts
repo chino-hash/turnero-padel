@@ -121,9 +121,9 @@ test.describe('Integración Autenticación - Servicios', () => {
             // Debe requerir autenticación
             expect([401, 403, 405]).toContain(response.status());
           }
-        } catch (error) {
+        } catch (error: unknown) {
           // API puede no existir - comportamiento aceptable
-          console.log(`API ${endpoint} no disponible:`, error.message);
+          console.log(`API ${endpoint} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -147,7 +147,7 @@ test.describe('Integración Autenticación - Servicios', () => {
       for (const cookie of authCookies) {
         // Cookies de autenticación deben tener propiedades de seguridad
         expect(cookie.httpOnly).toBeTruthy();
-        expect(cookie.secure || cookie.sameSite === 'lax' || cookie.sameSite === 'strict').toBeTruthy();
+        expect(cookie.secure || cookie.sameSite === 'Lax' || cookie.sameSite === 'Strict').toBeTruthy();
       }
     });
 
@@ -173,8 +173,8 @@ test.describe('Integración Autenticación - Servicios', () => {
           // Verificar que el status es uno de los esperados
           expect(scenario.expectedStatus).toContain(response.status());
           
-        } catch (error) {
-          console.log(`${scenario.description} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`${scenario.description} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -211,8 +211,8 @@ test.describe('Integración Autenticación - Servicios', () => {
           // Otros errores válidos
           expect([400, 401, 405, 422]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('API de registro no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('API de registro no disponible:', (error as Error).message);
       }
     });
 
@@ -245,8 +245,8 @@ test.describe('Integración Autenticación - Servicios', () => {
           // Debe rechazar usuarios inválidos
           expect([400, 409, 422, 401, 405]).toContain(response.status());
           
-        } catch (error) {
-          console.log('Validación de usuario no disponible:', error.message);
+        } catch (error: unknown) {
+          console.log('Validación de usuario no disponible:', (error as Error).message);
         }
       }
     });
@@ -273,8 +273,8 @@ test.describe('Integración Autenticación - Servicios', () => {
         // Puede implementar rate limiting (429) o seguir rechazando (401)
         expect([401, 403, 429, 405]).toContain(lastResponse.status());
         
-      } catch (error) {
-        console.log('Test de fuerza bruta no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Test de fuerza bruta no disponible:', (error as Error).message);
       }
     });
 
@@ -347,8 +347,8 @@ test.describe('Integración Autenticación - Servicios', () => {
           // No debe dar error 500, puede dar 400 o 404
           expect(response.status()).toBeLessThan(500);
           
-        } catch (error) {
-          console.log(`Callback ${route} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Callback ${route} no disponible:`, (error as Error).message);
         }
       }
     });

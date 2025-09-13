@@ -39,7 +39,7 @@ interface Booking {
 
 interface Extra {
   id: string
-  type: 'pelotas' | 'bebida' | 'paleta'
+  type: 'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro'
   name: string
   cost: number
   assignedTo: 'all' | 'player1' | 'player2' | 'player3' | 'player4'
@@ -66,8 +66,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null)
-  const [selectedExtraType, setSelectedExtraType] = useState<'pelotas' | 'bebida' | 'paleta' | null>(null)
-  const [extraCost, setExtraCost] = useState(0)
+  const [selectedExtraType, setSelectedExtraType] = useState<'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro' | null>(null)
+  const [extraCost, setExtraCost] = useState<number>(0)
   const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
 
   // Estados para la modal de calendario
@@ -102,7 +102,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       extras: [
         {
           id: 'extra1',
-          type: 'pelotas',
+          type: 'pelota',
           name: 'Pelotas Wilson',
           cost: 1500,
           assignedTo: 'all'
@@ -142,7 +142,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
         },
         {
           id: 'extra3',
-          type: 'paleta',
+          type: 'otro',
           name: 'Paleta Bullpadel',
           cost: 2500,
           assignedTo: 'player3'
@@ -259,9 +259,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
     if (!selectedBookingId || !selectedExtraType || extraCost <= 0) return
     
     const extraNames = {
-      pelotas: 'Pelotas de Pádel',
+      alquiler_raqueta: 'Alquiler de Raqueta',
+      pelota: 'Pelota',
+      toalla: 'Toalla',
       bebida: 'Bebida',
-      paleta: 'Paleta de Pádel'
+      snack: 'Snack',
+      otro: 'Otro'
     }
     
     addExtra(selectedBookingId, {
@@ -800,7 +803,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                 <label className="block text-sm font-medium mb-2">Tipo de Extra</label>
                 <select 
                   className="w-full p-2 border rounded-md"
-                  value={selectedExtraType}
+                  value={selectedExtraType || ''}
                   onChange={(e) => setSelectedExtraType(e.target.value as 'alquiler_raqueta' | 'pelota' | 'toalla' | 'bebida' | 'snack' | 'otro')}
                 >
                   <option value="">Seleccionar tipo</option>
@@ -819,7 +822,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                   type="number"
                   placeholder="0.00"
                   value={extraCost}
-                  onChange={(e) => setExtraCost(e.target.value)}
+                  onChange={(e) => setExtraCost(Number(e.target.value))}
                 />
               </div>
               
@@ -828,13 +831,13 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                 <select 
                   className="w-full p-2 border rounded-md"
                   value={extraAssignedTo}
-                  onChange={(e) => setExtraAssignedTo(e.target.value)}
+                  onChange={(e) => setExtraAssignedTo(e.target.value as 'all' | 'player1' | 'player2' | 'player3' | 'player4')}
                 >
-                  <option value="todos">Todos los jugadores</option>
-                  <option value="titular">Solo titular</option>
-                  <option value="jugador2">Solo jugador 2</option>
-                  <option value="jugador3">Solo jugador 3</option>
-                  <option value="jugador4">Solo jugador 4</option>
+                  <option value="all">Todos los jugadores</option>
+                  <option value="player1">Solo jugador 1</option>
+                  <option value="player2">Solo jugador 2</option>
+                  <option value="player3">Solo jugador 3</option>
+                  <option value="player4">Solo jugador 4</option>
                 </select>
               </div>
             </div>

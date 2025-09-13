@@ -278,7 +278,7 @@ test.describe('Flujo de Reserva Detallado - Diagnóstico Completo', () => {
         const modalTimeMatch = modalContent.match(/\d{1,2}:\d{2}/);
         
         if (slotTimeMatch && modalTimeMatch) {
-          expect(slotTimeMatch[0]).toBe(modalTimeMatch[0]);
+          expect((slotTimeMatch as any)[0]).toBe((modalTimeMatch as any)[0]);
         }
       }
     });

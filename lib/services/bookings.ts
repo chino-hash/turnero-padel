@@ -1,5 +1,70 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/neon-config'
 import type { Booking, Court, Player, User } from '@/types/types'
+import type { BookingWithDetails } from './BookingService'
+
+// Re-exportar BookingWithDetails para compatibilidad
+export type { BookingWithDetails }
+
+// Helper function to transform Prisma booking to BookingWithDetails
+function transformToBookingWithDetails(booking: any): BookingWithDetails {
+  return {
+    id: booking.id,
+    courtId: booking.courtId,
+    userId: booking.userId,
+    bookingDate: booking.bookingDate.toISOString(),
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    durationMinutes: booking.durationMinutes,
+    totalPrice: booking.totalPrice,
+    depositAmount: booking.depositAmount || 0,
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
+    notes: booking.notes,
+    cancellationReason: booking.cancellationReason,
+    createdAt: booking.createdAt.toISOString(),
+    updatedAt: booking.updatedAt.toISOString(),
+    cancelledAt: booking.cancelledAt?.toISOString() || null,
+    court: {
+      id: booking.court.id,
+      name: booking.court.name,
+      description: booking.court.description,
+      basePrice: booking.court.basePrice,
+      priceMultiplier: booking.court.priceMultiplier,
+      features: booking.court.features ? booking.court.features.split(',').map((f: string) => f.trim()) : [],
+      isActive: booking.court.isActive,
+      operatingHours: {
+        open: '08:00',
+        close: '22:00'
+      }
+    },
+    user: {
+      id: booking.user.id,
+      name: booking.user.name || '',
+      email: booking.user.email,
+      phone: booking.user.phone,
+      role: booking.user.role || 'USER'
+    },
+    players: booking.players?.map((player: any) => ({
+      id: player.id,
+      playerName: player.playerName,
+      playerPhone: player.playerPhone,
+      playerEmail: player.playerEmail,
+      hasPaid: !!player.paidAt,
+      paidAmount: player.paidAmount || 0,
+      position: player.position || 1,
+      notes: player.notes
+    })) || [],
+    payments: booking.payments?.map((payment: any) => ({
+      id: payment.id,
+      amount: payment.amount,
+      paymentMethod: payment.paymentMethod,
+      paymentType: payment.paymentType,
+      status: payment.status,
+      createdAt: payment.createdAt.toISOString()
+    })) || []
+  }
+}
 
 // Tipo para jugadores en reservas
 export interface BookingPlayer extends Player {
@@ -24,12 +89,6 @@ export interface CreateBookingData {
   notes?: string
 }
 
-export interface BookingWithDetails extends Booking {
-  court: Court
-  user: User
-  players: BookingPlayer[]
-}
-
 // Obtener reservas del usuario
 export async function getUserBookings(userId: string): Promise<BookingWithDetails[]> {
   try {
@@ -47,41 +106,7 @@ export async function getUserBookings(userId: string): Promise<BookingWithDetail
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return bookings.map(booking => ({
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }))
+    return bookings.map(booking => transformToBookingWithDetails(booking))
   } catch (error) {
     console.error('Error obteniendo reservas del usuario:', error)
     throw new Error('Error al obtener las reservas')
@@ -104,41 +129,7 @@ export async function getAllBookings(): Promise<BookingWithDetails[]> {
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return bookings.map(booking => ({
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }))
+    return bookings.map(booking => transformToBookingWithDetails(booking))
   } catch (error) {
     console.error('Error obteniendo todas las reservas:', error)
     throw new Error('Error al obtener las reservas')
@@ -160,41 +151,7 @@ export async function getBookingById(id: string): Promise<BookingWithDetails | n
     if (!booking) return null
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return {
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }
+    return transformToBookingWithDetails(booking)
   } catch (error) {
     console.error('Error obteniendo reserva:', error)
     throw new Error('Error al obtener la reserva')
@@ -237,42 +194,8 @@ export async function createBooking(data: CreateBookingData): Promise<BookingWit
       }
     })
 
-    // Transformar los datos para que coincidan con BookingWithDetails
-    return {
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }
+    // Usar la función de transformación consistente
+    return transformToBookingWithDetails(booking)
   } catch (error) {
     console.error('Error creando reserva:', error)
     throw new Error(error instanceof Error ? error.message : 'Error al crear la reserva')
@@ -304,41 +227,7 @@ export async function updateBookingStatus(
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return {
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }
+    return transformToBookingWithDetails(booking)
   } catch (error) {
     console.error('Error actualizando estado de reserva:', error)
     throw new Error('Error al actualizar el estado de la reserva')
@@ -369,41 +258,7 @@ export async function updatePaymentStatus(
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return {
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }
+    return transformToBookingWithDetails(booking)
   } catch (error) {
     console.error('Error actualizando estado de pago:', error)
     throw new Error('Error al actualizar el estado de pago')
@@ -478,41 +333,7 @@ export async function getBookingsByDateAndCourt(
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return bookings.map(booking => ({
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }))
+    return bookings.map(booking => transformToBookingWithDetails(booking))
   } catch (error) {
     console.error('Error obteniendo reservas por fecha y cancha:', error)
     throw new Error('Error al obtener las reservas')
@@ -541,41 +362,7 @@ export async function cancelBooking(
     })
 
     // Transformar los datos para que coincidan con BookingWithDetails
-    return {
-      ...booking,
-      court: {
-        ...booking.court,
-        description: booking.court.description || '', // Manejar null
-        features: booking.court.features ? booking.court.features.split(',').map(f => f.trim()) : [], // Convertir string a array
-        color: '#3B82F6', // Valor por defecto
-        bgColor: '#EFF6FF', // Valor por defecto
-        textColor: '#1E40AF' // Valor por defecto
-      },
-      user: {
-        ...booking.user,
-        name: booking.user.name || '', // Manejar null
-        phone: booking.user.phone || undefined // Manejar null
-      },
-      players: booking.players.map(player => ({
-        ...player,
-        name: player.playerName,
-        email: player.playerEmail || '',
-        phone: player.playerPhone || '',
-        isRegistered: !!player.playerEmail,
-        hasPaid: !!player.paidAt
-      })),
-      status: booking.status.toLowerCase() as 'confirmed' | 'pending' | 'cancelled',
-      paymentStatus: booking.paymentStatus === 'FULLY_PAID' ? 'Paid' : 
-                    booking.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending',
-      courtName: booking.court.name,
-      date: booking.bookingDate.toISOString().split('T')[0],
-      timeRange: `${booking.startTime} - ${booking.endTime}`,
-      location: 'Club de Padel', // Valor por defecto
-      price: booking.totalPrice || 0,
-      totalPrice: booking.totalPrice || 0,
-      deposit: booking.depositAmount || 0,
-      type: new Date(booking.bookingDate) < new Date() ? 'past' as const : 'current' as const
-    }
+    return transformToBookingWithDetails(booking)
   } catch (error) {
     console.error('Error cancelando reserva:', error)
     throw new Error('Error al cancelar la reserva')

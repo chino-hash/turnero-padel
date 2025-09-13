@@ -221,7 +221,7 @@ test.describe('Panel de Administración - Permisos y Roles', () => {
           await page.waitForTimeout(1000);
           
           // Debe abrir formulario de edición
-          const editForm = page.locator('form, .modal, input[value], input[name*="nombre"]');
+          const editForm = page.locator('form, .modal, (input as any)[value], input[name*="nombre"]');
           const hasEditForm = await editForm.count() > 0;
           
           if (hasEditForm) {
@@ -544,7 +544,7 @@ test.describe('Panel de Administración - Permisos y Roles', () => {
             await page.waitForTimeout(1000);
             
             // No debería haber alertas
-            const dialogs = [];
+            const dialogs: any[] = [];
             page.on('dialog', dialog => {
               dialogs.push(dialog);
               dialog.dismiss();

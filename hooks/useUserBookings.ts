@@ -62,19 +62,19 @@ export function useUserBookings(): UseUserBookingsReturn {
 
   // Configurar actualizaciones en tiempo real
   useRealTimeUpdates({
-    onBookingsUpdated: useCallback((data) => {
+    onBookingsUpdated: useCallback((data: any) => {
       console.log('Actualizando reservas del usuario por evento SSE:', data)
       // Refrescar las reservas cuando hay cambios
       fetchBookings()
     }, [fetchBookings]),
     
-    onSlotsUpdated: useCallback((data) => {
+    onSlotsUpdated: useCallback((data: any) => {
       console.log('Slots actualizados, verificando impacto en reservas del usuario:', data)
       // Los cambios en slots pueden afectar las reservas del usuario
       fetchBookings()
     }, [fetchBookings]),
     
-    onCourtsUpdated: useCallback((data) => {
+    onCourtsUpdated: useCallback((data: any) => {
       console.log('Canchas actualizadas, verificando impacto en reservas del usuario:', data)
       // Los cambios en canchas pueden afectar las reservas del usuario
       fetchBookings()

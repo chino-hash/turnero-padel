@@ -1,5 +1,20 @@
 # Políticas de Protección del Frontend
 
+## URLs y Rutas del Sistema
+
+### 🔒 RUTAS PROTEGIDAS DE USUARIO
+- **`/dashboard`** - Dashboard principal del usuario (PROTEGIDO)
+- **`/login`** - Página de autenticación (PROTEGIDO)
+- **`/auth/*`** - Rutas de autenticación (PROTEGIDO)
+
+### 🔧 RUTAS ADMINISTRATIVAS
+- **`/admin`** - Panel principal de administración (MODIFICABLE)
+- **`/admin/canchas`** - Gestión de canchas (MODIFICABLE)
+- **`/admin/turnos`** - Gestión de turnos (MODIFICABLE)
+- **`/admin/usuarios`** - Gestión de usuarios (MODIFICABLE)
+- **`/admin/estadisticas`** - Reportes y estadísticas (MODIFICABLE)
+- **`/admin/productos`** - Gestión de productos (MODIFICABLE)
+
 ## Archivos y Componentes Protegidos
 
 ### ⚠️ ARCHIVOS QUE NO DEBEN MODIFICARSE SIN AUTORIZACIÓN EXPLÍCITA
@@ -19,7 +34,18 @@
 /app/(protected)/
 ├── dashboard/page.tsx     # ❌ PROTEGIDO - Dashboard principal del usuario
 └── layout.tsx            # ❌ PROTEGIDO - Layout de páginas protegidas
+
+/padel-booking.tsx         # ❌ PROTEGIDO - Componente principal del dashboard
 ```
+
+#### 2.1 Detalles del Dashboard de Usuario (`/dashboard`)
+- **Componente Principal**: `PadelBookingPage` (importación dinámica)
+- **Funcionalidades**:
+  - Sistema de reservas de canchas
+  - Gestión de turnos personales
+  - Calendario interactivo
+  - Selección de horarios y jugadores
+- **Protección**: Requiere autenticación, crítico para usuarios finales
 
 #### 3. Componentes de UI Base
 ```
@@ -59,6 +85,27 @@
 ├── productos/
 └── usuarios/
 ```
+
+#### 2.1 Detalles del Panel de Administración (`/admin`)
+- **Layout Principal**: `app/(admin)/layout.tsx`
+  - Header con navegación horizontal (desktop)
+  - Navegación móvil responsiva
+  - Verificación de permisos de administrador
+  - Avatar y información del usuario admin
+
+- **Dashboard Admin**: `app/(admin)/admin/page.tsx`
+  - Gestión completa de turnos y reservas
+  - Sistema de filtros avanzados (estado, fecha, usuario)
+  - Gestión de pagos individuales por jugador
+  - Sistema de extras y servicios adicionales
+  - Reportes y estadísticas en tiempo real
+
+- **Secciones Disponibles**:
+  - **Canchas**: Gestión de canchas y precios
+  - **Turnos**: Administración de reservas
+  - **Usuarios**: Gestión de usuarios y permisos
+  - **Estadísticas**: Reportes de ocupación e ingresos
+  - **Productos**: Gestión de extras y servicios
 
 #### 3. APIs Administrativas
 ```

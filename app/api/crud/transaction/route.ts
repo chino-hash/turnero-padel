@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { crudService } from '@/lib/services/crud-service';
-import { getServerSession } from 'next-auth';
-import { config as authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 
 // Verificar permisos de administrador
 async function checkAdminPermission() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return session?.user?.role === 'ADMIN';
 }
 

@@ -1,17 +1,16 @@
 import { PrismaClient, Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/database/neon-config';
 import { 
   handleError, 
-  createSuccessResponse, 
   ValidationError, 
   NotFoundError, 
   BusinessLogicError,
   validatePermissions,
   validateInput,
   sanitizeInput,
-  logError,
-  type ApiResponse 
+  logError
 } from '@/lib/utils/error-handler';
+import { ApiResponse, createSuccessResponse, createErrorResponse } from '@/lib/validations/common';
 import { 
   validateSchema, 
   getModelSchema, 
@@ -52,6 +51,18 @@ export interface CrudResult<T> {
   count?: number;
 }
 
+export interface PaginatedData<T> {
+  items: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
 export interface ValidationRule {
   field: string;
   required?: boolean;
@@ -67,14 +78,62 @@ export interface ValidationRule {
 export class CrudService<T = any> {
   private model: ModelDelegate;
   private modelName: string;
+  private prisma: any;
 
   constructor(prismaInstance: any, modelName: string) {
     this.modelName = modelName;
     this.model = prismaInstance[modelName];
+    this.prisma = prismaInstance;
     
     if (!this.model) {
       throw new Error(`Modelo ${modelName} no encontrado`);
     }
+  }
+
+  // Helper para convertir errores al formato ApiResponse
+  private handleApiError(error: unknown): ApiResponse<T> {
+    const errorResponse = handleError(error);
+    return createErrorResponse(
+      errorResponse.error,
+      errorResponse.error,
+      errorResponse.field ? [{ field: errorResponse.field, message: errorResponse.error }] : undefined
+    );
+  }
+
+  private handleApiErrorArray(error: unknown): ApiResponse<T[]> {
+    const errorResponse = handleError(error);
+    return createErrorResponse(
+      errorResponse.error,
+      errorResponse.error,
+      errorResponse.field ? [{ field: errorResponse.field, message: errorResponse.error }] : undefined
+    );
+  }
+
+  private handleApiErrorPaginated(error: unknown): ApiResponse<PaginatedData<T>> {
+    const errorResponse = handleError(error);
+    return createErrorResponse(
+      errorResponse.error,
+      errorResponse.error,
+      errorResponse.field ? [{ field: errorResponse.field, message: errorResponse.error }] : undefined
+    );
+  }
+
+  private handleApiErrorNumber(error: unknown): ApiResponse<number> {
+    const errorResponse = handleError(error);
+    return createErrorResponse(
+      errorResponse.error,
+      errorResponse.error,
+      errorResponse.field ? [{ field: errorResponse.field, message: errorResponse.error }] : undefined
+    );
+  }
+
+  private handleApiErrorAny(error: unknown): ApiResponse<any> {
+    const errorResponse = handleError(error);
+    return createErrorResponse(
+      errorResponse.error,
+      errorResponse.error,
+      errorResponse.field ? [{ field: errorResponse.field, message: errorResponse.error }] : undefined
+    );
   }
 
   // Validar datos según reglas definidas
@@ -209,17 +268,17 @@ export class CrudService<T = any> {
         select: options.select
       });
 
-      return createSuccessResponse(result, `${this.modelName} creado exitosamente`);
+      return createSuccessResponse(`${this.modelName} creado exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.create - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
   // Leer registros
   async read(
     options: CrudOptions & PaginationOptions = {}
-  ): Promise<ApiResponse<T[]>> {
+  ): Promise<ApiResponse<PaginatedData<T>>> {
     try {
       // Validar permisos
       if (options.userRole) {
@@ -277,10 +336,10 @@ export class CrudService<T = any> {
         }
       };
 
-      return createSuccessResponse(responseData, `${this.modelName} obtenidos exitosamente`);
+      return createSuccessResponse(`${this.modelName} obtenidos exitosamente`, responseData);
     } catch (error: any) {
       logError(error, `CrudService.read - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiErrorPaginated(error);
     }
   }
 
@@ -324,10 +383,10 @@ export class CrudService<T = any> {
         throw new NotFoundError(this.modelName, id);
       }
 
-      return createSuccessResponse(result, `${this.modelName} encontrado exitosamente`);
+      return createSuccessResponse(`${this.modelName} encontrado exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.readById - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
@@ -391,10 +450,10 @@ export class CrudService<T = any> {
         select: options.select
       });
 
-      return createSuccessResponse(result, `${this.modelName} actualizado exitosamente`);
+      return createSuccessResponse(`${this.modelName} actualizado exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.update - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
@@ -431,10 +490,10 @@ export class CrudService<T = any> {
         }
       });
 
-      return createSuccessResponse(result, `${this.modelName} eliminado exitosamente`);
+      return createSuccessResponse(`${this.modelName} eliminado exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.delete - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
@@ -468,10 +527,10 @@ export class CrudService<T = any> {
         where: { id }
       });
 
-      return createSuccessResponse(result, `${this.modelName} eliminado permanentemente`);
+      return createSuccessResponse(`${this.modelName} eliminado permanentemente`, result);
     } catch (error: any) {
       logError(error, `CrudService.hardDelete - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
@@ -508,10 +567,10 @@ export class CrudService<T = any> {
         }
       });
 
-      return createSuccessResponse(result, `${this.modelName} restaurado exitosamente`);
+      return createSuccessResponse(`${this.modelName} restaurado exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.restore - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiError(error);
     }
   }
 
@@ -532,10 +591,10 @@ export class CrudService<T = any> {
         }
       });
 
-      return createSuccessResponse(count, `Conteo de ${this.modelName} obtenido exitosamente`);
+      return createSuccessResponse(`Conteo de ${this.modelName} obtenido exitosamente`, count);
     } catch (error: any) {
       logError(error, `CrudService.count - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiErrorNumber(error);
     }
   }
 
@@ -584,10 +643,10 @@ export class CrudService<T = any> {
         select: options.select
       });
 
-      return createSuccessResponse(result, `Búsqueda en ${this.modelName} completada exitosamente`);
+      return createSuccessResponse(`Búsqueda en ${this.modelName} completada exitosamente`, result);
     } catch (error: any) {
       logError(error, `CrudService.search - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiErrorArray(error);
     }
   }
 
@@ -770,10 +829,10 @@ export class CrudService<T = any> {
          })
        );
 
-      return createSuccessResponse(results, 'Transacción ejecutada exitosamente');
+      return createSuccessResponse('Transacción ejecutada exitosamente', results);
     } catch (error: any) {
       logError(error, 'CrudService.transaction');
-      return handleError(error);
+      return this.handleApiErrorArray(error);
     }
   }
 
@@ -826,10 +885,10 @@ export class CrudService<T = any> {
         growthRate: lastMonth > 0 && recent > 0 ? ((recent / lastMonth * 100) - 100).toFixed(2) : '0.00'
       };
 
-      return createSuccessResponse(stats, `Estadísticas de ${this.modelName} obtenidas exitosamente`);
+      return createSuccessResponse(`Estadísticas de ${this.modelName} obtenidas exitosamente`, stats);
     } catch (error: any) {
       logError(error, `CrudService.getTableStats - ${this.modelName}`);
-      return handleError(error);
+      return this.handleApiErrorAny(error);
     }
   }
 }

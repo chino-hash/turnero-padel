@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
-import { withRateLimit } from '@/lib/rate-limit'
+import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { updateBookingSchema } from '@/lib/validations/booking'
-import { formatZodError } from '@/lib/validations/common'
+import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
 
@@ -31,21 +31,11 @@ export async function GET(
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-read',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingReadRateLimit)
+    const rateLimitResponse = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResponse) {
+      return rateLimitResponse
     }
 
     const { id: bookingId } = await params
@@ -64,7 +54,7 @@ export async function GET(
     }
 
     // Verificar permisos: solo admin o propietario pueden ver la reserva
-    if (session.user.role !== 'admin' && result.data.userId !== session.user.id) {
+    if (session.user.role !== 'ADMIN' && result.data?.userId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para ver esta reserva' },
         { status: 403 }
@@ -97,21 +87,11 @@ export async function PUT(
     }
 
     // Aplicar rate limiting más estricto para actualizaciones
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-update',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingUpdateRateLimit)
+    const rateLimitResponse = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes de actualización. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResponse) {
+      return rateLimitResponse
     }
 
     const { id: bookingId } = await params
@@ -131,30 +111,32 @@ export async function PUT(
       bookingId,
       validatedData,
       session.user.id,
-      session.user.role === 'admin'
+      session.user.role
     )
 
     if (!result.success) {
-      const statusCode = result.error.includes('No encontrada') ? 404 :
-                        result.error.includes('permisos') ? 403 : 400
+      const statusCode = result.error?.includes('No encontrada') ? 404 :
+                        result.error?.includes('permisos') ? 403 : 400
       return NextResponse.json(result, { status: statusCode })
     }
 
     // Emitir evento SSE para actualizaciones en tiempo real
-    eventEmitters.bookingsUpdated({
-      action: 'updated',
-      booking: result.data,
-      message: `Reserva ${bookingId} actualizada`
-    })
-
-    // Si se cambió la fecha/hora, actualizar disponibilidad
-    if (validatedData.bookingDate || validatedData.startTime || validatedData.endTime) {
-      eventEmitters.slotsUpdated({
-        action: 'availability_changed',
-        courtId: result.data.courtId,
-        date: result.data.bookingDate,
-        message: `Disponibilidad actualizada para ${result.data.bookingDate}`
+    if (result.data) {
+      eventEmitters.bookingsUpdated({
+        action: 'updated',
+        booking: result.data,
+        message: `Reserva ${bookingId} actualizada`
       })
+
+      // Si se cambió la fecha/hora, actualizar disponibilidad
+      if (validatedData.bookingDate || validatedData.startTime || validatedData.endTime) {
+        eventEmitters.slotsUpdated({
+          action: 'availability_changed',
+          courtId: result.data.courtId,
+          date: result.data.bookingDate,
+          message: `Disponibilidad actualizada para ${result.data.bookingDate}`
+        })
+      }
     }
 
     return NextResponse.json(result)
@@ -166,7 +148,7 @@ export async function PUT(
         { 
           success: false, 
           error: 'Datos de actualización inválidos',
-          details: formatZodError(error)
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )
@@ -195,21 +177,10 @@ export async function DELETE(
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-update', // Usar el mismo límite que update
-      session.user.id
-    )
+    const rateLimitResponse = await withRateLimit(bookingUpdateRateLimit)(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResponse) {
+      return rateLimitResponse
     }
 
     const { id: bookingId } = await params
@@ -223,29 +194,32 @@ export async function DELETE(
     // Eliminar reserva (soft delete)
     const result = await bookingService.cancelBooking(
       bookingId,
+      'Cancelado por usuario',
       session.user.id,
-      session.user.role === 'admin'
+      session.user.role
     )
 
     if (!result.success) {
-      const statusCode = result.error.includes('No encontrada') ? 404 :
-                        result.error.includes('permisos') ? 403 : 400
+      const statusCode = result.error?.includes('No encontrada') ? 404 :
+                        result.error?.includes('permisos') ? 403 : 400
       return NextResponse.json(result, { status: statusCode })
     }
 
     // Emitir eventos SSE para actualizaciones en tiempo real
-    eventEmitters.bookingsUpdated({
-      action: 'cancelled',
-      booking: result.data,
-      message: `Reserva ${bookingId} cancelada`
-    })
+    if (result.data) {
+      eventEmitters.bookingsUpdated({
+        action: 'cancelled',
+        booking: result.data,
+        message: `Reserva ${bookingId} cancelada`
+      })
 
-    eventEmitters.slotsUpdated({
-      action: 'availability_changed',
-      courtId: result.data.courtId,
-      date: result.data.bookingDate,
-      message: `Disponibilidad actualizada para ${result.data.bookingDate}`
-    })
+      eventEmitters.slotsUpdated({
+        action: 'availability_changed',
+        courtId: result.data.courtId,
+        date: result.data.bookingDate,
+        message: `Disponibilidad actualizada para ${result.data.bookingDate}`
+      })
+    }
 
     return NextResponse.json(result)
   } catch (error) {

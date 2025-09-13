@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import { POST } from '@/app/api/bookings/route'
 import { createBooking, checkAvailability, getBookingById } from '@/lib/services/bookings'
 import { getCourtById } from '@/lib/services/courts'
@@ -6,25 +7,25 @@ import { prisma } from '@/lib/prisma'
 
 // Mock dependencies
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
-  signIn: jest.fn(),
-  signOut: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
+  signIn: jest.fn() as any as jest.MockedFunction<any>,
+  signOut: jest.fn() as any as jest.MockedFunction<any>,
 }))
 jest.mock('@/lib/services/bookings', () => ({
-  createBooking: jest.fn(),
-  checkAvailability: jest.fn(),
-  getBookingById: jest.fn(),
+  createBooking: jest.fn() as any as jest.MockedFunction<any>,
+  checkAvailability: jest.fn() as any as jest.MockedFunction<any>,
+  getBookingById: jest.fn() as any as jest.MockedFunction<any>,
 }))
 jest.mock('@/lib/services/courts', () => ({
-  getCourtById: jest.fn(),
+  getCourtById: jest.fn() as any as jest.MockedFunction<any>,
 }))
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     systemSetting: {
-      findUnique: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
     },
     bookingPlayer: {
-      createMany: jest.fn(),
+      createMany: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))
@@ -95,9 +96,7 @@ describe('/api/bookings', () => {
       depositAmount: 750,
       status: 'confirmed',
       notes: 'Test booking',
-      cancellationReason: null,
-      cancelledBy: null,
-      cancelledAt: null,
+      cancellationReason: null,      cancelledAt: null,
       createdAt: new Date('2024-01-01'),
       updatedAt: new Date('2024-01-01'),
     }
@@ -175,9 +174,7 @@ describe('/api/bookings', () => {
     paymentStatus: 'PENDING' as const,
     paymentMethod: null,
     notes: null,
-    cancellationReason: null,
-    cancelledBy: null,
-    cancelledAt: null,
+    cancellationReason: null,    cancelledAt: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   }

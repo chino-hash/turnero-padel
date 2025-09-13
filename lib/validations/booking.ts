@@ -48,7 +48,7 @@ export const createBookingSchema = z.object({
   })).max(4, {
     message: 'Máximo 4 jugadores por reserva'
   }).optional(),
-  paymentMethod: z.nativeEnum(PaymentMethod).optional()
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD']).optional()
 }).refine((data) => {
   // Validar que endTime sea posterior a startTime
   const [startHour, startMin] = data.startTime.split(':').map(Number);
@@ -79,9 +79,9 @@ export const updateBookingSchema = z.object({
   bookingDate: dateSchema.optional(),
   startTime: timeSchema.optional(),
   endTime: timeSchema.optional(),
-  status: z.nativeEnum(BookingStatus).optional(),
-  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
-  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional(),
+  paymentStatus: z.enum(['PENDING', 'DEPOSIT_PAID', 'FULLY_PAID']).optional(),
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD']).optional(),
   notes: z.string().max(500, {
     message: 'Las notas no pueden exceder 500 caracteres'
   }).optional(),
@@ -120,8 +120,8 @@ export const bookingFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   courtId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
-  status: z.nativeEnum(BookingStatus).optional(),
-  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional(),
+  paymentStatus: z.enum(['PENDING', 'DEPOSIT_PAID', 'FULLY_PAID']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   sortBy: z.enum(['bookingDate', 'createdAt', 'totalPrice']).default('bookingDate'),
@@ -145,8 +145,8 @@ export const bulkUpdateBookingsSchema = z.object({
     message: 'Máximo 50 reservas por operación bulk'
   }),
   updates: z.object({
-    status: z.nativeEnum(BookingStatus).optional(),
-    paymentStatus: z.nativeEnum(PaymentStatus).optional(),
+    status: z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional(),
+    paymentStatus: z.enum(['PENDING', 'DEPOSIT_PAID', 'FULLY_PAID']).optional(),
     cancellationReason: z.string().max(500).optional()
   }).refine((data) => {
     // Al menos un campo debe estar presente
@@ -180,7 +180,7 @@ export const bookingReportSchema = z.object({
   dateFrom: z.string(),
   dateTo: z.string(),
   courtIds: z.array(z.string().cuid()).optional(),
-  status: z.array(z.nativeEnum(BookingStatus)).optional(),
+  status: z.array(z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED'])).optional(),
   groupBy: z.enum(['day', 'week', 'month', 'court']).default('day'),
   includeRevenue: z.boolean().default(true),
   includePlayerStats: z.boolean().default(false)

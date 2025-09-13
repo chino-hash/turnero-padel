@@ -302,7 +302,7 @@ test.describe('MisTurnos.tsx - Navegación y Funcionalidad Completa', () => {
           console.log(`URL después de navegar a ${section.name}:`, currentUrl);
           
           // Verificar que no hay errores de JavaScript
-          const jsErrors = [];
+          const jsErrors: any[] = [];
           page.on('pageerror', error => jsErrors.push(error));
           
           if (jsErrors.length > 0) {
@@ -343,7 +343,7 @@ test.describe('MisTurnos.tsx - Navegación y Funcionalidad Completa', () => {
         
         if (await errorMessage.count() > 0) {
           await expect(errorMessage.first()).toBeVisible();
-          console.log('Mensaje de error mostrado correctamente');
+          console.log('Mensaje de (error as Error) mostrado correctamente');
           
           const errorText = await errorMessage.first().textContent();
           console.log('Texto del error:', errorText);

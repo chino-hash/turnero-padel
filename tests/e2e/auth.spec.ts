@@ -33,7 +33,7 @@ test.describe('Sistema de Autenticación', () => {
           await page.waitForTimeout(1000);
           await expect(page.locator('body')).toBeVisible();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Si hay error, al menos verificar que la página principal funciona
         await page.goto('/');
         await page.waitForTimeout(1000);

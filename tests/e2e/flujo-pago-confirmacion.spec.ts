@@ -249,7 +249,7 @@ test.describe('Flujo de Pago y Confirmación - Diagnóstico Completo', () => {
         if (await errorMessage.count() > 0) {
           await expect(errorMessage).toBeVisible();
           const errorText = await errorMessage.textContent();
-          console.log('Mensaje de error mostrado:', errorText);
+          console.log('Mensaje de (error as Error) mostrado:', errorText);
         }
         
         // Verificar que el slot sigue disponible

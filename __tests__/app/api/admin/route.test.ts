@@ -1,6 +1,7 @@
+/// <reference types="@types/jest" />
 // Mock the auth module
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
       id: 'google',
@@ -19,25 +20,25 @@ jest.mock('@/lib/auth', () => ({
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     booking: {
-      findMany: jest.fn(),
-      count: jest.fn(),
-      groupBy: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      count: jest.fn() as any as jest.MockedFunction<any>,
+      groupBy: jest.fn() as any as jest.MockedFunction<any>,
     },
     court: {
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     systemSetting: {
-      findMany: jest.fn(),
-      upsert: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      upsert: jest.fn() as any as jest.MockedFunction<any>,
     },
   },
 }))
@@ -612,7 +613,7 @@ describe('/api/admin', () => {
       const requests = Array(5).fill(null).map(() => GET())
       const responses = await Promise.all(requests)
       
-      responses.forEach(response => {
+      responses.forEach((response: any) => {
         expect(response.status).toBe(200)
       })
       

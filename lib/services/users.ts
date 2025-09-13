@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/neon-config'
 import type { User } from '@/types/types'
 
 // Tipo para roles de usuario

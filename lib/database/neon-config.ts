@@ -8,14 +8,19 @@
 import { PrismaClient } from '@prisma/client'
 
 // Configuración de connection pooling para Neon
-const neonConfig = {
+export const neonConfig = {
   // Connection pooling settings
   connectionLimit: 10, // Límite de conexiones concurrentes
   acquireTimeout: 60000, // 60 segundos timeout para obtener conexión
   timeout: 60000, // 60 segundos timeout para queries
   
   // Query optimization settings
-  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
+  log: process.env.NODE_ENV === 'development' ? [
+    { emit: 'event', level: 'query' },
+    { emit: 'stdout', level: 'info' },
+    { emit: 'stdout', level: 'warn' },
+    { emit: 'stdout', level: 'error' }
+  ] : [{ emit: 'stdout', level: 'error' }],
   
   // Datasource configuration for Neon
   datasources: {
@@ -66,13 +71,8 @@ class NeonPrismaClient {
         datasources: config.datasources,
       })
       
-      // Configurar event listeners para monitoreo
-      NeonPrismaClient.instance.$on('query', (e) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Query: ' + e.query)
-          console.log('Duration: ' + e.duration + 'ms')
-        }
-      })
+      // Event listeners deshabilitados temporalmente por problemas de tipos
+      // TODO: Reconfigurar event listeners cuando se resuelvan los tipos de Prisma
       
       // Manejar desconexiones gracefully
       process.on('beforeExit', async () => {

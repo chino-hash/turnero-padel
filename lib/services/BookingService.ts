@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { BookingRepository, BookingWithRelations, BookingCreateInput, BookingUpdateInput } from '@/lib/repositories/BookingRepository';
 import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, CreateBookingInput, UpdateBookingInput } from '@/lib/validations/booking';
 import { ApiResponse, PaginatedResponse } from '@/lib/validations/common';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/database/neon-config';
 
 // Tipos específicos del servicio
 export type BookingWithDetails = {
@@ -170,6 +170,7 @@ export class BookingService {
       
       return {
         success: true,
+        message: 'Reservas obtenidas exitosamente',
         data: result.bookings.map(booking => this.transformBookingData(booking)),
         meta: result.meta
       };
@@ -187,12 +188,14 @@ export class BookingService {
       if (!booking) {
         return {
           success: false,
+          message: 'Reserva no encontrada',
           error: 'Reserva no encontrada'
         };
       }
 
       return {
         success: true,
+        message: 'Reserva encontrada exitosamente',
         data: this.transformBookingData(booking)
       };
     } catch (error) {
@@ -208,6 +211,7 @@ export class BookingService {
       
       return {
         success: true,
+        message: 'Reservas obtenidas exitosamente',
         data: bookings.map(booking => this.transformBookingData(booking))
       };
     } catch (error) {
@@ -253,6 +257,7 @@ export class BookingService {
       if (!court) {
         return {
           success: false,
+          message: 'Error al obtener disponibilidad',
           error: 'Cancha no encontrada'
         };
       }
@@ -297,6 +302,7 @@ export class BookingService {
 
       return {
         success: true,
+        message: 'Slots de disponibilidad obtenidos exitosamente',
         data: slots
       };
     } catch (error) {
@@ -306,7 +312,7 @@ export class BookingService {
   }
 
   // Crear nueva reserva
-  async createBooking(input: CreateBookingInput): Promise<ApiResponse<BookingWithDetails>> {
+  async createBooking(input: CreateBookingInput, userId: string): Promise<ApiResponse<BookingWithDetails>> {
     try {
       // Verificar disponibilidad primero
       const availabilityCheck = await this.checkAvailability({
@@ -319,6 +325,7 @@ export class BookingService {
       if (!availabilityCheck.data) {
         return {
           success: false,
+          message: 'El horario seleccionado no está disponible',
           error: 'El horario seleccionado no está disponible'
         };
       }
@@ -330,16 +337,17 @@ export class BookingService {
       if (!court) {
         return {
           success: false,
+          message: 'Cancha no encontrada',
           error: 'Cancha no encontrada'
         };
       }
 
       const totalPrice = court.basePrice * court.priceMultiplier * (durationMinutes / 60);
-      const depositAmount = input.depositAmount || totalPrice * 0.3; // 30% por defecto
+      const depositAmount = totalPrice * 0.3; // 30% por defecto
 
       const createData: BookingCreateInput = {
         courtId: input.courtId,
-        userId: input.userId,
+        userId: userId,
         bookingDate: new Date(input.bookingDate),
         startTime: input.startTime,
         endTime: input.endTime,
@@ -377,6 +385,7 @@ export class BookingService {
       if (!existingBooking) {
         return {
           success: false,
+          message: 'Reserva no encontrada',
           error: 'Reserva no encontrada'
         };
       }
@@ -385,6 +394,7 @@ export class BookingService {
       if (userId && userRole !== 'admin' && existingBooking.userId !== userId) {
         return {
           success: false,
+          message: 'Error al actualizar reserva',
           error: 'No tienes permisos para modificar esta reserva'
         };
       }
@@ -402,6 +412,7 @@ export class BookingService {
         if (!availabilityCheck.data) {
           return {
             success: false,
+            message: 'Error al actualizar reserva',
             error: 'El nuevo horario no está disponible'
           };
         }
@@ -445,6 +456,7 @@ export class BookingService {
       if (!existingBooking) {
         return {
           success: false,
+          message: 'Reserva no encontrada',
           error: 'Reserva no encontrada'
         };
       }
@@ -453,6 +465,7 @@ export class BookingService {
       if (userId && userRole !== 'admin' && existingBooking.userId !== userId) {
         return {
           success: false,
+          message: 'Error al cancelar reserva',
           error: 'No tienes permisos para cancelar esta reserva'
         };
       }
@@ -461,6 +474,7 @@ export class BookingService {
       if (existingBooking.status === 'CANCELLED') {
         return {
           success: false,
+          message: 'Error al cancelar reserva',
           error: 'La reserva ya está cancelada'
         };
       }
@@ -488,6 +502,7 @@ export class BookingService {
       if (userRole !== 'admin') {
         return {
           success: false,
+          message: 'Error en operación masiva',
           error: 'No tienes permisos para realizar operaciones masivas'
         };
       }
@@ -521,6 +536,7 @@ export class BookingService {
 
       return {
         success: true,
+        message: 'Estadísticas obtenidas exitosamente',
         data: {
           ...stats,
           occupancyRate: Math.round(occupancyRate * 100) / 100

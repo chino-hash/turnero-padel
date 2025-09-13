@@ -275,7 +275,7 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
                     : 'bg-gray-100 text-gray-700'
                 }`}
               >
-                {player.name}
+                {player.playerName}
                 {player.hasPaid && ' ✓'}
               </span>
             ))}

@@ -1,5 +1,19 @@
-import { prisma } from '@/lib/prisma'
 import { removeDuplicates, mergeArraysUnique } from '@/lib/utils/array-utils'
+
+// Función para obtener prisma de forma segura
+const getPrisma = async () => {
+  if (typeof window !== 'undefined') {
+    return null // No disponible en el navegador
+  }
+  
+  try {
+    const { prisma } = await import('@/lib/database/neon-config')
+    return prisma
+  } catch (error) {
+    console.error('Error importando prisma:', error)
+    return null
+  }
+}
 
 /**
  * Sistema flexible de administradores
@@ -36,6 +50,11 @@ const getEnvAdmins = (): string[] => {
 
 // Obtener administradores desde base de datos
 const getDbAdmins = async (): Promise<string[]> => {
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return []
+  }
+  
   try {
     const admins = await prisma.adminWhitelist.findMany({
       where: { isActive: true },
@@ -98,6 +117,11 @@ export const addAdmin = async (
   addedByEmail: string, 
   notes?: string
 ): Promise<{ success: boolean; message: string }> => {
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return { success: false, message: 'Función no disponible en el navegador' }
+  }
+  
   try {
     // Verificar que quien agrega sea administrador
     const isAuthorized = await isAdminEmail(addedByEmail)
@@ -163,6 +187,11 @@ export const removeAdmin = async (
   adminEmailToRemove: string, 
   removedByEmail: string
 ): Promise<{ success: boolean; message: string }> => {
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return { success: false, message: 'Función no disponible en el navegador' }
+  }
+  
   try {
     // Verificar que quien remueve sea administrador
     const isAuthorized = await isAdminEmail(removedByEmail)
@@ -224,6 +253,11 @@ export const listAdmins = async (): Promise<{
     createdAt: Date
   }>
 }> => {
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return { envAdmins: getEnvAdmins(), dbAdmins: [] }
+  }
+  
   try {
     const envAdmins = getEnvAdmins()
     const dbAdmins = await prisma.adminWhitelist.findMany({

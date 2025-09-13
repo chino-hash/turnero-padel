@@ -122,7 +122,7 @@ test.describe('Tests de Integración Completa', () => {
       await page.goto('/');
       
       // Navegar a una subsección
-      const links = page.locator('a[href]:not([href="#"]):not([href="/"])');
+      const links = page.locator('(a as any)[href]:not([href="#"]):not([href="/"])');
       if (await links.count() > 0) {
         const firstLink = links.first();
         await firstLink.click();
@@ -216,8 +216,8 @@ test.describe('Tests de Integración Completa', () => {
 
     test('debe manejar múltiples usuarios simultáneos', async ({ browser }) => {
       // Crear múltiples contextos para simular usuarios concurrentes
-      const contexts = [];
-      const pages = [];
+      const contexts: any[] = [];
+      const pages: any[] = [];
       
       try {
         // Crear 3 contextos de usuario
@@ -229,7 +229,7 @@ test.describe('Tests de Integración Completa', () => {
         }
         
         // Navegar simultáneamente
-        const navigationPromises = pages.map(page => page.goto('/'));
+        const navigationPromises = pages.map((page: any) => page.goto('/'));
         await Promise.all(navigationPromises);
         
         // Verificar que todas las páginas cargaron correctamente
@@ -354,7 +354,7 @@ test.describe('Tests de Integración Completa', () => {
       });
       
       const cookies = await page.context().cookies();
-      const testCookie = cookies.find(cookie => cookie.name === 'test');
+      const testCookie = cookies.find((cookie: any) => cookie.name === 'test');
       
       expect(testCookie).toBeDefined();
     });

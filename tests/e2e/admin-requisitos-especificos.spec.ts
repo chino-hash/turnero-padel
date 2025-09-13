@@ -139,7 +139,7 @@ test.describe('Panel de Administración - Requisitos Específicos', () => {
     const adminStructure = [
       'h1, h2, h3', // Títulos de sección
       '[class*="card"], [class*="panel"], [class*="section"]', // Tarjetas/paneles
-      'button, a[href]', // Elementos interactivos
+      'button, (a as any)[href]', // Elementos interactivos
       'table, [role="grid"], [class*="list"]' // Listas o tablas de datos
     ];
 
@@ -175,7 +175,7 @@ test.describe('Panel de Administración - Requisitos Específicos', () => {
     // Verificar elementos de navegación
     const navigationElements = [
       'nav, [role="navigation"]',
-      'a[href], button[onclick]',
+      '(a as any)[href], (button as any)[onclick]',
       'text=Volver, text=Inicio, text=Dashboard'
     ];
 

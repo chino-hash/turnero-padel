@@ -396,7 +396,7 @@ test.describe('Verificaciones Adicionales - Colores, Selectores y CSS', () => {
           
           const cssValue = await element.evaluate((el, prop) => {
             const styles = window.getComputedStyle(el);
-            return styles[prop];
+            return (styles as any)[prop];
           }, check.property);
           
           console.log(`${check.selector} - ${check.property}: ${cssValue}`);
@@ -435,7 +435,7 @@ test.describe('Verificaciones Adicionales - Colores, Selectores y CSS', () => {
           for (const property of check.properties) {
             const cssValue = await element.evaluate((el, prop) => {
               const styles = window.getComputedStyle(el);
-              return styles[prop];
+              return (styles as any)[prop];
             }, property);
             
             console.log(`  ${property}: ${cssValue}`);

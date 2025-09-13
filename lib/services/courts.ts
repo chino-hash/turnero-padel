@@ -1,10 +1,10 @@
-import { prisma } from '@/lib/prisma'
+import { prisma } from '@/lib/database/neon-config'
 import type { Court } from '@/types/types'
 
 export interface CreateCourtData {
   name: string
   description?: string
-  base_price: number
+  basePrice: number
   priceMultiplier?: number
   features?: string[]
   operatingHours?: {
@@ -17,7 +17,7 @@ export interface CreateCourtData {
 export interface UpdateCourtData {
   name?: string
   description?: string
-  base_price?: number
+  basePrice?: number
   priceMultiplier?: number
   features?: string // JSON string in database
   operatingHours?: string // JSON string in database
@@ -125,7 +125,7 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
       data: {
         name: data.name,
         description: data.description,
-        basePrice: Math.round(data.base_price * 100),
+        basePrice: Math.round(data.basePrice * 100),
         priceMultiplier: data.priceMultiplier || 1.0,
         features: JSON.stringify(data.features || []),
         operatingHours: JSON.stringify(data.operatingHours || {
@@ -145,11 +145,10 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 // Actualizar cancha
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
-    // Preparar datos para Prisma, convirtiendo base_price a basePrice si está presente
+    // Preparar datos para Prisma, convirtiendo basePrice si está presente
     const prismaData: any = { ...data }
-    if (data.base_price !== undefined) {
-      prismaData.basePrice = Math.round(data.base_price * 100)
-      delete prismaData.base_price
+    if (data.basePrice !== undefined) {
+      prismaData.basePrice = Math.round(data.basePrice * 100)
     }
     
     const court = await prisma.court.update({

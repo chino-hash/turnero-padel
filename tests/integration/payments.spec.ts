@@ -26,8 +26,8 @@ test.describe('Integración Sistema de Pagos', () => {
           const hasPublicKeys = config.publicKey || config.clientId || config.publishableKey;
           expect(hasPublicKeys).toBeTruthy();
         }
-      } catch (error) {
-        console.log('Configuración de pagos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Configuración de pagos no disponible:', (error as Error).message);
       }
     });
 
@@ -84,8 +84,8 @@ test.describe('Integración Sistema de Pagos', () => {
             // Error HTTP esperado para datos inválidos
             expect([400, 422]).toContain(response.status());
           }
-        } catch (error) {
-          console.log(`Validación de pago no disponible para:`, testPayment, error.message);
+        } catch (error: unknown) {
+          console.log(`Validación de pago no disponible para:`, testPayment, (error as Error).message);
         }
       }
     });
@@ -120,8 +120,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Puede no estar implementado
           expect([404, 405, 501]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Creación de intención de pago no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Creación de intención de pago no disponible:', (error as Error).message);
       }
     });
 
@@ -164,8 +164,8 @@ test.describe('Integración Sistema de Pagos', () => {
             // Errores válidos: no autorizado, no encontrado, método no permitido
             expect([400, 401, 404, 405, 422]).toContain(response.status());
           }
-        } catch (error) {
-          console.log(`Webhook ${endpoint} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Webhook ${endpoint} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -277,8 +277,8 @@ test.describe('Integración Sistema de Pagos', () => {
             expect(total).toBeGreaterThanOrEqual(subtotal + taxes);
           }
         }
-      } catch (error) {
-        console.log('Cálculo de precios no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Cálculo de precios no disponible:', (error as Error).message);
       }
     });
 
@@ -313,8 +313,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Error HTTP apropiado para pago fallido
           expect([400, 402, 422]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Procesamiento de pagos fallidos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Procesamiento de pagos fallidos no disponible:', (error as Error).message);
       }
     });
   });
@@ -373,7 +373,7 @@ test.describe('Integración Sistema de Pagos', () => {
       
       let hasSecurityHeaders = 0;
       for (const header of securityHeaders) {
-        if (headers[header]) {
+        if ((headers as any)[header]) {
           hasSecurityHeaders++;
         }
       }
@@ -402,8 +402,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Debe rechazar pagos no autenticados
           expect([401, 403]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Validación de autenticación en pagos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Validación de autenticación en pagos no disponible:', (error as Error).message);
       }
     });
   });
@@ -437,8 +437,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Puede no estar implementado o requerir permisos especiales
           expect([401, 403, 404, 405, 501]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Procesamiento de reembolsos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Procesamiento de reembolsos no disponible:', (error as Error).message);
       }
     });
 
@@ -463,8 +463,8 @@ test.describe('Integración Sistema de Pagos', () => {
             expect(Array.isArray(policy.conditions) || typeof policy.conditions === 'object').toBeTruthy();
           }
         }
-      } catch (error) {
-        console.log('Políticas de reembolso no disponibles:', error.message);
+      } catch (error: unknown) {
+        console.log('Políticas de reembolso no disponibles:', (error as Error).message);
       }
     });
   });
@@ -483,7 +483,7 @@ test.describe('Integración Sistema de Pagos', () => {
           const data = report.transactions || report.payments || report.data;
           
           if (Array.isArray(data) && data.length > 0) {
-            const transaction = data[0];
+            const transaction = (data as any)[0];
             
             // Verificar campos básicos de transacción
             expect(transaction.id || transaction.transactionId).toBeDefined();
@@ -495,8 +495,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Puede requerir permisos de administrador
           expect([401, 403, 404]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Reportes de pagos no disponibles:', error.message);
+      } catch (error: unknown) {
+        console.log('Reportes de pagos no disponibles:', (error as Error).message);
       }
     });
 
@@ -510,7 +510,7 @@ test.describe('Integración Sistema de Pagos', () => {
           expect(Array.isArray(logs) || typeof logs === 'object').toBeTruthy();
           
           if (Array.isArray(logs) && logs.length > 0) {
-            const log = logs[0];
+            const log = (logs as any)[0];
             
             // Verificar estructura del log de auditoría
             expect(log.timestamp || log.date || log.createdAt).toBeDefined();
@@ -521,8 +521,8 @@ test.describe('Integración Sistema de Pagos', () => {
           // Logs de auditoría pueden requerir permisos especiales
           expect([401, 403, 404]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Logs de auditoría no disponibles:', error.message);
+      } catch (error: unknown) {
+        console.log('Logs de auditoría no disponibles:', (error as Error).message);
       }
     });
 
@@ -540,20 +540,20 @@ test.describe('Integración Sistema de Pagos', () => {
           ];
           
           const hasMetrics = expectedMetrics.some(metric => 
-            metrics[metric] !== undefined
+            (metrics as any)[metric] !== undefined
           );
           
           expect(hasMetrics).toBeTruthy();
           
           // Verificar que las métricas son números válidos
-          Object.values(metrics).forEach(value => {
+          Object.values(metrics).forEach((value: any) => {
             if (typeof value === 'number') {
               expect(value).toBeGreaterThanOrEqual(0);
             }
           });
         }
-      } catch (error) {
-        console.log('Métricas de pagos no disponibles:', error.message);
+      } catch (error: unknown) {
+        console.log('Métricas de pagos no disponibles:', (error as Error).message);
       }
     });
   });

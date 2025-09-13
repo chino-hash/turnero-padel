@@ -40,8 +40,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
             expect(Array.isArray(notifications)).toBeTruthy();
           }
         }
-      } catch (error) {
-        console.log('API de reservas no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('API de reservas no disponible:', (error as Error).message);
       }
     });
 
@@ -104,7 +104,7 @@ test.describe('Integración Sistema de Notificaciones', () => {
           expect(Array.isArray(reminders) || typeof reminders === 'object').toBeTruthy();
           
           if (Array.isArray(reminders) && reminders.length > 0) {
-            const reminder = reminders[0];
+            const reminder = (reminders as any)[0];
             
             // Verificar estructura del recordatorio
             expect(reminder.bookingId || reminder.id).toBeDefined();
@@ -119,8 +119,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
           const hasReminderSystem = cronResponse.ok() || webhookResponse.ok();
           expect(hasReminderSystem || response.status() === 404).toBeTruthy();
         }
-      } catch (error) {
-        console.log('Sistema de recordatorios no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Sistema de recordatorios no disponible:', (error as Error).message);
       }
     });
   });
@@ -142,8 +142,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
           expect(config.apiKey).toBeUndefined();
           expect(config.secret).toBeUndefined();
         }
-      } catch (error) {
-        console.log('Configuración de email no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Configuración de email no disponible:', (error as Error).message);
       }
     });
 
@@ -171,8 +171,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
               expect(result.valid || result.isValid).toBeFalsy();
             }
           }
-        } catch (error) {
-          console.log(`Validación de email ${testCase.email} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Validación de email ${testCase.email} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -205,8 +205,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
               expect(hasVariables).toBeTruthy();
             }
           }
-        } catch (error) {
-          console.log(`Plantilla ${templateType} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Plantilla ${templateType} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -230,7 +230,7 @@ test.describe('Integración Sistema de Notificaciones', () => {
       await page.waitForTimeout(3000);
       
       // Verificar en consola si hay conexiones WebSocket
-      const logs = [];
+      const logs: any[] = [];
       page.on('console', msg => logs.push(msg.text()));
       
       await page.reload();
@@ -299,8 +299,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
           expect(config.secret).toBeUndefined();
           expect(config.token).toBeUndefined();
         }
-      } catch (error) {
-        console.log('Configuración de SMS no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Configuración de SMS no disponible:', (error as Error).message);
       }
     });
 
@@ -329,8 +329,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
               expect(result.valid || result.isValid).toBeFalsy();
             }
           }
-        } catch (error) {
-          console.log(`Validación de teléfono ${testCase.phone} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Validación de teléfono ${testCase.phone} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -358,8 +358,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
           // 404: Endpoint no existe
           expect([200, 400, 401, 404, 405, 422]).toContain(response.status());
           
-        } catch (error) {
-          console.log(`Webhook ${endpoint} no disponible:`, error.message);
+        } catch (error: unknown) {
+          console.log(`Webhook ${endpoint} no disponible:`, (error as Error).message);
         }
       }
     });
@@ -425,8 +425,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
             expect([400, 403, 422]).toContain(sendResponse.status());
           }
         }
-      } catch (error) {
-        console.log('Sistema de opt-out no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Sistema de opt-out no disponible:', (error as Error).message);
       }
     });
   });
@@ -443,7 +443,7 @@ test.describe('Integración Sistema de Notificaciones', () => {
           expect(Array.isArray(logs) || typeof logs === 'object').toBeTruthy();
           
           if (Array.isArray(logs) && logs.length > 0) {
-            const log = logs[0];
+            const log = (logs as any)[0];
             
             // Verificar estructura del log
             expect(log.timestamp || log.date || log.createdAt).toBeDefined();
@@ -451,8 +451,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
             expect(log.status || log.result).toBeDefined();
           }
         }
-      } catch (error) {
-        console.log('Logs de notificaciones no disponibles:', error.message);
+      } catch (error: unknown) {
+        console.log('Logs de notificaciones no disponibles:', (error as Error).message);
       }
     });
 
@@ -478,8 +478,8 @@ test.describe('Integración Sistema de Notificaciones', () => {
           // Error HTTP apropiado
           expect([400, 422, 500]).toContain(response.status());
         }
-      } catch (error) {
-        console.log('Manejo de fallos no disponible:', error.message);
+      } catch (error: unknown) {
+        console.log('Manejo de fallos no disponible:', (error as Error).message);
       }
     });
   });

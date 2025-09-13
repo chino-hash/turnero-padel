@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 /**
  * Pruebas para validar el manejo de errores y casos extremos en las APIs
  * Estas pruebas verifican que las APIs manejen correctamente situaciones de error
@@ -5,42 +6,42 @@
 
 // Mock de autenticación
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
 }))
 
 // Mock de Prisma
 jest.mock('@/lib/prisma', () => {
   const mockPrisma = {
     user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     court: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
     },
     booking: {
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      create: jest.fn() as any as jest.MockedFunction<any>,
+      update: jest.fn() as any as jest.MockedFunction<any>,
+      delete: jest.fn() as any as jest.MockedFunction<any>,
+      count: jest.fn() as any as jest.MockedFunction<any>,
     },
     systemSetting: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      upsert: jest.fn(),
+      findUnique: jest.fn() as any as jest.MockedFunction<any>,
+      findMany: jest.fn() as any as jest.MockedFunction<any>,
+      upsert: jest.fn() as any as jest.MockedFunction<any>,
     },
-    $transaction: jest.fn(),
-    $connect: jest.fn(),
-    $disconnect: jest.fn(),
+    $transaction: jest.fn() as any as jest.MockedFunction<any>,
+    $connect: jest.fn() as any as jest.MockedFunction<any>,
+    $disconnect: jest.fn() as any as jest.MockedFunction<any>,
   }
   
   return { prisma: mockPrisma }
@@ -619,13 +620,13 @@ describe('API Error Handling Tests', () => {
       const responses = await Promise.all(requests)
       
       // Al menos algunas respuestas deberían ser rate limited
-      const rateLimitedResponses = responses.filter(r => r.status === 429)
+      const rateLimitedResponses = responses.filter((r: any) => r.status === 429)
       
       // En una implementación real con rate limiting
       // expect(rateLimitedResponses.length).toBeGreaterThan(0)
       
       // Por ahora, verificamos que todas las respuestas son válidas
-      responses.forEach(response => {
+      responses.forEach((response: any) => {
         expect([200, 429, 500]).toContain(response.status)
       })
     })

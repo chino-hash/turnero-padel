@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
-import { withRateLimit } from '@/lib/rate-limit'
-import { availabilitySchema } from '@/lib/validations/booking'
-import { formatZodError } from '@/lib/validations/common'
+import { withRateLimit, bookingReadRateLimit } from '@/lib/rate-limit'
+import { checkAvailabilitySchema } from '@/lib/validations/booking'
+import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 
 export const runtime = 'nodejs'
@@ -21,44 +21,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-read',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingReadRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url)
     const queryParams = {
       courtId: searchParams.get('courtId'),
-      date: searchParams.get('date'),
+      bookingDate: searchParams.get('date'),
       startTime: searchParams.get('startTime'),
       endTime: searchParams.get('endTime'),
       excludeBookingId: searchParams.get('excludeBookingId')
     }
 
     // Validar parámetros
-    const validatedParams = availabilitySchema.parse(queryParams)
+    const validatedParams = checkAvailabilitySchema.parse(queryParams)
 
     // Verificar disponibilidad
-    const result = await bookingService.checkAvailability(
-      validatedParams.courtId,
-      validatedParams.date,
-      validatedParams.startTime,
-      validatedParams.endTime,
-      validatedParams.excludeBookingId
-    )
+    const result = await bookingService.checkAvailability({
+      courtId: validatedParams.courtId,
+      bookingDate: validatedParams.bookingDate,
+      startTime: validatedParams.startTime,
+      endTime: validatedParams.endTime,
+      excludeBookingId: validatedParams.excludeBookingId
+    })
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
@@ -73,7 +63,7 @@ export async function GET(request: NextRequest) {
         { 
           success: false, 
           error: 'Parámetros de disponibilidad inválidos',
-          details: formatZodError(error)
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )
@@ -99,21 +89,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-read',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingReadRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener y validar datos del cuerpo
@@ -157,13 +137,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener slots disponibles
-    const result = await bookingService.getAvailableSlots(
+    const result = await bookingService.getAvailabilitySlots(
       courtId,
       date,
       duration
     )
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       return NextResponse.json(result, { status: 400 })
     }
 

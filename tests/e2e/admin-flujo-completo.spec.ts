@@ -353,7 +353,7 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
     test('debe manejar múltiples requests simultáneos', async ({ page }) => {
       let requestCount = 0;
       
-      page.on('request', (request) => {
+      page.on('request', (request: any) => {
         if (request.url().includes('/api/')) {
           requestCount++;
         }

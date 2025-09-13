@@ -449,7 +449,7 @@ if (typeof process !== 'undefined') {
   process.on('beforeExit', gracefulShutdown)
 }
 
-export default {
+const neonProductionDatabase = {
   client: productionPrisma,
   config: PRODUCTION_CONFIG,
   metrics: metricsCollector,
@@ -460,3 +460,5 @@ export default {
   setupMaintenance: setupMaintenanceTasks,
   shutdown: gracefulShutdown,
 }
+
+export default neonProductionDatabase

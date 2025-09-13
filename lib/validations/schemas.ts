@@ -77,7 +77,7 @@ export const courtCreateSchema = z.object({
 export const courtUpdateSchema = courtCreateSchema.partial();
 
 // Esquema para Booking
-export const bookingCreateSchema = z.object({
+const bookingBaseSchema = z.object({
   courtId: z.string().uuid('ID de cancha inválido'),
   userId: z.string().uuid('ID de usuario inválido'),
   startTime: z.date(),
@@ -86,7 +86,9 @@ export const bookingCreateSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).default('PENDING'),
   notes: z.string().max(500, 'Las notas son demasiado largas').optional(),
   playerCount: z.number().int().min(1, 'Mínimo 1 jugador').max(8, 'Máximo 8 jugadores').default(2)
-}).refine((data) => data.endTime > data.startTime, {
+});
+
+export const bookingCreateSchema = bookingBaseSchema.refine((data) => data.endTime > data.startTime, {
   message: "La hora de fin debe ser posterior a la hora de inicio",
   path: ["endTime"]
 }).refine((data) => {
@@ -98,7 +100,7 @@ export const bookingCreateSchema = z.object({
   path: ["endTime"]
 });
 
-export const bookingUpdateSchema = bookingCreateSchema.partial().omit({ courtId: true, userId: true });
+export const bookingUpdateSchema = bookingBaseSchema.partial().omit({ courtId: true, userId: true });
 
 // Esquema para BookingPlayer
 export const bookingPlayerCreateSchema = z.object({
@@ -230,12 +232,12 @@ export const importDataSchema = z.object({
 });
 
 // Función helper para validar esquemas
-export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
+export function validateSchema(schema: any, data: unknown): any {
   try {
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0];
+      const firstError = error.issues[0];
       throw new Error(`Error de validación en ${firstError.path.join('.')}: ${firstError.message}`);
     }
     throw error;
@@ -243,12 +245,12 @@ export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
 }
 
 // Función helper para validación parcial (útil para updates)
-export function validatePartialSchema<T>(schema: z.ZodSchema<T>, data: unknown): Partial<T> {
+export function validatePartialSchema<T>(schema: z.ZodObject<any>, data: unknown): any {
   try {
     return schema.partial().parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const firstError = error.errors[0];
+      const firstError = error.issues[0];
       throw new Error(`Error de validación en ${firstError.path.join('.')}: ${firstError.message}`);
     }
     throw error;
@@ -292,7 +294,7 @@ export const modelSchemas = {
 };
 
 // Función para obtener esquema por modelo y operación
-export function getModelSchema(model: string, operation: 'create' | 'update') {
+export function getModelSchema(model: string, operation: 'create' | 'update'): any {
   const schemas = modelSchemas[model as keyof typeof modelSchemas];
   if (!schemas) {
     throw new Error(`No se encontró esquema para el modelo: ${model}`);

@@ -1,6 +1,7 @@
+/// <reference types="@types/jest" />
 // Mock the auth module
 jest.mock('@/lib/auth', () => ({
-  auth: jest.fn(),
+  auth: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
       id: 'google',

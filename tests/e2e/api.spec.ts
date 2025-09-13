@@ -61,7 +61,7 @@ test.describe('APIs del Sistema', () => {
           
           // Si hay canchas, verificar estructura básica
           if (data.length > 0) {
-            const firstCourt = data[0];
+            const firstCourt = (data as any)[0];
             expect(firstCourt).toHaveProperty('id');
           }
         }
@@ -96,7 +96,7 @@ test.describe('APIs del Sistema', () => {
           const data = await response.json();
           expect(data).toBeDefined();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -117,7 +117,7 @@ test.describe('APIs del Sistema', () => {
         
         // Debe rechazar datos inválidos
         expect([400, 401, 403, 422]).toContain(response.status());
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -134,7 +134,7 @@ test.describe('APIs del Sistema', () => {
           const data = await response.json();
           expect(data).toBeDefined();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -148,7 +148,7 @@ test.describe('APIs del Sistema', () => {
         
         // Debe requerir autenticación/autorización
         expect([401, 403]).toContain(response.status());
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -164,7 +164,7 @@ test.describe('APIs del Sistema', () => {
       ];
       
       for (const operation of adminOperations) {
-        let response;
+        let response: any;
         
         switch (operation.method) {
           case 'POST':
@@ -183,7 +183,7 @@ test.describe('APIs del Sistema', () => {
         // Debe requerir autenticación/autorización
         expect([401, 403, 405]).toContain(response.status());
       }
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -233,7 +233,7 @@ test.describe('APIs del Sistema', () => {
         
         // Debe devolver 404, no 500
         expect(response.status()).toBe(404);
-      } catch (error) {
+      } catch (error: unknown) {
         // Si hay error de conexión, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -286,7 +286,7 @@ test.describe('APIs del Sistema', () => {
 
     test('debe manejar múltiples solicitudes concurrentes', async ({ request }) => {
       // Hacer múltiples solicitudes simultáneas
-      const promises = [];
+      const promises: any[] = [];
       for (let i = 0; i < 5; i++) {
         promises.push(request.get('/api/slots'));
       }
@@ -316,7 +316,7 @@ test.describe('APIs del Sistema', () => {
         
         // Debe rechazar datos con tipos incorrectos
         expect([400, 401, 403, 422]).toContain(response.status());
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }
@@ -337,7 +337,7 @@ test.describe('APIs del Sistema', () => {
         
         // La API debe manejar esto apropiadamente (rechazar o sanitizar)
         expect(response.status()).toBeLessThan(500);
-      } catch (error) {
+      } catch (error: unknown) {
         // Si la API no existe, simplemente verificar que no hay error 500
         expect(true).toBeTruthy();
       }

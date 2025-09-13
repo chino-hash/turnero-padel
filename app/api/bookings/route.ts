@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { bookingService } from "@/lib/services/BookingService"
-import { withRateLimit } from "@/lib/rate-limit"
+import { withRateLimit, bookingCreateRateLimit } from '@/lib/rate-limit'
 import { bookingFiltersSchema, createBookingSchema } from "@/lib/validations/booking"
-import { formatZodError } from "@/lib/validations/common"
+import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
 
@@ -22,21 +22,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Aplicar rate limiting
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-read',
-      session.user.id
-    )
+    // Aplicar rate limiting
+    const rateLimitCheck = withRateLimit(bookingCreateRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener parámetros de consulta
@@ -58,7 +49,7 @@ export async function GET(request: NextRequest) {
     const validatedParams = bookingFiltersSchema.parse(queryParams)
 
     // Si no es admin, solo puede ver sus propias reservas
-    if (session.user.role !== 'admin' && !validatedParams.userId) {
+    if (session.user.role !== 'ADMIN' && !validatedParams.userId) {
       validatedParams.userId = session.user.id
     }
 
@@ -74,7 +65,7 @@ export async function GET(request: NextRequest) {
         { 
           success: false, 
           error: 'Parámetros de consulta inválidos',
-          details: formatZodError(error)
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )
@@ -100,21 +91,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Aplicar rate limiting más estricto para creación
-    const rateLimitResult = await withRateLimit(
-      request,
-      'booking-create',
-      session.user.id
-    )
+    const rateLimitCheck = withRateLimit(bookingCreateRateLimit)
+    const rateLimitResult = await rateLimitCheck(request)
     
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Demasiadas solicitudes de creación. Intenta de nuevo más tarde.',
-          retryAfter: rateLimitResult.retryAfter
-        },
-        { status: 429 }
-      )
+    if (rateLimitResult) {
+      return rateLimitResult
     }
 
     // Obtener y validar datos del cuerpo
@@ -125,7 +106,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Crear reserva usando el servicio optimizado
-    const result = await bookingService.createBooking(validatedData)
+    const result = await bookingService.createBooking(validatedData, session.user.id)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
@@ -154,7 +135,7 @@ export async function POST(request: NextRequest) {
         { 
           success: false, 
           error: 'Datos de reserva inválidos',
-          details: formatZodError(error)
+          details: formatZodErrors(error)
         },
         { status: 400 }
       )

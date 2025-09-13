@@ -1,3 +1,4 @@
+/// <reference types="@types/jest" />
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { NextRequest } from 'next/server';
 import { GET, POST, PUT, DELETE, PATCH } from '../../app/api/crud/[...params]/route';
@@ -14,7 +15,7 @@ jest.mock('../../lib/auth', () => ({
 // Mock de getServerSession
 jest.mock('next-auth', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: jest.fn() as any as jest.MockedFunction<any>,
   getServerSession: jest.fn(() => Promise.resolve({
     user: {
       id: 'test-user-id',

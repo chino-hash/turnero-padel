@@ -11,7 +11,10 @@
       "node"
     ],
     "moduleResolution": "node",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": [
     "**/*.test.ts",
@@ -19,7 +22,6 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "__tests__/**/*",
-    "cypress/**/*",
     "jest.setup.js",
     "jest.config.js"
   ],
