@@ -5,13 +5,15 @@
  * Contacto: Administrador del Sistema
  */
 
-import { auth } from "@/lib/auth"
+import { auth } from "./lib/auth"
 import { NextResponse } from "next/server"
 
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
   const isAdmin = req.auth?.user?.isAdmin || false
+
+  console.log(`🔍 Middleware: ${nextUrl.pathname} | Logged: ${isLoggedIn} | Admin: ${isAdmin}`)
 
   // Rutas públicas que no requieren autenticación
   const publicRoutes = ['/login', '/auth/error', '/test']
@@ -26,30 +28,38 @@ export default auth((req) => {
 
   // Permitir rutas de autenticación y APIs públicas
   if (isAuthRoute || isPublicApiRoute) {
+    console.log(`✅ Permitiendo ruta de API: ${nextUrl.pathname}`)
     return NextResponse.next()
   }
 
   // Prevenir bucles de redirección: si ya está en login o error, no redirigir
   if (nextUrl.pathname === '/login' || nextUrl.pathname === '/auth/error') {
+    console.log(`✅ Permitiendo ruta pública: ${nextUrl.pathname}`)
     return NextResponse.next()
   }
 
-  // Si no está logueado y no es ruta pública, redirigir a login con callbackUrl
+  // Si no está logueado y no es ruta pública, redirigir a login
   if (!isLoggedIn && !isPublicRoute) {
+    console.log(`🔄 Redirigiendo a login desde: ${nextUrl.pathname}`)
+    // Solo agregar callbackUrl si no es la página principal para evitar bucles
     const loginUrl = new URL('/login', nextUrl)
-    loginUrl.searchParams.set('callbackUrl', nextUrl.pathname + nextUrl.search)
+    if (nextUrl.pathname !== '/') {
+      loginUrl.searchParams.set('callbackUrl', nextUrl.pathname + nextUrl.search)
+    }
     return NextResponse.redirect(loginUrl)
   }
 
   // Si está logueado y trata de acceder a login, redirigir según callbackUrl
   if (isLoggedIn && nextUrl.pathname === '/login') {
     const callbackUrl = nextUrl.searchParams.get('callbackUrl')
-    const redirectUrl = callbackUrl && callbackUrl !== '/login' ? callbackUrl : '/'
+    // Evitar redirección a la página principal para prevenir bucles
+    const redirectUrl = callbackUrl && callbackUrl !== '/login' && callbackUrl !== '/' ? callbackUrl : '/dashboard'
+    console.log(`🔄 Usuario logueado redirigiendo de login a: ${redirectUrl}`)
     return NextResponse.redirect(new URL(redirectUrl, nextUrl))
   }
 
   // Rutas de administrador
-  const adminRoutes = ['/admin']
+  const adminRoutes = ['/admin', '/dashboard', '/admin-panel']
   const isAdminRoute = adminRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Si trata de acceder a ruta de admin sin ser admin, redirigir con error

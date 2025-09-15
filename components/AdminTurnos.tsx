@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Button } from "./ui/button"
 import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { removeDuplicates } from '@/lib/utils/array-utils'
-import { useAppState } from '@/components/providers/AppStateProvider'
-import { useCourtPrices } from '@/hooks/useCourtPrices'
+import { Input } from "./ui/input"
+import { removeDuplicates } from '../lib/utils/array-utils'
+import { useAppState } from './providers/AppStateProvider'
+import { useCourtPrices } from '../hooks/useCourtPrices'
 import CalendarModal from './CalendarModal'
 
 // Interfaces según especificaciones del documento

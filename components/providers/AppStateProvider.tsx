@@ -1,12 +1,12 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react'
-import { useAuth } from '@/hooks/useAuth'
-import { useSlots, useMultipleSlots } from '@/hooks/useSlots'
-import { useOptimizedSlots, useOptimizedMultipleSlots } from '@/hooks/useOptimizedSlots'
-import { useDashboardRealTimeUpdates } from '@/hooks/useRealTimeUpdates'
-import { TimeSlot, Court } from '@/types/types'
-import { removeDuplicates, removeDuplicatesByKey } from '@/lib/utils/array-utils'
+import { useAuth } from '../../hooks/useAuth'
+import { useSlots, useMultipleSlots } from '../../hooks/useSlots'
+import { useOptimizedSlots, useOptimizedMultipleSlots } from '../../hooks/useOptimizedSlots'
+import { useDashboardRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
+import { TimeSlot, Court } from '../../types/types'
+import { removeDuplicates, removeDuplicatesByKey } from '../../lib/utils/array-utils'
 
 // Tipos para el estado global
 type Player = {

@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/database/neon-config'
-import type { User } from '@/types/types'
+import { prisma } from '../database/neon-config'
+import type { User } from '../../types/types'
 
 // Tipo para roles de usuario
 export type Role = 'USER' | 'ADMIN'

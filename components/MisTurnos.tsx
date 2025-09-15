@@ -5,8 +5,8 @@
  * Contacto: Administrador del Sistema
  */
 import React, { useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Button } from "./ui/button"
 import { ArrowLeft, BookOpen, Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
 
 interface Player {

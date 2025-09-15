@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { getCourts, getAllCourts, createCourt, updateCourt } from '@/lib/services/courts'
-import { eventEmitters } from '@/lib/sse-events'
+import { auth } from '../../../lib/auth'
+import { getCourts, getAllCourts, createCourt, updateCourt } from '../../../lib/services/courts'
+import { eventEmitters } from '../../../lib/sse-events'
 
 export async function GET() {
   try {

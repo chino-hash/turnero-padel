@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils'
+import { cn } from '../../lib/utils'
 
 describe('lib/utils', () => {
   describe('cn function', () => {

@@ -1,9 +1,9 @@
 'use client'
 
-import { useAuthWithRetry } from '@/hooks/useAuthWithRetry'
+import { useAuthWithRetry } from '../../hooks/useAuthWithRetry'
 import { AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '../ui/button'
+import { Alert, AlertDescription } from '../ui/alert'
 
 interface AuthStatusProps {
   showRetryButton?: boolean

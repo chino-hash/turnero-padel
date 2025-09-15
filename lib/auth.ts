@@ -7,7 +7,7 @@
 
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
-import { isAdminEmail, logAdminAccess } from "@/lib/admin-system"
+import { isAdminEmail, logAdminAccess } from "./admin-system"
 import type { NextAuthConfig } from "next-auth"
 
 export const config = {
@@ -15,6 +15,13 @@ export const config = {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   ],
   session: {
@@ -53,23 +60,31 @@ export const config = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      // Solo permitir Google OAuth
-      if (account?.provider !== 'google') {
-        logAdminAccess(user.email || '', false, 'email', 'signIn_rejected_not_google')
+      try {
+        // Solo permitir Google OAuth
+        if (account?.provider !== 'google') {
+          console.log('❌ SignIn rechazado: No es Google OAuth')
+          logAdminAccess(user.email || '', false, 'email', 'signIn_rejected_not_google')
+          return false
+        }
+
+        // Verificar que el email esté verificado en Google
+        if (!profile?.email_verified) {
+          console.log('❌ SignIn rechazado: Email no verificado')
+          logAdminAccess(user.email || '', false, 'google', 'signIn_rejected_email_not_verified')
+          return false
+        }
+
+        // Verificar si es administrador para logging
+        const isAdmin = await isAdminEmail(user.email!)
+        console.log(`✅ SignIn exitoso para ${user.email} (Admin: ${isAdmin})`)
+        logAdminAccess(user.email!, true, 'google', isAdmin ? 'admin_login' : 'user_login')
+
+        return true
+      } catch (error) {
+        console.error('❌ Error en signIn callback:', error)
         return false
       }
-
-      // Verificar que el email esté verificado en Google
-      if (!profile?.email_verified) {
-        logAdminAccess(user.email || '', false, 'google', 'signIn_rejected_email_not_verified')
-        return false
-      }
-
-      // Verificar si es administrador para logging
-      const isAdmin = await isAdminEmail(user.email!)
-      logAdminAccess(user.email!, true, 'google', isAdmin ? 'admin_login' : 'user_login')
-
-      return true
     },
 
     async jwt({ token, user, account, trigger }) {

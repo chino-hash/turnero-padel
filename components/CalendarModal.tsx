@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
+import { Button } from "./ui/button"
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, MapPin, Users, DollarSign } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "./ui/card"
+import { Badge } from "./ui/badge"
 
 interface CalendarEvent {
   id: string

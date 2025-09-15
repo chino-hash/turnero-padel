@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent } from './ui/card'
+import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import SlotModal from './SlotModal'
 
-import { TimeSlot } from '@/types/types'
-import { useAppState } from '@/components/providers/AppStateProvider'
+import { TimeSlot } from '../types/types'
+import { useAppState } from './providers/AppStateProvider'
 
 interface Court {
   id: string
@@ -128,8 +128,34 @@ export default function HomeSection({
       }`}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
-        {/* Header with Logo and Dark Mode Toggle */}
-        <div className="flex justify-between items-center mb-2 sm:mb-3">
+        {/* Dark Mode Toggle - Fixed position on left side */}
+        <div className="fixed top-4 left-4 z-[70]">
+          <Button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            variant="outline"
+            size="sm"
+            className={`transition-all duration-300 shadow-lg ${
+              isDarkMode
+                ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {isDarkMode ? (
+              <>
+                <Sun className="w-4 h-4 mr-2" />
+                Light Mode
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 mr-2" />
+                Dark Mode
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Header with Logo */}
+        <div className="flex justify-center items-center mb-2 sm:mb-3">
           <div className="flex items-center gap-2 sm:gap-4">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md">
               <img 
@@ -139,32 +165,6 @@ export default function HomeSection({
               />
             </div>
             <span className={`text-lg sm:text-xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}>Padel Listo</span>
-          </div>
-
-          {/* Dark Mode Toggle repositioned to right side with higher z-index */}
-          <div className="relative z-[60]">
-            <Button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              variant="outline"
-              size="sm"
-              className={`transition-all duration-300 ${
-                isDarkMode
-                  ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {isDarkMode ? (
-                <>
-                  <Sun className="w-4 h-4 mr-2" />
-                  Light Mode
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 mr-2" />
-                  Dark Mode
-                </>
-              )}
-            </Button>
           </div>
         </div>
 

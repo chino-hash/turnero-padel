@@ -1,5 +1,5 @@
-import { GoogleLoginForm } from '@/components/auth/GoogleLoginForm'
-import { auth } from '@/lib/auth'
+import { GoogleLoginForm } from '../../components/auth/GoogleLoginForm'
+import { auth } from '../../lib/auth'
 import { redirect } from 'next/navigation'
 
 interface LoginPageProps {
@@ -14,7 +14,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
 
   if (session) {
-    redirect('/')
+    // Redirigir directamente a dashboard para evitar bucle con página principal
+    const callbackUrl = params.callbackUrl || '/dashboard'
+    redirect(callbackUrl)
   }
 
   return (

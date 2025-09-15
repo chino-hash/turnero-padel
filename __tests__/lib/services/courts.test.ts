@@ -6,12 +6,12 @@ import {
   updateCourt,
   deactivateCourt,
   checkCourtAvailability,
-} from '@/lib/services/courts'
-import { prisma } from '@/lib/prisma'
+} from '../../../lib/services/courts'
+import { prisma } from '../../../lib/prisma'
 import type { Court } from '@prisma/client'
 
 // Mock Prisma
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../../lib/prisma', () => ({
   prisma: {
     court: {
       findMany: jest.fn() as any as jest.MockedFunction<any>,

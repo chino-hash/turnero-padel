@@ -1,7 +1,7 @@
 /// <reference types="@types/jest" />
 import { renderHook, act } from '@testing-library/react'
 import { useSession, signIn, signOut } from 'next-auth/react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '../../hooks/useAuth'
 import { SessionProvider } from 'next-auth/react'
 import React from 'react'
 

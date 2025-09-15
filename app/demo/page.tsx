@@ -1,4 +1,4 @@
-import { ImprovedLoginForm } from '@/components/auth/ImprovedLoginForm'
+import { ImprovedLoginForm } from '../../components/auth/ImprovedLoginForm'
 
 export default function DemoPage() {
   return (

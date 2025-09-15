@@ -207,8 +207,8 @@ export const transactionSchema = z.object({
   operations: z.array(z.object({
     model: z.string().min(1, 'El modelo es requerido'),
     action: z.enum(['create', 'update', 'delete']),
-    data: z.record(z.any()),
-    where: z.record(z.any()).optional()
+    data: z.record(z.string(), z.any()),
+    where: z.record(z.string(), z.any()).optional()
   })).min(1, 'Debe proporcionar al menos una operación')
 });
 
@@ -223,7 +223,7 @@ export const backupConfigSchema = z.object({
 // Esquema para importación de datos
 export const importDataSchema = z.object({
   model: z.string().min(1, 'El modelo es requerido'),
-  data: z.array(z.record(z.any())).min(1, 'Debe proporcionar al menos un registro'),
+  data: z.array(z.record(z.string(), z.any())).min(1, 'Debe proporcionar al menos un registro'),
   options: z.object({
     skipDuplicates: z.boolean().default(true),
     updateExisting: z.boolean().default(false),

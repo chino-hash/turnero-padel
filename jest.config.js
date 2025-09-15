@@ -1,4 +1,5 @@
 const nextJest = require('next/jest');
+const path = require('path');
 
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files
@@ -22,11 +23,21 @@ const customJestConfig = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@/components/(.*)$': '<rootDir>/components/$1',
-    '^@/lib/(.*)$': '<rootDir>/lib/$1',
-    '^@/hooks/(.*)$': '<rootDir>/hooks/$1',
-    '^@/app/(.*)$': '<rootDir>/app/$1',
   },
+  moduleDirectories: ['node_modules', '<rootDir>/'],
+  modulePaths: ['<rootDir>'],
+  moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
+  transform: {
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        paths: {
+          '@/*': ['./*']
+        }
+      }
+    }]
+  },
+  resolver: undefined,
   collectCoverageFrom: [
     '**/*.{js,jsx,ts,tsx}',
     '!**/*.d.ts',
@@ -54,25 +65,81 @@ const customJestConfig = {
   collectCoverage: false,
   
   testMatch: [
-    '**/__tests__/**/*.(js|jsx|ts|tsx)',
-    '**/*.(test).(js|jsx|ts|tsx)',
+    '**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
+    '**/*.(test|spec).(js|jsx|ts|tsx)',
     '!**/tests/e2e/**/*.(spec).(js|jsx|ts|tsx)',
-    '**/__tests__/**/*.test.ts',
-    '**/__tests__/**/*.test.tsx'
+    '!**/cypress/**/*'
   ],
   transform: {
     '^.+\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
   
-  // Configuración específica para tests de CRUD
+  // Configuración específica para tests
   testTimeout: 10000,
   clearMocks: true,
   restoreMocks: true,
-  verbose: true,
+  verbose: false,
   transformIgnorePatterns: [
     'node_modules/(?!(next-auth|@auth/core)/)',
-    '^.+\\.module\\.(css|sass|scss)$',
+    '^.+\.module\.(css|sass|scss)$',
   ],
+  
+  // Projects configuration for different test types
+  projects: [
+    {
+      displayName: 'unit',
+      testMatch: [
+        '<rootDir>/__tests__/hooks/**/*.(test|spec).(ts|tsx)',
+        '<rootDir>/__tests__/lib/**/*.(test|spec).(ts|tsx)',
+        '<rootDir>/__tests__/components/**/*.(test|spec).(ts|tsx)'
+      ],
+      testEnvironment: 'jsdom',
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.ts']
+    },
+    {
+      displayName: 'integration',
+      testMatch: [
+        '<rootDir>/__tests__/integration/**/*.(test|spec).(ts|tsx)',
+        '<rootDir>/__tests__/app/api/**/*.(test|spec).(ts|tsx)'
+      ],
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts']
+    },
+    {
+      displayName: 'performance',
+      testMatch: [
+        '<rootDir>/__tests__/performance/**/*.(test|spec).(ts|tsx)'
+      ],
+      testEnvironment: 'node',
+      testTimeout: 30000,
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts']
+    }
+  ],
+  
+  // Coverage reporters
+  coverageReporters: [
+    'text',
+    'text-summary',
+    'html',
+    'lcov',
+    'json'
+  ],
+  
+  // Coverage directory
+  coverageDirectory: 'coverage',
+  
+  // Max workers for parallel execution
+  maxWorkers: process.env.CI ? 2 : '50%',
+  
+  // Cache directory
+  cacheDirectory: '<rootDir>/.jest-cache',
+  
+  // Global setup and teardown
+  globalSetup: '<rootDir>/__tests__/setup/globalSetup.js',
+  globalTeardown: '<rootDir>/__tests__/setup/globalTeardown.js',
+  
+  // Test results processor
+  testResultsProcessor: '<rootDir>/__tests__/setup/testResultsProcessor.js'
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

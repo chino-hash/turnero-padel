@@ -1,6 +1,6 @@
 import { PrismaClient, Booking, BookingStatus, PaymentStatus, PaymentMethod, Prisma } from '@prisma/client';
-import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput } from '@/lib/validations/booking';
-import { calculatePaginationMeta } from '@/lib/validations/common';
+import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput } from '../validations/booking';
+import { calculatePaginationMeta } from '../validations/common';
 
 // Tipos para el repository
 export type BookingWithRelations = Booking & {

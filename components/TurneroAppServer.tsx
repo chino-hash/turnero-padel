@@ -1,7 +1,7 @@
-import { auth } from '@/lib/auth'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { signOut } from '@/lib/auth'
+import { auth } from '../lib/auth'
+import { Button } from './ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { signOut } from '../lib/auth'
 
 export default async function TurneroAppServer() {
   const session = await auth()

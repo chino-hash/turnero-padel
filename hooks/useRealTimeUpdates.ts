@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { EventType, SSEEvent } from '@/lib/sse-events'
+import { EventType, SSEEvent } from '../lib/sse-events'
 
 interface UseRealTimeUpdatesOptions {
   onCourtsUpdated?: (data: any) => void

@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/database/neon-config'
-import type { Booking, Court, Player, User } from '@/types/types'
+import { prisma } from '../database/neon-config'
+import type { Booking, Court, Player, User } from '../../types/types'
 import type { BookingWithDetails } from './BookingService'
 
 // Re-exportar BookingWithDetails para compatibilidad

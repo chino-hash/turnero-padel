@@ -5,12 +5,12 @@
  */
 
 // Mock de autenticación
-jest.mock('@/lib/auth', () => ({
+jest.mock('../../lib/auth', () => ({
   auth: jest.fn() as any as jest.MockedFunction<any>,
 }))
 
 // Mock de Prisma
-jest.mock('@/lib/prisma', () => {
+jest.mock('../../lib/prisma', () => {
   const mockPrisma = {
     user: {
       findUnique: jest.fn() as any as jest.MockedFunction<any>,
@@ -47,11 +47,11 @@ jest.mock('@/lib/prisma', () => {
   return { prisma: mockPrisma }
 })
 
-import { GET as getCourts, POST as createCourt } from '@/app/api/courts/route'
-import { GET as getBookings, POST as createBooking } from '@/app/api/bookings/route'
-import { GET as getSlots, POST as createSlot, DELETE as deleteSlot } from '@/app/api/slots/route'
-import { auth } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { GET as getCourts, POST as createCourt } from '../../app/api/courts/route'
+import { GET as getBookings, POST as createBooking } from '../../app/api/bookings/route'
+import { GET as getSlots, POST as createSlot, DELETE as deleteSlot } from '../../app/api/slots/route'
+import { auth } from '../../lib/auth'
+import { prisma } from '../../lib/prisma'
 import { NextRequest } from 'next/server'
 
 const mockAuth = auth as jest.MockedFunction<typeof auth>

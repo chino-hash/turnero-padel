@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from './auth';
 
 // Implementación simple de rate limiting en memoria para desarrollo
 // En producción se debería usar Redis o similar

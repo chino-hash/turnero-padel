@@ -7,10 +7,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/useAuth'
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '../hooks/useAuth'
+import { ProtectedRoute } from './auth/ProtectedRoute'
+import { Button } from './ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 export default function TurneroApp() {
   const { user, isAdmin, signOut } = useAuth()

@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 // Mock the auth module
-jest.mock('@/lib/auth', () => ({
+jest.mock('../../../../lib/auth', () => ({
   auth: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
@@ -16,13 +16,13 @@ jest.mock('@/lib/auth', () => ({
   },
 }))
 
-import { GET, POST } from '@/app/api/courts/route'
-import { getCourts, createCourt } from '@/lib/services/courts'
-import { auth } from '@/lib/auth'
+import { GET, POST } from '../../../../app/api/courts/route'
+import { getCourts, createCourt } from '../../../../lib/services/courts'
+import { auth } from '../../../../lib/auth'
 import { NextRequest } from 'next/server'
 
 // Mock dependencies
-jest.mock('@/lib/services/courts')
+jest.mock('../../../../lib/services/courts')
 
 const mockGetCourts = getCourts as jest.MockedFunction<typeof getCourts>
 const mockCreateCourt = createCourt as jest.MockedFunction<typeof createCourt>

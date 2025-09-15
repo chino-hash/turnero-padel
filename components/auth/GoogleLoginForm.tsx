@@ -1,20 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '../ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Alert, AlertDescription } from '../ui/alert'
 import { FcGoogle } from 'react-icons/fc'
 import { Loader2 } from 'lucide-react'
-import { useAuthWithRetry } from '@/hooks/useAuthWithRetry'
-import { AuthStatus } from '@/components/auth/AuthStatus'
+import { useAuthWithRetry } from '../../hooks/useAuthWithRetry'
+import { AuthStatus } from './AuthStatus'
 
 interface GoogleLoginFormProps {
   callbackUrl?: string
   error?: string
 }
 
-export function GoogleLoginForm({ callbackUrl = '/', error }: GoogleLoginFormProps) {
+export function GoogleLoginForm({ callbackUrl = '/dashboard', error }: GoogleLoginFormProps) {
   const [loading, setLoading] = useState(false)
   const { signIn, isLoading, lastError } = useAuthWithRetry({
     onError: (error) => {

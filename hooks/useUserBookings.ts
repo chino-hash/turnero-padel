@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { getUserBookings } from '@/lib/services/bookings'
+import { getUserBookings } from '../lib/services/bookings'
 import { useRealTimeUpdates } from './useRealTimeUpdates'
-import type { BookingWithDetails } from '@/lib/services/bookings'
+import type { BookingWithDetails } from '../lib/services/bookings'
 
 interface UseUserBookingsReturn {
   bookings: BookingWithDetails[]

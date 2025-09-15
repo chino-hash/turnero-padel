@@ -1,5 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
-import { prisma } from '@/lib/database/neon-config';
+import { prisma } from '../database/neon-config';
 import { 
   handleError, 
   ValidationError, 
@@ -9,8 +9,8 @@ import {
   validateInput,
   sanitizeInput,
   logError
-} from '@/lib/utils/error-handler';
-import { ApiResponse, createSuccessResponse, createErrorResponse } from '@/lib/validations/common';
+} from '../utils/error-handler';
+import { ApiResponse, createSuccessResponse, createErrorResponse } from '../validations/common';
 import { 
   validateSchema, 
   getModelSchema, 
@@ -18,7 +18,7 @@ import {
   paginationSchema,
   searchSchema,
   bulkOperationSchema 
-} from '@/lib/validations/schemas';
+} from '../validations/schemas';
 
 type ModelName = keyof PrismaClient;
 type ModelDelegate = PrismaClient[ModelName];

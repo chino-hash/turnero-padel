@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useAppState } from '@/components/providers/AppStateProvider'
+import { useAppState } from '../providers/AppStateProvider'
 import { X, CheckCircle, Info, AlertTriangle } from 'lucide-react'
 
 const RealTimeNotification: React.FC = () => {

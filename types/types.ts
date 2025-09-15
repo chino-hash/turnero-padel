@@ -27,6 +27,7 @@ export interface Court {
   textColor: string;
   base_price?: number;
   isActive?: boolean;
+  operatingHours?: string;
 }
 
 export interface Player {

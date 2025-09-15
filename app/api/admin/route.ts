@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { addAdmin } from '@/lib/admin-system'
+import { auth } from '../../../lib/auth'
+import { addAdmin } from '../../../lib/admin-system'
 import { z } from 'zod'
 
 // Schema de validación para agregar admin

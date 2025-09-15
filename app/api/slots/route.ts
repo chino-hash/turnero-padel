@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCourtById, checkCourtAvailability } from '@/lib/services/courts'
+import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
 import { z } from 'zod'
 
 // Esquema de validación para los parámetros de entrada
@@ -87,15 +87,30 @@ export async function GET(req: NextRequest) {
       }, { status: 404 })
     }
 
-    // Configuración de slots: 14:00 → 00:00, 90 minutos, consecutivos
-    const startHour = 14
-    const endHour = 24
+    // Parsear operating hours de la cancha
+    let operatingHours
+    try {
+      if (court.operatingHours) {
+        operatingHours = typeof court.operatingHours === 'string' 
+          ? JSON.parse(court.operatingHours) 
+          : court.operatingHours
+      }
+    } catch (e) {
+      console.error('Error parseando operating hours:', e, 'Raw data:', court.operatingHours)
+    }
+
+    // Usar operating hours de la cancha o valores por defecto
+    const defaultHours = { start: '08:00', end: '23:00' }
+    const hours = operatingHours || defaultHours
+    const startHour = hhmmToHour(hours.start || '08:00')
+    const endHour = hhmmToHour(hours.end || '23:00')
     const slotDuration = 1.5 // 90 minutos
     const basePrice = court.base_price || 6000
     const priceMultiplier = court.priceMultiplier || 1
     const finalPrice = Math.round(basePrice * priceMultiplier)
 
     console.log(`🏓 Generando slots para cancha ${court.name} (${courtId}) el ${dateStr}`)
+    console.log(`⏰ Horarios: ${hours.start} - ${hours.end} (${startHour}h - ${endHour}h)`)
     
     // Generar slots de forma más eficiente
     const slots = []

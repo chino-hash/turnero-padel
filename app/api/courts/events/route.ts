@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
-import { addConnection, removeConnection, type SSEEvent } from '@/lib/sse-events'
+import { auth } from '../../../../lib/auth'
+import { addConnection, removeConnection, type SSEEvent } from '../../../../lib/sse-events'
 
 export async function GET(request: NextRequest) {
   // Verificar autenticación

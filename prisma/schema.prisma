@@ -1,13 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-  extensions = [pg_trgm]
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pg_trgm, uuid_ossp(map: "uuid-ossp", schema: "public")]
 }
 
 model Account {
@@ -26,8 +26,8 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId]) // Cuentas por usuario
-  @@index([provider]) // Filtrar por proveedor
+  @@index([userId])
+  @@index([provider])
 }
 
 model Session {
@@ -37,8 +37,8 @@ model Session {
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId]) // Sesiones por usuario
-  @@index([expires]) // Limpiar sesiones expiradas
+  @@index([userId])
+  @@index([expires])
 }
 
 model User {
@@ -49,13 +49,13 @@ model User {
   image             String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
-  deletedAt         DateTime? // Soft delete
   fullName          String?
   phone             String?
   role              Role      @default(USER)
   isActive          Boolean   @default(true)
   lastLogin         DateTime?
   preferences       String    @default("{}")
+  deletedAt         DateTime?
   accounts          Account[]
   bookings          Booking[]
   paymentsProcessed Payment[] @relation("ProcessedBy")
@@ -80,7 +80,6 @@ model Court {
   id              String    @id @default(cuid())
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime? // Soft delete
   name            String
   description     String?
   basePrice       Int
@@ -88,6 +87,7 @@ model Court {
   features        String
   isActive        Boolean   @default(true)
   operatingHours  String    @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
+  deletedAt       DateTime?
   bookings        Booking[]
 
   @@index([isActive])
@@ -99,7 +99,6 @@ model Booking {
   id                 String          @id @default(cuid())
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
-  deletedAt          DateTime?       // Soft delete
   courtId            String
   userId             String
   bookingDate        DateTime
@@ -114,28 +113,31 @@ model Booking {
   notes              String?
   cancelledAt        DateTime?
   cancellationReason String?
+  deletedAt          DateTime?
   court              Court           @relation(fields: [courtId], references: [id])
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   players            BookingPlayer[]
   payments           Payment[]
 
   @@unique([courtId, bookingDate, startTime, endTime])
-  // Índices para consultas frecuentes
-  @@index([courtId, bookingDate]) // Disponibilidad por cancha y fecha
-  @@index([userId, bookingDate]) // Reservas del usuario por fecha
-  @@index([status, bookingDate]) // Filtrar por estado y fecha
-  @@index([paymentStatus]) // Filtrar por estado de pago
-  @@index([bookingDate, startTime]) // Ordenar por fecha y hora
-  @@index([createdAt]) // Ordenar por fecha de creación
-  @@index([deletedAt]) // Soft delete queries
-  @@index([courtId, status, bookingDate]) // Consulta compuesta frecuente
+  @@index([courtId, bookingDate])
+  @@index([userId, bookingDate])
+  @@index([status, bookingDate])
+  @@index([paymentStatus])
+  @@index([bookingDate, startTime])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([courtId, status, bookingDate])
+  // Índices adicionales para optimización
+  @@index([courtId, bookingDate, status, paymentStatus], name: "idx_booking_complex_search")
+  @@index([courtId, bookingDate, startTime, endTime], name: "idx_booking_time_range")
+  @@index([status, paymentStatus, createdAt], name: "idx_booking_status_reports")
 }
 
 model BookingPlayer {
   id            String         @id @default(cuid())
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  deletedAt     DateTime?      // Soft delete
   bookingId     String
   playerName    String
   playerPhone   String?
@@ -146,21 +148,20 @@ model BookingPlayer {
   paymentMethod PaymentMethod?
   position      Int?
   notes         String?
+  deletedAt     DateTime?
   booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   payments      Payment[]
 
   @@unique([bookingId, position])
-  @@index([bookingId]) // Consultas por reserva
-  @@index([hasPaid]) // Filtrar por estado de pago
-  @@index([playerEmail]) // Buscar por email
-  @@index([deletedAt]) // Soft delete queries
+  @@index([bookingId])
+  @@index([hasPaid])
+  @@index([playerEmail])
+  @@index([deletedAt])
 }
 
 model Payment {
   id              String         @id @default(cuid())
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  deletedAt       DateTime?      // Soft delete
   bookingId       String
   playerId        String?
   processedById   String?
@@ -170,19 +171,24 @@ model Payment {
   referenceNumber String?
   notes           String?
   status          String         @default("completed")
+  deletedAt       DateTime?
+  updatedAt       DateTime       @updatedAt
   booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   player          BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
   processedBy     User?          @relation("ProcessedBy", fields: [processedById], references: [id])
 
-  @@index([bookingId]) // Pagos por reserva
-  @@index([playerId]) // Pagos por jugador
-  @@index([processedById]) // Pagos procesados por usuario
-  @@index([paymentMethod]) // Filtrar por método de pago
-  @@index([paymentType]) // Filtrar por tipo de pago
-  @@index([status]) // Filtrar por estado
-  @@index([createdAt]) // Ordenar por fecha
-  @@index([referenceNumber]) // Buscar por número de referencia
-  @@index([deletedAt]) // Soft delete queries
+  @@index([bookingId])
+  @@index([playerId])
+  @@index([processedById])
+  @@index([paymentMethod])
+  @@index([paymentType])
+  @@index([status])
+  @@index([createdAt])
+  @@index([referenceNumber])
+  @@index([deletedAt])
+  // Índices adicionales para reportes y análisis
+  @@index([createdAt, status, paymentMethod, amount], name: "idx_payment_reports")
+  @@index([paymentMethod, paymentType, createdAt], name: "idx_payment_analytics")
 }
 
 model SystemSetting {

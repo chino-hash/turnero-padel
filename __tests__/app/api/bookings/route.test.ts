@@ -1,25 +1,25 @@
 /// <reference types="@types/jest" />
-import { POST } from '@/app/api/bookings/route'
-import { createBooking, checkAvailability, getBookingById } from '@/lib/services/bookings'
-import { getCourtById } from '@/lib/services/courts'
+import { POST } from '../../../../app/api/bookings/route'
+import { createBooking, checkAvailability, getBookingById } from '../../../../lib/services/bookings'
+import { getCourtById } from '../../../../lib/services/courts'
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../../lib/prisma'
 
 // Mock dependencies
-jest.mock('@/lib/auth', () => ({
+jest.mock('../../../../lib/auth', () => ({
   auth: jest.fn() as any as jest.MockedFunction<any>,
   signIn: jest.fn() as any as jest.MockedFunction<any>,
   signOut: jest.fn() as any as jest.MockedFunction<any>,
 }))
-jest.mock('@/lib/services/bookings', () => ({
+jest.mock('../../../../lib/services/bookings', () => ({
   createBooking: jest.fn() as any as jest.MockedFunction<any>,
   checkAvailability: jest.fn() as any as jest.MockedFunction<any>,
   getBookingById: jest.fn() as any as jest.MockedFunction<any>,
 }))
-jest.mock('@/lib/services/courts', () => ({
+jest.mock('../../../../lib/services/courts', () => ({
   getCourtById: jest.fn() as any as jest.MockedFunction<any>,
 }))
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../../../lib/prisma', () => ({
   prisma: {
     systemSetting: {
       findUnique: jest.fn() as any as jest.MockedFunction<any>,

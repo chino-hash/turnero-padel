@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { eventEmitters } from '@/lib/sse-events'
+import { auth } from '../../../../lib/auth'
+import { eventEmitters } from '../../../../lib/sse-events'
 
 // POST /api/admin/test-event - Emitir eventos de prueba para demostración
 export async function POST(request: NextRequest) {

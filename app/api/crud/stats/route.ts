@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crudService } from '@/lib/services/crud-service';
-import { auth } from '@/lib/auth';
+import { crudService } from '../../../../lib/services/crud-service';
+import { auth } from '../../../../lib/auth';
 
 // Modelos disponibles para estadísticas
 const AVAILABLE_MODELS = [

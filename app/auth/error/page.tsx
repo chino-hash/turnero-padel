@@ -1,11 +1,11 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Button } from '../../../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
+import { Alert, AlertDescription } from '../../../components/ui/alert'
 import Link from 'next/link'
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 interface AuthErrorPageProps {
   searchParams: Promise<{
@@ -15,7 +15,10 @@ interface AuthErrorPageProps {
 
 function AuthErrorContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const error = searchParams.get('error')
+  const [countdown, setCountdown] = useState(0) // Deshabilitado el countdown
+  const [shouldRedirect, setShouldRedirect] = useState(false) // Deshabilitado el redirect automático
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
@@ -29,7 +32,7 @@ function AuthErrorContent() {
         return {
           title: 'Acceso Denegado',
           message: 'No tienes permisos para acceder a esta aplicación. Solo usuarios autorizados pueden ingresar.',
-          canRetry: false
+          canRetry: true
         }
       case 'Verification':
         return {
@@ -91,6 +94,19 @@ function AuthErrorContent() {
 
   const errorInfo = getErrorMessage(error)
 
+  // Log del error para debugging, pero sin redirección automática para evitar bucles
+  useEffect(() => {
+    console.log('🚨 Auth Error Page - Error detectado:', error)
+    // Eliminamos la redirección automática para evitar bucles infinitos
+    // El usuario debe usar los botones manuales para navegar
+  }, [error])
+
+  // Función para cancelar el redireccionamiento
+  const cancelRedirect = () => {
+    setShouldRedirect(false)
+    setCountdown(0)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
@@ -113,24 +129,49 @@ function AuthErrorContent() {
                     Código de error: {error}
                   </p>
                 )}
+                {shouldRedirect && countdown > 0 && (
+                  <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-sm text-blue-700">
+                      Serás redirigido al login en <span className="font-bold">{countdown}</span> segundos...
+                    </p>
+                    <Button 
+                      onClick={cancelRedirect}
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2 text-xs"
+                    >
+                      Cancelar redireccionamiento
+                    </Button>
+                  </div>
+                )}
               </div>
             </AlertDescription>
           </Alert>
           
           <div className="space-y-3">
             {errorInfo.canRetry && (
-              <Button asChild className="w-full">
-                <Link href="/login">
-                  Intentar de Nuevo
+              <>
+                <Button 
+                  onClick={() => window.location.href = '/api/auth/signin?prompt=select_account'} 
+                  className="w-full"
+                >
+                  Reintentar Autenticación
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/login">
+                    Ir a Página de Login
+                  </Link>
+                </Button>
+              </>
+            )}
+            
+            {!errorInfo.canRetry && (
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/">
+                  Volver al Inicio
                 </Link>
               </Button>
             )}
-            
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/">
-                Volver al Inicio
-              </Link>
-            </Button>
           </div>
           
           <div className="text-center text-sm text-gray-500 space-y-1">

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useSlots, useMultipleSlots } from '@/hooks/useSlots'
-import { Court } from '@/types/types'
+import { useSlots, useMultipleSlots } from '../../hooks/useSlots'
+import { Court } from '../../types/types'
 
 // Datos de prueba
 const testCourts: Court[] = [

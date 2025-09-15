@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-09-14T16:16:59.677Z",
+  "database": {
+    "statistics": {
+      "users": 25,
+      "courts": 19,
+      "bookings": 412,
+      "payments": 0
+    },
+    "optimizations_applied": [
+      "Índices compuestos para búsquedas complejas de reservas",
+      "Índices de rango de tiempo para disponibilidad de canchas",
+      "Índices para reportes de pagos y análisis",
+      "Configuración optimizada de connection pooling",
+      "Timeouts y reintentos configurados para Neon"
+    ]
+  },
+  "recommendations": [
+    "Monitorear el rendimiento de consultas regularmente",
+    "Revisar el uso de índices con pg_stat_user_indexes",
+    "Considerar particionado para tablas grandes (>1M registros)",
+    "Implementar cache para consultas frecuentes",
+    "Configurar alertas para consultas lentas"
+  ],
+  "neon_optimizations": [
+    "Connection pooling configurado para máximo rendimiento",
+    "Timeouts ajustados para evitar conexiones colgadas",
+    "Reintentos automáticos para errores transitorios",
+    "Logging optimizado según el entorno"
+  ]
+}

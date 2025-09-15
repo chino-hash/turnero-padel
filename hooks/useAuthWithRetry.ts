@@ -65,7 +65,8 @@ export function useAuthWithRetry(options: AuthRetryOptions = {}) {
     try {
       const result = await signIn(provider, {
         callbackUrl: callbackUrl || '/',
-        redirect: false // No redirigir automáticamente para manejar errores
+        redirect: false, // No redirigir automáticamente para manejar errores
+        prompt: 'select_account' // Forzar selección de cuenta en Google
       })
 
       if (result?.error) {

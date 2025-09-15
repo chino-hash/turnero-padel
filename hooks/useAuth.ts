@@ -27,13 +27,15 @@ export function useAuth() {
   const isAdmin = session?.user?.isAdmin || false
 
   const handleSignIn = async () => {
+    console.log('🔐 useAuth: Iniciando proceso de login')
     await signIn('google', {
-      callbackUrl: '/',
+      callbackUrl: '/dashboard',
       redirect: true
     })
   }
 
   const handleSignOut = async () => {
+    console.log('🚪 useAuth: Iniciando proceso de logout')
     await signOut({
       callbackUrl: '/login',
       redirect: true

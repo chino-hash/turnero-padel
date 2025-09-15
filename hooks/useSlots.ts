@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Court } from '@/types/types'
+import { Court } from '../types/types'
 
 interface Slot {
   id: string

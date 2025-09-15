@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/database/neon-config'
-import type { Court } from '@/types/types'
+import { prisma } from '../database/neon-config'
+import type { Court } from '../../types/types'
 
 export interface CreateCourtData {
   name: string

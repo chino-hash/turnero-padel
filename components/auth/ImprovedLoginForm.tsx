@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '../ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Alert, AlertDescription } from '../ui/alert'
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface ImprovedLoginFormProps {

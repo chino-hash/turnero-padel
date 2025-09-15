@@ -7,13 +7,13 @@ import {
   updatePaymentStatus,
   getBookingsByDateAndCourt,
   cancelBooking,
-} from '@/lib/services/bookings'
-import { prisma } from '@/lib/prisma'
+} from '../../../lib/services/bookings'
+import { prisma } from '../../../lib/prisma'
 import type { Booking, Court, User, BookingPlayer } from '@prisma/client'
 import type { BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client'
 
 // Mock Prisma
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../../lib/prisma', () => ({
   prisma: {
     booking: {
       findMany: jest.fn(),

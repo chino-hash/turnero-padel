@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { getUserBookings } from '@/lib/services/bookings'
+import { auth } from '../../../../lib/auth'
+import { getUserBookings } from '../../../../lib/services/bookings'
 
 export async function GET() {
   try {

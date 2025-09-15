@@ -6,17 +6,7 @@
  */
 'use client'
 
-import dynamic from 'next/dynamic'
-
-// Importar el componente sin SSR para evitar errores de hidratación
-const PadelBookingPage = dynamic(() => import('@/padel-booking'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
-    </div>
-  )
-})
+import PadelBookingPage from '@/padel-booking'
 
 export default function DashboardPage() {
   // La autenticación se maneja en el layout (protected)

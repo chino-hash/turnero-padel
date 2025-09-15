@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { BookingRepository, BookingWithRelations, BookingCreateInput, BookingUpdateInput } from '@/lib/repositories/BookingRepository';
-import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, CreateBookingInput, UpdateBookingInput } from '@/lib/validations/booking';
-import { ApiResponse, PaginatedResponse } from '@/lib/validations/common';
-import { prisma } from '@/lib/database/neon-config';
+import { BookingRepository, BookingWithRelations, BookingCreateInput, BookingUpdateInput } from '../repositories/BookingRepository';
+import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, CreateBookingInput, UpdateBookingInput } from '../validations/booking';
+import { ApiResponse, PaginatedResponse } from '../validations/common';
+import { prisma } from '../database/neon-config';
 
 // Tipos específicos del servicio
 export type BookingWithDetails = {

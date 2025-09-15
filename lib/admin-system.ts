@@ -1,4 +1,4 @@
-import { removeDuplicates, mergeArraysUnique } from '@/lib/utils/array-utils'
+import { removeDuplicates, mergeArraysUnique } from './utils/array-utils'
 
 // Función para obtener prisma de forma segura
 const getPrisma = async () => {

@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-09-14T17:25:02.569Z",
+  "testRun": "completed",
+  "environment": {
+    "nodeVersion": "v22.17.1",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "coverage": {
+    "reportGenerated": true
+  }
+}

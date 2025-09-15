@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crudService } from '@/lib/services/crud-service';
-import { auth } from '@/lib/auth';
+import { crudService } from '../../../../lib/services/crud-service';
+import { auth } from '../../../../lib/auth';
 
 // Verificar permisos de administrador
 async function checkAdminPermission() {

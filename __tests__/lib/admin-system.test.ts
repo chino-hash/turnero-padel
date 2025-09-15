@@ -8,12 +8,12 @@ import {
   logAdminAccess,
   isAdminEmail,
   clearAdminCache,
-} from '@/lib/admin-system'
-import { prisma } from '@/lib/prisma'
+} from '../../lib/admin-system'
+import { prisma } from '../../lib/prisma'
 import type { AdminWhitelist } from '@prisma/client'
 
 // Mock Prisma
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../lib/prisma', () => ({
   prisma: {
     adminWhitelist: {
       findMany: jest.fn() as any as jest.MockedFunction<any>,

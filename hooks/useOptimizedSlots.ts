@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { TimeSlot, SlotsResponse } from '@/types/types'
+import { TimeSlot, SlotsResponse } from '../types/types'
 
 // Cache para evitar peticiones repetidas
 const slotsCache = new Map<string, { data: SlotsResponse; timestamp: number }>()

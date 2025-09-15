@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 // Mock the auth module
-jest.mock('@/lib/auth', () => ({
+jest.mock('../../../../lib/auth', () => ({
   auth: jest.fn() as any as jest.MockedFunction<any>,
   config: {
     providers: [{
@@ -16,15 +16,15 @@ jest.mock('@/lib/auth', () => ({
   },
 }))
 
-import { GET, POST, DELETE } from '@/app/api/slots/route'
-import { checkCourtAvailability } from '@/lib/services/courts'
-import { auth } from '@/lib/auth'
+import { GET, POST, DELETE } from '../../../../app/api/slots/route'
+import { checkCourtAvailability } from '../../../../lib/services/courts'
+import { auth } from '../../../../lib/auth'
 import { NextRequest } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../../lib/prisma'
 
 // Mock dependencies
-jest.mock('@/lib/services/courts')
-jest.mock('@/lib/prisma', () => ({
+jest.mock('../../../../lib/services/courts')
+jest.mock('../../../../lib/prisma', () => ({
   prisma: {
     booking: {
       findMany: jest.fn() as any as jest.MockedFunction<any>,

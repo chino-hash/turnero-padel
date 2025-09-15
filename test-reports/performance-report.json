@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-09-14T17:25:02.577Z",
+  "totalRuntime": 379,
+  "slowestTests": [
+    {
+      "file": "\\__tests__\\lib\\utils.test.ts",
+      "runtime": 379,
+      "numTests": 7,
+      "avgTimePerTest": 54.142857142857146
+    }
+  ],
+  "allTests": [
+    {
+      "file": "\\__tests__\\lib\\utils.test.ts",
+      "runtime": 379,
+      "numTests": 7,
+      "avgTimePerTest": 54.142857142857146
+    }
+  ]
+}

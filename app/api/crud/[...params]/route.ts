@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crudService } from '@/lib/services/crud-service';
-import { getTestDataByModel, getValidationRules } from '@/lib/services/test-data';
-import { auth } from '@/lib/auth';
-import { config as authOptions } from '@/lib/auth';
+import { crudService } from '../../../../lib/services/crud-service';
+import { getTestDataByModel, getValidationRules } from '../../../../lib/services/test-data';
+import { auth } from '../../../../lib/auth';
+import { config as authOptions } from '../../../../lib/auth';
 
 // Modelos permitidos para operaciones CRUD
 const ALLOWED_MODELS = [

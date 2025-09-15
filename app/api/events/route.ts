@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { addConnection, removeConnection, type SSEEvent } from '@/lib/sse-events'
+import { addConnection, removeConnection, type SSEEvent } from '../../../lib/sse-events'
 
 // Endpoint GET para establecer conexión SSE
 export async function GET(request: NextRequest) {

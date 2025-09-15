@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import HomeSection from '@/components/HomeSection'
-import MisTurnos from '@/components/MisTurnos'
-import type { Booking, Player, TimeSlot } from '@/types/types'
+import HomeSection from '../../components/HomeSection'
+import MisTurnos from '../../components/MisTurnos'
+import type { Booking, Player, TimeSlot } from '../../types/types'
 
 // Función helper para obtener los próximos días
 const getNextDays = (count: number) => {

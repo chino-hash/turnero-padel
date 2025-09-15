@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
+import { useAuth } from "./hooks/useAuth"
 import { 
   useAppState, 
   type Player, 
@@ -17,8 +18,8 @@ import {
   generateTimeSlots,
   getCurrentBookingStatus,
   getRemainingTime
-} from "@/components/providers/AppStateProvider"
-// import { ProtectedRoute } from "@/components/auth/ProtectedRoute" // No necesario, auth se maneja en layout
+} from "./components/providers/AppStateProvider"
+// import { ProtectedRoute } from "./components/auth/ProtectedRoute" // No necesario, auth se maneja en layout
 import {
   Calendar,
   Clock,
@@ -40,10 +41,10 @@ import {
   AlertCircle,
   BanknoteIcon as BankIcon,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarComponent } from "@/components/ui/calendar" // Renamed to avoid conflict
+import { Button } from "./components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover"
+import { Calendar as CalendarComponent } from "./components/ui/calendar" // Renamed to avoid conflict
 import { format } from "date-fns"
 import {
   AlertDialog,
@@ -55,11 +56,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import MisTurnos from "@/components/MisTurnos"
-import HomeSection from "@/components/HomeSection"
+} from "./components/ui/alert-dialog"
+import { Switch } from "./components/ui/switch"
+import { Label } from "./components/ui/label"
+import MisTurnos from "./components/MisTurnos"
+import HomeSection from "./components/HomeSection"
 
 // Los tipos ahora están definidos en AppStateProvider
 
@@ -67,8 +68,9 @@ import HomeSection from "@/components/HomeSection"
 
 // Las funciones auxiliares ahora están definidas en AppStateProvider
 
-export default function PadelBookingPage() {
+function PadelBookingPage() {
   const { user, profile, signOut, isAdmin, loading } = useAuth()
+  const router = useRouter()
   
   // Usar el contexto global para el estado compartido
   const {
@@ -636,25 +638,54 @@ export default function PadelBookingPage() {
   return (
     <>
       {/* User Info Header */}
-      <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-2 rounded-lg shadow-lg ${
+      <div className={`fixed top-3 right-3 z-50 flex flex-col gap-2 px-3 py-2 rounded-lg shadow-md ${
         isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
       }`}>
-        <div className="text-sm">
-          <div className="font-medium">{profile?.full_name || user?.email}</div>
-          {isAdmin && <div className="text-xs text-emerald-500">Administrador</div>}
-        </div>
-        <Button
-          onClick={() => signOut()}
-          variant="outline"
-          size="sm"
-          className={`text-xs ${
-            isDarkMode 
-              ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600 hover:text-white" 
-              : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
-          }`}
-        >
-          Salir
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs flex-1">
+            <div className="font-medium truncate max-w-[120px]">{profile?.full_name || user?.email}</div>
+            {isAdmin && (
+              <div className="text-[10px] text-emerald-500 font-medium mt-0.5">Admin</div>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Button
+               onClick={() => signOut()}
+               variant="outline"
+               size="sm"
+               className={`text-[10px] px-2 py-1 h-6 w-[60px] flex items-center justify-center ${
+                 isDarkMode 
+                   ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
+                   : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
+               }`}
+             >
+             Salir
+           </Button>
+           {isAdmin && (
+             <Button
+               onClick={() => {
+                 try {
+                   router.push('/admin-panel/admin')
+                 } catch (error) {
+                   console.error('Error al navegar al panel de administración:', error)
+                 }
+               }}
+               variant="outline"
+               size="sm"
+               className={`text-[10px] px-2 py-1 h-6 w-[60px] flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                 isDarkMode 
+                   ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600 focus:ring-emerald-400" 
+                   : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500"
+               }`}
+               aria-label="Acceder al panel de administración"
+               title="Panel de Administración"
+             >
+               <Settings className="w-2.5 h-2.5" aria-hidden="true" />
+               <span className="sr-only">Panel de Administración</span>
+             </Button>
+           )}
+          </div>
+         </div>
       </div>
 
       {/* Main Container with overflow control */}
@@ -972,3 +1003,7 @@ export default function PadelBookingPage() {
     </>
   )
 }
+
+// Exportación nombrada para compatibilidad
+export { PadelBookingPage }
+export default PadelBookingPage
