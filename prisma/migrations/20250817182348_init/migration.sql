@@ -20,7 +20,7 @@ CREATE TABLE "Session" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "sessionToken" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "expires" DATETIME NOT NULL,
+    "expires" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -29,47 +29,47 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT,
     "email" TEXT NOT NULL,
-    "emailVerified" DATETIME,
+    "emailVerified" TIMESTAMP(3),
     "image" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "fullName" TEXT,
     "phone" TEXT,
     "role" TEXT NOT NULL DEFAULT 'USER',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "lastLogin" DATETIME,
-    "preferences" JSONB NOT NULL DEFAULT {}
+    "lastLogin" TIMESTAMP(3),
+    "preferences" JSONB NOT NULL DEFAULT '{}'
 );
 
 -- CreateTable
 CREATE TABLE "VerificationToken" (
     "identifier" TEXT NOT NULL,
     "token" TEXT NOT NULL,
-    "expires" DATETIME NOT NULL
+    "expires" TIMESTAMP(3) NOT NULL
 );
 
 -- CreateTable
 CREATE TABLE "Court" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
     "basePrice" INTEGER NOT NULL,
     "priceMultiplier" REAL NOT NULL DEFAULT 1.0,
     "features" JSONB NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "operatingHours" JSONB NOT NULL DEFAULT {"start": "00:00", "end": "23:00", "slot_duration": 90}
+    "operatingHours" JSONB NOT NULL DEFAULT '{"start": "00:00", "end": "23:00", "slot_duration": 90}'
 );
 
 -- CreateTable
 CREATE TABLE "Booking" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "courtId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "bookingDate" DATETIME NOT NULL,
+    "bookingDate" TIMESTAMP(3) NOT NULL,
     "startTime" TEXT NOT NULL,
     "endTime" TEXT NOT NULL,
     "durationMinutes" INTEGER NOT NULL DEFAULT 90,
@@ -79,7 +79,7 @@ CREATE TABLE "Booking" (
     "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
     "paymentMethod" TEXT,
     "notes" TEXT,
-    "cancelledAt" DATETIME,
+    "cancelledAt" TIMESTAMP(3),
     "cancellationReason" TEXT,
     CONSTRAINT "Booking_courtId_fkey" FOREIGN KEY ("courtId") REFERENCES "Court" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Booking_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -88,15 +88,15 @@ CREATE TABLE "Booking" (
 -- CreateTable
 CREATE TABLE "BookingPlayer" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "bookingId" TEXT NOT NULL,
     "playerName" TEXT NOT NULL,
     "playerPhone" TEXT,
     "playerEmail" TEXT,
     "hasPaid" BOOLEAN NOT NULL DEFAULT false,
     "paidAmount" INTEGER NOT NULL DEFAULT 0,
-    "paidAt" DATETIME,
+    "paidAt" TIMESTAMP(3),
     "paymentMethod" TEXT,
     "position" INTEGER,
     "notes" TEXT,
@@ -106,7 +106,7 @@ CREATE TABLE "BookingPlayer" (
 -- CreateTable
 CREATE TABLE "Payment" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "bookingId" TEXT NOT NULL,
     "playerId" TEXT,
     "processedById" TEXT,
@@ -124,8 +124,8 @@ CREATE TABLE "Payment" (
 -- CreateTable
 CREATE TABLE "SystemSetting" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
     "description" TEXT,
@@ -136,8 +136,8 @@ CREATE TABLE "SystemSetting" (
 -- CreateTable
 CREATE TABLE "AdminWhitelist" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
     "email" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "addedBy" TEXT,
