@@ -31,9 +31,7 @@ const emailListSchema = z.string()
 /**
  * Esquema para validar el entorno de ejecución
  */
-const nodeEnvSchema = z.enum(['development', 'production', 'test'], {
-  errorMap: () => ({ message: 'NODE_ENV debe ser: development, production o test' })
-})
+const nodeEnvSchema = z.enum(['development', 'production', 'test'])
 
 /**
  * Esquema principal de configuración
@@ -128,7 +126,7 @@ function validateEnv() {
     return envSchema.parse(process.env)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map(err => 
+      const errorMessages = error.issues.map(err => 
         `❌ ${err.path.join('.')}: ${err.message}`
       ).join('\n')
       

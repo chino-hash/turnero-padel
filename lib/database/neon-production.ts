@@ -8,14 +8,13 @@
 import { PrismaClient } from '@prisma/client'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
-import * as schema from './schema'
 import { getDatabaseConfig } from '../config/env'
 import { neonConfig } from './neon-config'
 
 const dbConfig = getDatabaseConfig()
 
 const sql = neon(dbConfig.url)
-export const db = drizzle(sql, { schema })
+export const db = drizzle(sql)
 
 // Configuración específica para producción
 const PRODUCTION_CONFIG = {

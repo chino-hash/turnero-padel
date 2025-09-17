@@ -7,7 +7,7 @@
 
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
-import * as schema from './schema'
+import { PrismaClient } from '@prisma/client'
 import { getDatabaseConfig, isProduction } from '../config/env'
 
 const dbConfig = getDatabaseConfig()
@@ -43,7 +43,7 @@ export const neonOptimizedConfig = {
 }
 
 const sql = neon(dbConfig.url)
-export const db = drizzle(sql, { schema })
+export const db = drizzle(sql)
 
 /**
  * Cliente Prisma optimizado para Neon

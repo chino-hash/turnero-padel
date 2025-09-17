@@ -65,7 +65,6 @@ class NeonPrismaClient {
       
       NeonPrismaClient.instance = new PrismaClient({
         log: config.log as any,
-        datasources: config.datasources,
       })
       
       // Event listeners deshabilitados temporalmente por problemas de tipos
