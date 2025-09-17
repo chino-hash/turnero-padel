@@ -27,7 +27,8 @@ export const neonOptimizedConfig = {
   logging: {
     enabled: !isProduction,
     level: isProduction ? 'warn' : 'info',
-    queries: !isProduction
+    queries: !isProduction,
+    slowQueryThreshold: 1000
   },
   
   // Configuración SSL
@@ -86,7 +87,7 @@ class MetricsCollector {
     this.metrics.totalQueries++
     this.queryTimes.push(duration)
     
-    if (duration > NEON_CONFIG.logging.slowQueryThreshold) {
+    if (duration > neonOptimizedConfig.logging.slowQueryThreshold) {
       this.metrics.slowQueries++
     }
     
@@ -125,7 +126,7 @@ const metricsCollector = new MetricsCollector()
 neonPrisma.$on('query', (e) => {
   metricsCollector.recordQuery(e.duration)
   
-  if (e.duration > NEON_CONFIG.logging.slowQueryThreshold) {
+  if (e.duration > neonOptimizedConfig.logging.slowQueryThreshold) {
     console.warn(`🐌 Consulta lenta detectada (${e.duration}ms):`, {
       query: e.query.substring(0, 200) + '...',
       params: e.params,
