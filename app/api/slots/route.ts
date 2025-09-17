@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
 import { z } from 'zod'
+import { isDevelopment } from '../../../lib/config/env'
 
 // Esquema de validación para los parámetros de entrada
 const slotsQuerySchema = z.object({
@@ -186,7 +187,7 @@ export async function GET(req: NextRequest) {
     if (err instanceof Error) {
       return NextResponse.json({ 
         error: 'Error interno del servidor',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Error interno',
+        message: isDevelopment ? err.message : 'Error interno',
         responseTime
       }, { status: 500 })
     }

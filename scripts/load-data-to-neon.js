@@ -20,7 +20,11 @@ const prisma = new PrismaClient()
 async function initializeAdmins() {
   console.log('👥 Inicializando administradores...')
   
-  const envAdmins = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+  const { getAdminConfig, getDatabaseConfig } = require('../lib/config/env')
+
+const adminConfig = getAdminConfig()
+const dbConfig = getDatabaseConfig()
+const envAdmins = adminConfig.emails || []
   
   if (envAdmins.length === 0) {
     console.log('⚠️  No se encontraron administradores en ADMIN_EMAILS')
@@ -239,7 +243,7 @@ async function seedSystemSettings() {
 async function loadDataToNeon() {
   try {
     console.log('🚀 Iniciando carga de datos a Neon...')
-    console.log('📊 Base de datos:', process.env.DATABASE_URL?.split('@')[1]?.split('/')[0] || 'No especificada')
+    console.log('📊 Base de datos:', dbConfig.url?.split('@')[1]?.split('/')[0] || 'No especificada')
     
     // Verificar conexión
     await prisma.$connect()

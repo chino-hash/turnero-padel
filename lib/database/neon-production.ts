@@ -6,7 +6,16 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { neon } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-http'
+import * as schema from './schema'
+import { getDatabaseConfig } from '../config/env'
 import { neonConfig } from './neon-config'
+
+const dbConfig = getDatabaseConfig()
+
+const sql = neon(dbConfig.url)
+export const db = drizzle(sql, { schema })
 
 // Configuración específica para producción
 const PRODUCTION_CONFIG = {
@@ -63,7 +72,7 @@ export const productionPrisma = new PrismaClient({
   errorFormat: 'minimal',
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: dbConfig.url,
     },
   },
 })

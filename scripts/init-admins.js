@@ -18,7 +18,10 @@ async function initializeAdmins() {
     console.log('🚀 Inicializando sistema de administradores...')
 
     // 1. Obtener administradores desde variable de entorno
-    const envAdmins = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+    const { getAdminConfig } = require('../lib/config/env')
+
+const adminConfig = getAdminConfig()
+const envAdmins = adminConfig.emails || []
     
     if (envAdmins.length === 0) {
       console.log('⚠️  No se encontraron administradores en ADMIN_EMAILS')

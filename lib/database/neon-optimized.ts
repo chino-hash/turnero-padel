@@ -5,43 +5,45 @@
  * con Neon PostgreSQL, incluyendo connection pooling, índices y optimizaciones.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { neon } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-http'
+import * as schema from './schema'
+import { getDatabaseConfig, isProduction } from '../config/env'
+
+const dbConfig = getDatabaseConfig()
 
 // Configuración optimizada para Neon
-const NEON_CONFIG = {
-  // Connection pooling optimizado
-  connectionPool: {
-    maxConnections: process.env.NODE_ENV === 'production' ? 20 : 5,
-    minConnections: 2,
-    acquireTimeoutMillis: 30000,
-    idleTimeoutMillis: 600000, // 10 minutos
-    reapIntervalMillis: 1000,
-    createRetryIntervalMillis: 200,
-    createTimeoutMillis: 30000,
-  },
+export const neonOptimizedConfig = {
+  // Pool de conexiones optimizado
+  maxConnections: isProduction ? 20 : 5,
+  idleTimeout: 30000,
+  connectionTimeout: 5000,
   
-  // Configuración de timeouts
-  timeouts: {
-    query: 30000, // 30 segundos
-    transaction: 60000, // 1 minuto
-    connection: 10000, // 10 segundos
-  },
+  // Configuración de retry
+  retryAttempts: 3,
+  retryDelay: 1000,
   
-  // Configuración de reintentos
-  retry: {
-    maxAttempts: 3,
-    backoffMultiplier: 2,
-    initialDelay: 1000,
-    maxDelay: 10000,
-  },
-  
-  // Configuración de logs
+  // Configuración de logging
   logging: {
-    level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
-    slowQueryThreshold: 5000, // 5 segundos
-    enableMetrics: true,
+    enabled: !isProduction,
+    level: isProduction ? 'warn' : 'info',
+    queries: !isProduction
   },
+  
+  // Configuración SSL
+  ssl: {
+    rejectUnauthorized: isProduction
+  },
+  
+  // Configuración de la base de datos
+  database: {
+    url: dbConfig.url,
+    schema: 'public'
+  }
 }
+
+const sql = neon(dbConfig.url)
+export const db = drizzle(sql, { schema })
 
 /**
  * Cliente Prisma optimizado para Neon
@@ -55,7 +57,7 @@ export const neonPrisma = new PrismaClient({
   errorFormat: 'minimal',
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: dbConfig.url,
     },
   },
 })

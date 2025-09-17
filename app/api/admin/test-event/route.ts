@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../../lib/auth'
 import { eventEmitters } from '../../../../lib/sse-events'
+import { getAdminConfig } from '../../../../lib/config/env'
 
 // POST /api/admin/test-event - Emitir eventos de prueba para demostración
 export async function POST(request: NextRequest) {
@@ -15,7 +16,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que sea administrador
-    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+    const adminConfig = getAdminConfig()
+  const adminEmails = adminConfig.emails
     if (!adminEmails.includes(session.user.email)) {
       return NextResponse.json(
         { error: 'Acceso denegado. Solo administradores pueden emitir eventos de prueba.' },

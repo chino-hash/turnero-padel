@@ -638,7 +638,7 @@ function PadelBookingPage() {
   return (
     <>
       {/* User Info Header */}
-      <div className={`fixed top-3 right-3 z-50 flex flex-col gap-2 px-3 py-2 rounded-lg shadow-md ${
+      <div className={`fixed top-3 right-3 z-[80] flex flex-col gap-2 px-3 py-2 rounded-lg shadow-md ${
         isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
       }`}>
         <div className="flex items-center justify-between gap-2">

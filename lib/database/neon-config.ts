@@ -5,34 +5,31 @@
  * con Neon, incluyendo connection pooling, timeouts y optimizaciones de queries.
  */
 
+import { neon } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-http'
 import { PrismaClient } from '@prisma/client'
+import { getDatabaseConfig, isDevelopment, isProduction } from '../config/env'
 
-// Configuración de connection pooling para Neon
+const dbConfig = getDatabaseConfig()
+
+// Configuración de Neon
 export const neonConfig = {
-  // Connection pooling settings
-  connectionLimit: 10, // Límite de conexiones concurrentes
-  acquireTimeout: 60000, // 60 segundos timeout para obtener conexión
-  timeout: 60000, // 60 segundos timeout para queries
-  
-  // Query optimization settings
-  log: process.env.NODE_ENV === 'development' ? [
-    { emit: 'event', level: 'query' },
-    { emit: 'stdout', level: 'info' },
-    { emit: 'stdout', level: 'warn' },
-    { emit: 'stdout', level: 'error' }
-  ] : [{ emit: 'stdout', level: 'error' }],
-  
-  // Datasource configuration for Neon
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
+  connectionString: dbConfig.url,
+  ssl: true,
+  // Configuraciones adicionales para Neon
+  poolConfig: {
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  }
 }
+
+const sql = neon(dbConfig.url)
+export const db = drizzle(sql)
 
 // Configuración específica para diferentes entornos
 const getEnvironmentConfig = () => {
-  const env = process.env.NODE_ENV
+  const env = isDevelopment ? 'development' : isProduction ? 'production' : 'test'
   
   switch (env) {
     case 'production':

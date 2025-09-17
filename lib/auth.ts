@@ -8,13 +8,16 @@
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
 import { isAdminEmail, logAdminAccess } from "./admin-system"
+import { env, isDevelopment, isProduction, getAuthConfig } from "./config/env"
 import type { NextAuthConfig } from "next-auth"
+
+const authConfig = getAuthConfig()
 
 export const config = {
   providers: [
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: authConfig.google.clientId,
+      clientSecret: authConfig.google.clientSecret,
       authorization: {
         params: {
           prompt: "select_account",
@@ -36,8 +39,8 @@ export const config = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL?.replace(/https?:\/\//, '') : undefined
+        secure: isProduction,
+        domain: isProduction ? authConfig.url?.replace(/https?:\/\//, '') : undefined
       }
     },
     callbackUrl: {
@@ -45,7 +48,7 @@ export const config = {
       options: {
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: isProduction
       }
     },
     csrfToken: {
@@ -54,9 +57,9 @@ export const config = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: isProduction
       }
-    }
+    },
   },
   callbacks: {
     async signIn({ user, account, profile }) {
@@ -155,12 +158,12 @@ export const config = {
        console.warn('⚠️ NextAuth Warning:', code)
      },
      debug(code, metadata) {
-       if (process.env.NODE_ENV === 'development') {
+       if (isDevelopment) {
          console.log('🐛 NextAuth Debug:', code, metadata)
        }
      }
    },
-  debug: process.env.NODE_ENV === 'development',
+  debug: isDevelopment,
 } satisfies NextAuthConfig
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config)

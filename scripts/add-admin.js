@@ -13,7 +13,10 @@ async function isAdminEmail(email) {
   const normalizedEmail = email.toLowerCase().trim()
   
   // Verificar en variable de entorno
-  const envAdmins = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
+  const { getAdminConfig } = require('../lib/config/env')
+
+const adminConfig = getAdminConfig()
+const envAdmins = adminConfig.emails || []
   if (envAdmins.includes(normalizedEmail)) {
     return true
   }

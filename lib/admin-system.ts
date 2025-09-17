@@ -1,4 +1,7 @@
 import { removeDuplicates, mergeArraysUnique } from './utils/array-utils'
+import { env, getAdminConfig, isDevelopment } from "./config/env"
+
+const adminConfig = getAdminConfig()
 
 // Función para obtener prisma de forma segura
 const getPrisma = async () => {
@@ -42,7 +45,7 @@ export const clearAdminCache = (): void => {
 
 // Administradores principales desde variable de entorno (siempre activos)
 const getEnvAdmins = (): string[] => {
-  const envAdmins = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim().toLowerCase()) || []
+  const envAdmins = adminConfig.emails || []
   const filteredEmails = envAdmins.filter(email => email.length > 0)
   // Eliminar duplicados manteniendo el orden original
   return removeDuplicates(filteredEmails)
@@ -95,10 +98,10 @@ export const getAllAdmins = async (): Promise<Set<string>> => {
 export const isAdminEmail = async (email: string): Promise<boolean> => {
   if (!email) return false
   
-  const normalizedEmail = email.toLowerCase().trim()
-  const admins = await getAllAdmins()
+  const adminEmails = adminConfig.emails
+  if (!adminEmails) return false
   
-  return admins.has(normalizedEmail)
+  return adminEmails.includes(email.toLowerCase())
 }
 
 // Verificar si un email es administrador (versión síncrona para casos especiales)
@@ -284,7 +287,7 @@ export const logAdminAccess = (
   method: 'email' | 'google' = 'google',
   action?: string
 ) => {
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     console.log('🔐 Admin Access Log:', {
       email,
       granted,

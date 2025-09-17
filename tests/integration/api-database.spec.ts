@@ -1,19 +1,21 @@
-import { test, expect } from '@playwright/test';
-import { PrismaClient } from '@prisma/client';
+import { test, expect } from '@playwright/test'
+import { PrismaClient } from '@prisma/client'
+import { getDatabaseConfig } from '../../lib/config/env'
 
-// Pruebas de integración entre API y Base de Datos
-test.describe('Integración API - Base de Datos', () => {
-  let prisma: PrismaClient;
+const dbConfig = getDatabaseConfig()
 
+let prisma: PrismaClient
+
+test.describe('API Database Integration', () => {
   test.beforeAll(async () => {
     // Inicializar cliente de Prisma para pruebas
     prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL || 'file:./test.db'
+          url: dbConfig.url || 'file:./test.db'
         }
       }
-    });
+    })
   });
 
   test.afterAll(async () => {
