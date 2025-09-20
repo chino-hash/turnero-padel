@@ -1,9 +1,10 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { ReactNode } from 'react'
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: ReactNode
   requireAdmin?: boolean
 }
 

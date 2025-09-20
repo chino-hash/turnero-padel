@@ -1,9 +1,9 @@
 'use client'
 
+import React, { useState, useEffect, useMemo } from 'react'
 import { useUserBookings } from '../hooks/useUserBookings'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { useState, useMemo } from 'react'
 import { Calendar, Clock, MapPin, Users, CreditCard, RefreshCw } from 'lucide-react'
 import type { BookingWithDetails } from '../lib/services/bookings'
 

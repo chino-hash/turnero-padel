@@ -637,64 +637,108 @@ function PadelBookingPage() {
 
   return (
     <>
-      {/* User Info Header */}
-      <div className={`fixed top-3 right-3 z-[80] flex flex-col gap-2 px-3 py-2 rounded-lg shadow-md ${
+      {/* Unified Header with horizontal distribution */}
+      <div className={`fixed top-0 left-0 right-0 z-[80] px-2 sm:px-4 py-2 sm:py-3 shadow-md ${
         isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
       }`}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-xs flex-1">
-            <div className="font-medium truncate max-w-[120px]">{profile?.full_name || user?.email}</div>
-            {isAdmin && (
-              <div className="text-[10px] text-emerald-500 font-medium mt-0.5">Admin</div>
-            )}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Button
-               onClick={() => signOut()}
-               variant="outline"
-               size="sm"
-               className={`text-[10px] px-2 py-1 h-6 w-[60px] flex items-center justify-center ${
-                 isDarkMode 
-                   ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
-                   : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
-               }`}
-             >
-             Salir
-           </Button>
-           {isAdmin && (
-             <Button
-               onClick={() => {
-                 try {
-                   router.push('/admin-panel/admin')
-                 } catch (error) {
-                   console.error('Error al navegar al panel de administración:', error)
-                 }
-               }}
-               variant="outline"
-               size="sm"
-               className={`text-[10px] px-2 py-1 h-6 w-[60px] flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                 isDarkMode 
-                   ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600 focus:ring-emerald-400" 
-                   : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500"
-               }`}
-               aria-label="Acceder al panel de administración"
-               title="Panel de Administración"
-             >
-               <Settings className="w-2.5 h-2.5" aria-hidden="true" />
-               <span className="sr-only">Panel de Administración</span>
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          {/* Left: User Info */}
+          <div className="flex items-center gap-1 sm:gap-3 min-w-0 flex-1">
+            <div className="text-xs sm:text-sm">
+              <div className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{profile?.full_name || user?.email}</div>
+              {isAdmin && (
+                <div className="text-xs text-emerald-600 font-bold mt-0.5 bg-emerald-100 px-1 sm:px-2 py-0.5 rounded-full inline-block">
+                  ADMIN
+                </div>
+              )}
+            </div>
+            <div className="flex gap-1 sm:gap-2">
+              <Button
+                 onClick={() => signOut()}
+                 variant="outline"
+                 size="sm"
+                 className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 ${
+                   isDarkMode 
+                     ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
+                     : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
+                 }`}
+               >
+               <span className="hidden sm:inline">Salir</span>
+               <span className="sm:hidden">×</span>
              </Button>
-           )}
+             {isAdmin && (
+               <Button
+                 onClick={() => {
+                   try {
+                     router.push('/admin-panel/admin')
+                   } catch (error) {
+                     console.error('Error al navegar al panel de administración:', error)
+                   }
+                 }}
+                 variant="outline"
+                 size="sm"
+                 className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                   isDarkMode 
+                     ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600 focus:ring-emerald-400" 
+                     : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500"
+                 }`}
+                 aria-label="Acceder al panel de administración"
+                 title="Panel de Administración"
+               >
+                 <Settings className="w-3 h-3" />
+               </Button>
+             )}
+            </div>
           </div>
-         </div>
+
+          {/* Center: Logo and Title */}
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 justify-center">
+            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md">
+              <img 
+                src="/logo/padellisto.png" 
+                alt="Padel Listo Logo" 
+                className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
+              />
+            </div>
+            <h1 className={`text-lg sm:text-xl font-bold ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+              <span className="hidden sm:inline">Padel Listo</span>
+              <span className="sm:hidden">Padel</span>
+            </h1>
+          </div>
+
+          {/* Right: Dark Mode Toggle */}
+          <div className="flex justify-end flex-1">
+            <Button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              variant="outline"
+              size="sm"
+              className={`transition-all duration-300 shadow-sm p-1.5 sm:p-2 h-7 sm:h-8 w-7 sm:w-8 ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+              aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
+            >
+              {isDarkMode ? (
+                <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
+              ) : (
+                <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Main Container with overflow control */}
-      <div className="relative min-h-screen overflow-hidden">
+      {/* Main content with top padding to account for fixed header */}
+      <div className="pt-14 sm:pt-16">
         {/* Main Booking Interface */}
         <HomeSection
           isVisible={activeNavItem !== "turnos" && activeNavItem !== "admin"}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
+
           selectedCourt={selectedCourt}
           setSelectedCourt={setSelectedCourt}
           courts={courts}

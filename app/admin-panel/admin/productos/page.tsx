@@ -1,3 +1,6 @@
+/**
+ * Página de gestión de productos del panel de administración
+ */
 'use client'
 
 import { useState, useEffect } from 'react'

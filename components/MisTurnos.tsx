@@ -4,6 +4,8 @@
  * Cualquier cambio requiere un proceso formal de revisión y aprobación.
  * Contacto: Administrador del Sistema
  */
+'use client'
+
 import React, { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"

@@ -1,3 +1,6 @@
+/**
+ * Página de gestión de reservas
+ */
 'use client'
 
 import { useState, useEffect } from 'react'

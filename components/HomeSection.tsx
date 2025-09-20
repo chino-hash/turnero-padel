@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
@@ -128,8 +128,8 @@ export default function HomeSection({
       }`}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
-        {/* Dark Mode Toggle - Fixed position on left side */}
-        <div className="fixed top-4 left-4 z-[70]">
+        {/* Dark Mode Toggle - Fixed position on right side */}
+        <div className="fixed top-4 right-4 z-[70]">
           <Button
             onClick={() => setIsDarkMode(!isDarkMode)}
             variant="outline"
@@ -155,8 +155,8 @@ export default function HomeSection({
         </div>
 
         {/* Header with Logo */}
-        <div className="flex justify-center items-center mb-2 sm:mb-3">
-          <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex justify-center items-center mb-4 sm:mb-6">
+          <div className="flex items-center space-x-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md">
               <img 
                 src="/logo/padellisto.png" 
@@ -164,12 +164,36 @@ export default function HomeSection({
                 className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
               />
             </div>
-            <span className={`text-lg sm:text-xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}>Padel Listo</span>
+            <h1 className={`text-xl sm:text-2xl font-bold ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+              Padel Listo
+            </h1>
           </div>
         </div>
 
-        {/* Main Title - Optimized spacing */}
-        <div className="text-center mb-3">
+        {/* Dark Mode Toggle - Fixed position */}
+        <Button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          variant="outline"
+          size="sm"
+          className={`fixed top-4 right-4 z-50 transition-all duration-300 shadow-lg ${
+            isDarkMode
+              ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
+              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+          }`}
+          aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
+        >
+          {isDarkMode ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
+
+        {/* Header - Removed duplicate title */}
+        <div className="text-center mb-6">
+          {/* Main Title - Optimized spacing */}
           <h1 className={`text-2xl sm:text-3xl font-bold mb-1 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
             Reserva tu Cancha de Padel
           </h1>

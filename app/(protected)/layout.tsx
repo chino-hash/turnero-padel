@@ -5,13 +5,15 @@
  * Contacto: Administrador del Sistema
  */
 
+import { ReactNode } from "react"
 import { auth } from "../../lib/auth"
 import { redirect } from "next/navigation"
+import ClientAppStateProvider from "../../components/providers/ClientAppStateProvider"
 
 export default async function ProtectedLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const session = await auth()
   
@@ -19,5 +21,9 @@ export default async function ProtectedLayout({
     redirect("/login")
   }
   
-  return <>{children}</>
+  return (
+    <ClientAppStateProvider>
+      {children}
+    </ClientAppStateProvider>
+  )
 }

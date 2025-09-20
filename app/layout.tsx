@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SessionProvider } from "../components/providers/SessionProvider";
-import { AppStateProvider } from "../components/providers/AppStateProvider";
-import RealTimeNotification from "../components/ui/RealTimeNotification";
-import { Toaster } from 'react-hot-toast';
+import ClientSessionProvider from "../components/providers/ClientSessionProvider";
+import ClientToaster from "../components/providers/ClientToaster";
+import { ReactNode } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,27 +23,15 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="es">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>
-          <AppStateProvider>
-            {children}
-            <RealTimeNotification />
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-              }}
-            />
-          </AppStateProvider>
-        </SessionProvider>
+        <ClientSessionProvider>
+          {children}
+          <ClientToaster />
+        </ClientSessionProvider>
       </body>
     </html>
   );

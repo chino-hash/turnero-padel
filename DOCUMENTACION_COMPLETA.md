@@ -453,6 +453,19 @@ model AdminWhitelist {
 }
 ```
 
+**Administradores Activos:**
+- `agustinagus05@gmail.com` - Administrador principal con permisos completos
+  - Acceso al panel de administración
+  - Gestión de reservas y canchas
+  - Agregar/remover administradores
+  - Configuración del sistema
+
+**Scripts de Gestión de Administradores:**
+- `scripts/quick-add-admin.js` - Agregar administrador específico
+- `scripts/add-admin.js` - Agregar administrador con validaciones
+- `scripts/verify-admin.js` - Verificar permisos de administrador
+- `scripts/add-admin-direct.js` - Agregar administrador directamente a la BD
+
 #### Enums
 
 ```prisma
@@ -1682,10 +1695,15 @@ NEXTAUTH_SECRET="your-secret-key-here"
 GOOGLE_CLIENT_ID="your-google-client-id"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
 
+# Administradores del Sistema
+ADMIN_EMAILS="agustinagus05@gmail.com"  # Administrador principal activo
+
 # Configuración adicional
 NODE_ENV="development"
 VERCEL_URL="your-vercel-url" # Solo en producción
 ```
+
+**Nota**: El sistema de administradores ahora utiliza principalmente la base de datos (tabla `AdminWhitelist`) para gestión dinámica, con `ADMIN_EMAILS` como fallback.
 
 ### Instalación Local
 

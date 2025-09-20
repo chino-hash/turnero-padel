@@ -7,9 +7,40 @@
 
 import NextAuth from "next-auth"
 import Google from "next-auth/providers/google"
-import { isAdminEmail, logAdminAccess } from "./admin-system"
 import { env, isDevelopment, isProduction, getAuthConfig } from "./config/env"
 import type { NextAuthConfig } from "next-auth"
+
+// Importación dinámica de admin-system para evitar problemas en el middleware
+const getIsAdmin = async (email: string): Promise<boolean> => {
+  try {
+    // Solo importar admin-system cuando no estamos en el middleware
+    if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
+      const { isAdminEmail } = await import('./admin-system')
+      return await isAdminEmail(email)
+    }
+    
+    // Fallback simple para producción/middleware
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
+    return adminEmails.includes(email)
+  } catch (error) {
+    console.error('Error checking admin status:', error)
+    // Fallback a verificación simple por variable de entorno
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
+    return adminEmails.includes(email)
+  }
+}
+
+// Importación dinámica de logAdminAccess para evitar problemas en el middleware
+const logAdminAccessSafe = async (email: string, success: boolean, method: 'email' | 'google', action: string) => {
+  try {
+    if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
+      const { logAdminAccess } = await import('./admin-system')
+      logAdminAccess(email, success, method, action)
+    }
+  } catch (error) {
+    console.error('Error logging admin access:', error)
+  }
+}
 
 const authConfig = getAuthConfig()
 
@@ -67,21 +98,21 @@ export const config = {
         // Solo permitir Google OAuth
         if (account?.provider !== 'google') {
           console.log('❌ SignIn rechazado: No es Google OAuth')
-          logAdminAccess(user.email || '', false, 'email', 'signIn_rejected_not_google')
+          logAdminAccessSafe(user.email || '', false, 'email', 'signIn_rejected_not_google')
           return false
         }
 
         // Verificar que el email esté verificado en Google
         if (!profile?.email_verified) {
           console.log('❌ SignIn rechazado: Email no verificado')
-          logAdminAccess(user.email || '', false, 'google', 'signIn_rejected_email_not_verified')
+          logAdminAccessSafe(user.email || '', false, 'google', 'signIn_rejected_email_not_verified')
           return false
         }
 
         // Verificar si es administrador para logging
-        const isAdmin = await isAdminEmail(user.email!)
-        console.log(`✅ SignIn exitoso para ${user.email} (Admin: ${isAdmin})`)
-        logAdminAccess(user.email!, true, 'google', isAdmin ? 'admin_login' : 'user_login')
+        const isAdminResult = await getIsAdmin(user.email!)
+        console.log(`✅ SignIn exitoso para ${user.email} (Admin: ${isAdminResult})`)
+        logAdminAccessSafe(user.email!, true, 'google', isAdminResult ? 'admin_login' : 'user_login')
 
         return true
       } catch (error) {
@@ -94,16 +125,16 @@ export const config = {
       // Verificar si es un nuevo sign-in o actualización
       if (account && user) {
         // Verificar si el email está en la lista de administradores
-        const isAdmin = await isAdminEmail(user.email!)
+        const isAdminResult = await getIsAdmin(user.email!)
         
         // Log del acceso de administrador
-        if (isAdmin) {
-          logAdminAccess(user.email!, true, 'google', 'login')
+        if (isAdminResult) {
+          logAdminAccessSafe(user.email!, true, 'google', 'login')
         }
         
         // Asignar rol basado en si es admin o no
-        token.role = isAdmin ? 'ADMIN' : 'USER'
-        token.isAdmin = isAdmin
+        token.role = isAdminResult ? 'ADMIN' : 'USER'
+        token.isAdmin = isAdminResult
         token.email = user.email
         token.name = user.name
         token.picture = user.image
@@ -112,9 +143,9 @@ export const config = {
       // Renovar información de admin en cada actualización de token
       if (trigger === 'update' && token.email) {
         try {
-          const isAdmin = await isAdminEmail(token.email as string)
-          token.role = isAdmin ? 'ADMIN' : 'USER'
-          token.isAdmin = isAdmin
+          const isAdminResult = await getIsAdmin(token.email as string)
+          token.role = isAdminResult ? 'ADMIN' : 'USER'
+          token.isAdmin = isAdminResult
         } catch (error) {
           console.error('Error verificando estado de admin:', error)
           // Mantener el estado anterior en caso de error
@@ -142,8 +173,8 @@ export const config = {
   events: {
     async signIn({ user, isNewUser }) {
       if (isNewUser) {
-        const isAdmin = await isAdminEmail(user.email!)
-        logAdminAccess(user.email!, true, 'google', `new_user_${isAdmin ? 'admin' : 'user'}`)
+        const isAdminResult = await getIsAdmin(user.email!)
+        logAdminAccessSafe(user.email!, true, 'google', `new_user_${isAdminResult ? 'admin' : 'user'}`)
       }
     },
     async signOut() {

@@ -1,3 +1,6 @@
+/**
+ * Formulario para crear y editar reservas
+ */
 'use client'
 
 import { useState, useEffect } from 'react'

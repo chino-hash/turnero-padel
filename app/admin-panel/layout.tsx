@@ -1,3 +1,4 @@
+import { ReactNode } from "react"
 import { auth } from "../../lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -7,7 +8,7 @@ import AdminTitleButton from "./components/AdminTitleButton"
 export default async function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const session = await auth()
   

@@ -1,19 +1,12 @@
 /**
- * ✅ PÁGINA DE GESTIÓN DE TURNOS - MODIFICACIONES PERMITIDAS
- * 
- * Esta página está dedicada exclusivamente a la gestión de turnos/reservas
- * del sistema. Cambios permitidos incluyen:
- * - Mejoras en la interfaz de gestión de turnos
- * - Nuevas funcionalidades de filtrado y búsqueda
- * - Optimizaciones de rendimiento
- * - Integración de nuevas herramientas de gestión
- * 
- * Última actualización: 2024-12-19
+ * Página de gestión de turnos del panel de administración
+ * Permite ver, crear, editar y eliminar reservas
+ * Incluye funcionalidad de tiempo real para actualizaciones automáticas
  */
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useState, useEffect } from 'react'
-import AdminTurnos from '../../../../components/AdminTurnos'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../components/ui/dialog'
@@ -23,6 +16,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../../../components/ui/textarea'
 import { Calendar, Clock, Users, TrendingUp, Plus, User, Mail, Phone, FileText, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { useRealTimeUpdates } from '../../../../hooks/useRealTimeUpdates'
+
+// Importación dinámica para evitar problemas de prerenderización
+const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
+    </div>
+  )
+})
 
 export default function TurnosPage() {
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false)

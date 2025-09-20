@@ -1,4 +1,6 @@
-import React from 'react';
+'use client'
+
+import React, { useEffect } from 'react';
 import { TimeSlot } from '../types/types';
 
 interface SlotModalProps {
@@ -18,7 +20,7 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();

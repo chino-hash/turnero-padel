@@ -1,16 +1,74 @@
 /**
- * Dashboard principal del panel de administración
- * Muestra un resumen general y enlaces a las diferentes secciones
+ * Página principal del panel de administración de turnos
+ * Permite gestionar reservas, usuarios y estadísticas
  */
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
-import { Calendar, Users, BarChart3, Settings, Package, MapPin, Clock, User, DollarSign, Search, X, ChevronDown, ChevronUp, Plus, CheckCircle, AlertCircle, Filter } from 'lucide-react'
-import { useState, useEffect } from 'react'
-import { useAppState } from '../../../components/providers/AppStateProvider'
-import { useCourtPrices } from '../../../hooks/useCourtPrices'
+import { 
+  Calendar, 
+  Clock, 
+  Users, 
+  DollarSign, 
+  Search, 
+  Filter, 
+  ChevronDown, 
+  ChevronUp, 
+  Plus, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle,
+  User,
+  MapPin,
+  Phone,
+  Mail,
+  CreditCard,
+  Banknote,
+  Receipt,
+  Package,
+  ShoppingCart,
+  Coffee,
+  Utensils,
+  Shirt,
+  Zap,
+  MoreHorizontal,
+  BarChart3,
+  Settings,
+  X
+} from 'lucide-react'
+
+// Funciones auxiliares para colores
+const getPaymentStatusColor = (status: string) => {
+  switch (status) {
+    case 'Fully Paid':
+      return 'bg-green-100 text-green-800'
+    case 'Deposit Paid':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'Pending':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Active':
+      return 'bg-green-100 text-green-800'
+    case 'Upcoming':
+      return 'bg-blue-100 text-blue-800'
+    case 'Completed':
+      return 'bg-gray-100 text-gray-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
 
 // Interfaces para los turnos
 interface Booking {
@@ -48,8 +106,6 @@ interface Extra {
 }
 
 export default function AdminDashboard() {
-  const { isDarkMode, getPaymentStatusColor, getStatusColor } = useAppState()
-  const { courts, getCourtTotalPrice, getCourtPrice, isCourtActive } = useCourtPrices()
   
   // Estados para los turnos
   const [bookings, setBookings] = useState<Booking[]>([])
