@@ -742,20 +742,31 @@ const calculateRemainingTime = (endTime: Date) => {
 
 const generateTimeSlots = (): TimeSlot[] => {
   const slots: TimeSlot[] = []
+  
+  // Horarios reservados de ejemplo para visualización
+  const reservedSlots = [
+    '09:00', '10:30', '14:00', '16:30', '18:00', '19:30'
+  ]
+  
   for (let hour = 8; hour < 22; hour++) {
     for (let minute = 0; minute < 60; minute += 90) {
       const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
       const endHour = minute === 30 ? hour + 2 : hour + 1
       const endMinute = minute === 30 ? 0 : 30
       const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
+      
+      // Marcar como no disponible si está en la lista de reservados
+      const isReserved = reservedSlots.includes(time)
+      const available = !isReserved && Math.random() > 0.2 // Algunos slots adicionales ocupados aleatoriamente
+      
       slots.push({
         id: `slot-${hour}-${minute}`,
         time,
         startTime: time,
         endTime,
         timeRange: `${time} - ${endTime}`,
-        available: Math.random() > 0.3,
-        isAvailable: Math.random() > 0.3,
+        available,
+        isAvailable: available,
         price: 12000,
         courtId: 'cmew6nvsd0001u2jcngxgt8au',
         duration: 90
@@ -777,6 +788,7 @@ const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
   
   courts.forEach(court => {
     const courtTimes = courtSchedules[court.id as keyof typeof courtSchedules] || ['09:00', '10:30', '12:00']
+    const reservedTimes = reservedSlotsByCourtId[court.id as keyof typeof reservedSlotsByCourtId] || []
     
     courtTimes.forEach((time) => {
       const [hour, minute] = time.split(':').map(Number)
@@ -785,7 +797,10 @@ const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
       const finalEndHour = endMinute >= 60 ? endHour + 1 : endHour
       const finalEndMinute = endMinute >= 60 ? endMinute - 60 : endMinute
       const endTime = `${finalEndHour.toString().padStart(2, '0')}:${finalEndMinute.toString().padStart(2, '0')}`
-      const available = Math.random() > 0.3
+      
+      // Marcar como no disponible si está reservado
+      const isReserved = reservedTimes.includes(time)
+      const available = !isReserved && Math.random() > 0.1 // Algunos slots adicionales ocupados aleatoriamente
       
       slots.push({
         id: `${court.id}-${time}-${date.toISOString().split('T')[0]}`,

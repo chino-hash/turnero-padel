@@ -15,6 +15,23 @@ const nextConfig = {
       }
     }
     
+    // Resolver problemas con es-toolkit/compat usando lodash como fallback
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'es-toolkit/compat/get': 'lodash/get',
+      'es-toolkit/compat/sortBy': 'lodash/sortBy',
+      'es-toolkit/compat/last': 'lodash/last',
+      'es-toolkit/compat/throttle': 'lodash/throttle',
+      'es-toolkit/compat/isEqual': 'lodash/isEqual',
+      'es-toolkit/compat/range': 'lodash/range',
+      'es-toolkit/compat/omit': 'lodash/omit',
+      'es-toolkit/compat/maxBy': 'lodash/maxBy',
+      'es-toolkit/compat/sumBy': 'lodash/sumBy',
+      'es-toolkit/compat/minBy': 'lodash/minBy',
+      'es-toolkit/compat/isPlainObject': 'lodash/isPlainObject',
+      'es-toolkit/compat/uniqBy': 'lodash/uniqBy',
+    }
+    
     return config
   },
   // Configuración de trailing slash

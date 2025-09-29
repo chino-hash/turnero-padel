@@ -13,6 +13,7 @@ import { Badge } from '../../../../components/ui/badge'
 import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useAppState } from '../../../../lib/AppStateProvider'
 
 interface Producto {
   id: number
@@ -25,6 +26,7 @@ interface Producto {
 
 export default function ProductosPage() {
   const router = useRouter()
+  const { isDarkMode } = useAppState()
   const [productos, setProductos] = useState<Producto[]>([])
   const [cargando, setCargando] = useState(true)
   const [busqueda, setBusqueda] = useState('')
@@ -391,7 +393,11 @@ export default function ProductosPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {productosFiltrados.map((producto) => (
-                  <div key={producto.id} className={`bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 ${!producto.activo ? 'opacity-60' : ''}`}>
+                  <div key={producto.id} className={`rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 ${!producto.activo ? 'opacity-60' : ''} ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-600 text-white' 
+                      : 'bg-white border-gray-200 text-gray-900'
+                  }`}>
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">

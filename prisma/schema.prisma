@@ -128,10 +128,9 @@ model Booking {
   @@index([createdAt])
   @@index([deletedAt])
   @@index([courtId, status, bookingDate])
-  // Índices adicionales para optimización
-  @@index([courtId, bookingDate, status, paymentStatus], name: "idx_booking_complex_search")
-  @@index([courtId, bookingDate, startTime, endTime], name: "idx_booking_time_range")
-  @@index([status, paymentStatus, createdAt], name: "idx_booking_status_reports")
+  @@index([courtId, bookingDate, status, paymentStatus], map: "idx_booking_complex_search")
+  @@index([courtId, bookingDate, startTime, endTime], map: "idx_booking_time_range")
+  @@index([status, paymentStatus, createdAt], map: "idx_booking_status_reports")
 }
 
 model BookingPlayer {
@@ -186,9 +185,8 @@ model Payment {
   @@index([createdAt])
   @@index([referenceNumber])
   @@index([deletedAt])
-  // Índices adicionales para reportes y análisis
-  @@index([createdAt, status, paymentMethod, amount], name: "idx_payment_reports")
-  @@index([paymentMethod, paymentType, createdAt], name: "idx_payment_analytics")
+  @@index([createdAt, status, paymentMethod, amount], map: "idx_payment_reports")
+  @@index([paymentMethod, paymentType, createdAt], map: "idx_payment_analytics")
 }
 
 model SystemSetting {

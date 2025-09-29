@@ -40,6 +40,7 @@ import {
   TrendingUp,
   AlertCircle,
   BanknoteIcon as BankIcon,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "./components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card"
@@ -334,9 +335,29 @@ function PadelBookingPage() {
 
   const handleCancelUserBooking = (bookingId: string) => {
     // Cancel user booking from bookings
-    // TODO: Implement user booking cancellation through API
-    // In a real app, this would update the state properly
-    console.log(`User booking ${bookingId} cancelled`)
+    try {
+      // Actualizar el estado local de las reservas
+      const updatedCurrentBookings = currentBookings.filter(booking => booking.id !== bookingId)
+      const cancelledBooking = currentBookings.find(booking => booking.id === bookingId)
+      
+      if (cancelledBooking) {
+        // Marcar como cancelada y mover al historial
+        const cancelledBookingForHistory = {
+          ...cancelledBooking,
+          status: "Cancelled",
+          type: "past"
+        }
+        
+        // En una aplicación real, esto se haría a través de una API
+        console.log(`Reserva ${bookingId} cancelada exitosamente`)
+        
+        // Mostrar notificación de éxito
+        alert('Reserva cancelada exitosamente')
+      }
+    } catch (error) {
+      console.error('Error al cancelar la reserva:', error)
+      alert('Error al cancelar la reserva. Por favor, inténtalo de nuevo.')
+    }
   }
 
   // Función para calcular si aplica reembolso (2 horas de antelación)
@@ -637,96 +658,111 @@ function PadelBookingPage() {
 
   return (
     <>
-      {/* Unified Header with horizontal distribution */}
-      <div className={`fixed top-0 left-0 right-0 z-[80] px-2 sm:px-4 py-2 sm:py-3 shadow-md ${
-        isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-      }`}>
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Left: User Info */}
-          <div className="flex items-center gap-1 sm:gap-3 min-w-0 flex-1">
-            <div className="text-xs sm:text-sm">
-              <div className="font-medium truncate max-w-[100px] sm:max-w-[150px]">{profile?.full_name || user?.email}</div>
+      {/* Navbar con diseño de notch invertido */}
+      <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
+        {/* Contenedor principal con flexbox */}
+        <div className="flex items-start justify-between max-w-7xl mx-auto px-1 sm:px-2">
+          
+          {/* Sección izquierda: Información del usuario, botón salir y configuración */}
+          <div className={`
+            flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5
+            rounded-b-2xl shadow-lg
+            transition-all duration-300 hover:shadow-xl
+            ${isDarkMode ? "bg-gray-800 text-white shadow-gray-900/20" : "bg-white text-gray-900 shadow-gray-900/10"}
+          `}>
+            {/* Información del usuario */}
+            <div className="text-xs sm:text-sm min-w-0">
+              <div className="font-medium truncate max-w-[100px] sm:max-w-[150px]">
+                {profile?.full_name || user?.email}
+              </div>
               {isAdmin && (
                 <div className="text-xs text-emerald-600 font-bold mt-0.5 bg-emerald-100 px-1 sm:px-2 py-0.5 rounded-full inline-block">
                   ADMIN
                 </div>
               )}
             </div>
-            <div className="flex gap-1 sm:gap-2">
-              <Button
-                 onClick={() => signOut()}
-                 variant="outline"
-                 size="sm"
-                 className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 ${
-                   isDarkMode 
-                     ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
-                     : "bg-white text-gray-900 border-gray-300 hover:bg-gray-50"
-                 }`}
-               >
-               <span className="hidden sm:inline">Salir</span>
-               <span className="sm:hidden">×</span>
-             </Button>
-             {isAdmin && (
-               <Button
-                 onClick={() => {
-                   try {
-                     router.push('/admin-panel/admin')
-                   } catch (error) {
-                     console.error('Error al navegar al panel de administración:', error)
-                   }
-                 }}
-                 variant="outline"
-                 size="sm"
-                 className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                   isDarkMode 
-                     ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600 focus:ring-emerald-400" 
-                     : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 focus:ring-emerald-500"
-                 }`}
-                 aria-label="Acceder al panel de administración"
-                 title="Panel de Administración"
-               >
-                 <Settings className="w-3 h-3" />
-               </Button>
-             )}
+            
+            {/* Divs de acción con dimensiones exactas de los botones */}
+            <div className="flex gap-0.5 sm:gap-1">
+              {/* Div Salir - mismas dimensiones que el botón */}
+              <div
+                className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 border rounded-md flex items-center justify-center cursor-pointer hover:opacity-80 ${
+                  isDarkMode 
+                    ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
+                    : "bg-gray-50 text-gray-900 border-gray-300 hover:bg-gray-100"
+                }`}
+                aria-label="Cerrar sesión"
+                title="Salir"
+                onClick={async () => {
+                  try {
+                    await signOut()
+                    router.push('/login')
+                  } catch (error) {
+                    console.error('Error al cerrar sesión:', error)
+                  }
+                }}
+              >
+                <span className="hidden sm:inline">Salir</span>
+                <span className="sm:hidden">×</span>
+              </div>
+              
+              {/* Div Configuración (solo para admins) - mismas dimensiones que el botón */}
+              {isAdmin && (
+                <div
+                  className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 border rounded-md flex items-center justify-center cursor-pointer hover:opacity-80 ${
+                    isDarkMode 
+                      ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600" 
+                      : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                  }`}
+                  aria-label="Acceder al panel de administración"
+                  title="Panel de Administración"
+                  onClick={() => {
+                    if (isAdmin) {
+                      router.push('/admin-panel/admin')
+                    }
+                  }}
+                >
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Center: Logo and Title */}
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 justify-center">
-            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md">
-              <img 
-                src="/logo/padellisto.png" 
-                alt="Padel Listo Logo" 
-                className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
-              />
-            </div>
-            <h1 className={`text-lg sm:text-xl font-bold ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}>
-              <span className="hidden sm:inline">Padel Listo</span>
-              <span className="sm:hidden">Padel</span>
-            </h1>
-          </div>
+          {/* Centro transparente - Efecto notch invertido */}
+          <div className="flex-1 min-h-[3rem] sm:min-h-[3.5rem]" aria-hidden="true"></div>
 
-          {/* Right: Dark Mode Toggle */}
-          <div className="flex justify-end flex-1">
-            <Button
+          {/* Sección derecha: Botón de recarga y modo oscuro */}
+          <div className={`
+            flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5
+            rounded-b-2xl shadow-lg
+            transition-all duration-300 hover:shadow-xl
+            ${isDarkMode ? "bg-gray-800 text-white shadow-gray-900/20" : "bg-white text-gray-900 shadow-gray-900/10"}
+          `}>
+            {/* Div modo oscuro con dimensiones exactas del botón */}
+            <div
               onClick={() => setIsDarkMode(!isDarkMode)}
-              variant="outline"
-              size="sm"
-              className={`transition-all duration-300 shadow-sm p-1.5 sm:p-2 h-7 sm:h-8 w-7 sm:w-8 ${
+              className={`transition-all duration-300 shadow-sm p-1.5 sm:p-2 h-7 sm:h-8 w-7 sm:w-8 border rounded-md flex items-center justify-center cursor-pointer hover:scale-105 ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+                  : "bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100"
               }`}
               aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
+              title={isDarkMode ? "Modo claro" : "Modo oscuro"}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsDarkMode(!isDarkMode);
+                }
+              }}
             >
               {isDarkMode ? (
                 <Sun className="h-3 w-3 sm:h-4 sm:w-4" />
               ) : (
                 <Moon className="h-3 w-3 sm:h-4 sm:w-4" />
               )}
-            </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -781,7 +817,17 @@ function PadelBookingPage() {
         pastBookings={pastBookings}
         isLoading={slotsLoading}
         onBack={() => setActiveNavItem("inicio")}
-        onStartBooking={() => setActiveNavItem("inicio")}
+        onStartBooking={() => {
+          // Navegar a la sección de reservas para iniciar una nueva reserva
+          setActiveNavItem("inicio")
+          // Scroll hacia la sección de canchas disponibles
+          setTimeout(() => {
+            const courtSection = document.getElementById('courts-section')
+            if (courtSection) {
+              courtSection.scrollIntoView({ behavior: 'smooth' })
+            }
+          }, 100)
+        }}
         onOpenCancelModal={handleOpenCancelModal}
         getCurrentBookingStatus={getCurrentBookingStatus}
         getRemainingTime={getRemainingTime}

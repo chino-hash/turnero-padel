@@ -123,41 +123,19 @@ export default function HomeSection({
 
   return (
     <div
+      id="courts-section"
       className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${
         isDarkMode ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-blue-50 to-emerald-50"
       }`}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
-        {/* Dark Mode Toggle - Fixed position on right side */}
-        <div className="fixed top-4 right-4 z-[70]">
-          <Button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            variant="outline"
-            size="sm"
-            className={`transition-all duration-300 shadow-lg ${
-              isDarkMode
-                ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
-                : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {isDarkMode ? (
-              <>
-                <Sun className="w-4 h-4 mr-2" />
-                Light Mode
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4 mr-2" />
-                Dark Mode
-              </>
-            )}
-          </Button>
-        </div>
 
         {/* Header with Logo */}
         <div className="flex justify-center items-center mb-4 sm:mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-md">
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center shadow-md ${
+              isDarkMode ? 'bg-gray-800' : 'bg-white'
+            }`}>
               <img 
                 src="/logo/padellisto.png" 
                 alt="Padel Listo Logo" 
@@ -171,25 +149,6 @@ export default function HomeSection({
             </h1>
           </div>
         </div>
-
-        {/* Dark Mode Toggle - Fixed position */}
-        <Button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          variant="outline"
-          size="sm"
-          className={`fixed top-4 right-4 z-50 transition-all duration-300 shadow-lg ${
-            isDarkMode
-              ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
-              : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-          }`}
-          aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
-        >
-          {isDarkMode ? (
-            <Sun className="h-4 w-4" />
-          ) : (
-            <Moon className="h-4 w-4" />
-          )}
-        </Button>
 
         {/* Header - Removed duplicate title */}
         <div className="text-center mb-6">
@@ -308,8 +267,12 @@ export default function HomeSection({
                 }`}
               >
                 {/* Availability Badge */}
-                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1">
-                  <div className="text-xs font-medium text-gray-700">{rate}%</div>
+                <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${
+                  isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+                }`}>
+                  <div className={`text-xs font-medium ${
+                    isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                  }`}>{rate}%</div>
                   <div className="text-xs text-gray-600">Disponible</div>
                 </div>
 

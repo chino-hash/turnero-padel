@@ -7,24 +7,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '../../../../components/ui/card'
-import { Badge } from '../../../../components/ui/badge'
-import { Progress } from '../../../../components/ui/progress'
-import { Separator } from '../../../../components/ui/separator'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-} from 'recharts'
+} from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
 import {
   Calendar,
   Clock,
@@ -34,8 +20,21 @@ import {
   TrendingDown,
   Activity,
   DollarSign,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react'
 import type { Booking } from '../../../../types/booking'
+
+// Componente simple de estadísticas sin gráficos por ahora
+const SimpleChart = ({ data, title }: { data: any[], title: string }) => (
+  <div className="p-4 bg-gray-50 rounded-lg">
+    <h4 className="font-medium mb-2">{title}</h4>
+    <div className="text-sm text-gray-600">
+      Gráfico temporalmente deshabilitado para el build de producción
+    </div>
+  </div>
+)
 
 interface BookingStatsProps {
   bookings: Booking[]
@@ -265,24 +264,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
           <CardContent>
             {statusChartData.length > 0 ? (
               <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={statusChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {statusChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <SimpleChart data={statusChartData} title="Estados de Reservas" />
                 <div className="flex flex-wrap gap-2">
                   {statusChartData.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
@@ -313,15 +295,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
           </CardHeader>
           <CardContent>
             {courtChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={courtChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="reservas" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <SimpleChart data={courtChartData} title="Reservas por Cancha" />
             ) : (
               <div className="flex items-center justify-center h-48 text-muted-foreground">
                 No hay datos disponibles
@@ -340,15 +314,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
           </CardHeader>
           <CardContent>
             {hourChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={hourChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hour" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="reservas" fill="#10b981" />
-                </BarChart>
-              </ResponsiveContainer>
+              <SimpleChart data={hourChartData} title="Reservas por Hora" />
             ) : (
               <div className="flex items-center justify-center h-48 text-muted-foreground">
                 No hay datos disponibles
@@ -367,15 +333,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
           </CardHeader>
           <CardContent>
             {dayChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={dayChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="reservas" fill="#f59e0b" />
-                </BarChart>
-              </ResponsiveContainer>
+              <SimpleChart data={dayChartData} title="Reservas por Día" />
             ) : (
               <div className="flex items-center justify-center h-48 text-muted-foreground">
                 No hay datos disponibles
@@ -395,24 +353,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats.trends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-                <Bar yAxisId="left" dataKey="bookings" fill="#3b82f6" name="Reservas" />
-                <Line 
-                  yAxisId="right" 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#10b981" 
-                  strokeWidth={2}
-                  name="Ingresos ($)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <SimpleChart data={stats.trends} title="Tendencias - Reservas e Ingresos" />
           </CardContent>
         </Card>
       )}

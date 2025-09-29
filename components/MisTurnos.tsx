@@ -189,9 +189,9 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
       isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
     } ${isDarkMode ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-blue-50 to-emerald-50"}`} data-testid="mis-turnos">
-      <div className="min-h-fit pb-2.5 px-4">
+      <div className="min-h-fit pb-2.5 px-4 pt-16 sm:pt-20">
         {/* Header */}
-        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 relative z-20">
           <Button
             onClick={onBack}
             variant="outline"
@@ -205,7 +205,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
             <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
             <span className="hidden sm:inline">Volver</span>
           </Button>
-          <div>
+          <div className="text-center flex-1">
             <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               Mis Turnos
             </h2>

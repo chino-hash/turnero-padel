@@ -14,7 +14,7 @@ export default auth((req) => {
   const isAdmin = req.auth?.user?.isAdmin || false
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ['/login', '/auth/error', '/test', '/demo', '/test/slots']
+  const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots']
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
 
   // Rutas de API de autenticación

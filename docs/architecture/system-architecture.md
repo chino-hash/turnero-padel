@@ -9,7 +9,7 @@ Este diagrama muestra la arquitectura general del sistema de turnero de pádel, 
 ```mermaid
 graph TB
     %% Frontend Layer
-    subgraph "🖥️ Frontend (Next.js 14)"
+    subgraph "🖥️ Frontend (Next.js 15)"
         UI["🎨 Componentes UI<br/>shadcn/ui + Tailwind"]
         Pages["📄 Páginas<br/>App Router"]
         Hooks["🪝 Custom Hooks<br/>useAuth, useBookings"]
@@ -110,10 +110,10 @@ graph TB
 
 ## Componentes Principales
 
-### 🖥️ Frontend (Next.js 14)
+### 🖥️ Frontend (Next.js 15)
 
 - **Componentes UI**: Interfaz de usuario construida con shadcn/ui y Tailwind CSS
-- **Páginas**: Rutas y páginas usando App Router de Next.js 14
+- **Páginas**: Rutas y páginas usando App Router de Next.js 15
 - **Custom Hooks**: Lógica reutilizable encapsulada (useAuth, useBookings, etc.)
 - **Estado Global**: Gestión de estado con React Context API
 
@@ -205,10 +205,11 @@ Filtros → SlotAPI → Cache Check → PricingService → Respuesta JSON
 ---
 
 **Tecnologías Principales**:
-- Frontend: Next.js 14, React 18, TypeScript, Tailwind CSS
+- Frontend: Next.js 15, React 18, TypeScript, Tailwind CSS, shadcn/ui
 - Backend: Next.js API Routes, Prisma ORM, NextAuth.js
 - Base de Datos: PostgreSQL
+- Testing: Jest, Playwright, Cypress, Testing Library
 - Infraestructura: Docker, Vercel
 
-**Última actualización**: 2024-01-28  
-**Versión**: 1.0
+**Última actualización**: 2024-12-28  
+**Versión**: 2.0

@@ -47,10 +47,12 @@ interface Extra {
 
 interface AdminTurnosProps {
   className?: string
+  isDarkMode?: boolean
 }
 
-const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
-  const { isDarkMode, getPaymentStatusColor, getStatusColor } = useAppState()
+const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: propIsDarkMode }) => {
+  const { isDarkMode: contextIsDarkMode, getPaymentStatusColor, getStatusColor } = useAppState()
+  const isDarkMode = propIsDarkMode !== undefined ? propIsDarkMode : contextIsDarkMode
   const { courts, getCourtTotalPrice, getCourtPrice, isCourtActive } = useCourtPrices()
   
   // Estados del componente según especificaciones
@@ -717,7 +719,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
                         </h4>
                         <div className="space-y-2">
                           {booking.extras.map((extra) => (
-                            <div key={extra.id} className="flex items-center justify-between p-3 bg-white rounded-md border">
+                            <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                                 <span className="text-sm text-gray-900">{extra.name}</span>
@@ -790,7 +792,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "" }) => {
       {/* Modal de Extras */}
       {showExtrasModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className={`rounded-lg p-6 w-full max-w-md mx-4 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Agregar Extra</h3>
               <Button variant="ghost" size="sm" onClick={closeExtrasModal}>
