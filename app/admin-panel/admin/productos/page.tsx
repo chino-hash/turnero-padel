@@ -13,7 +13,7 @@ import { Badge } from '../../../../components/ui/badge'
 import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
-import { useAppState } from '../../../../lib/AppStateProvider'
+import { useAppState } from '@/components/providers/AppStateProvider'
 
 interface Producto {
   id: number

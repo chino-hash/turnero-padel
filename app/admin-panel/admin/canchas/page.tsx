@@ -12,7 +12,7 @@ import { Switch } from '../../../../components/ui/switch'
 import { ArrowLeft, Save, Plus, Edit2, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useAppState } from '../../../../lib/AppStateProvider'
+import { useAppState } from '../../../../components/providers/AppStateProvider'
 
 interface Court {
   id: string
