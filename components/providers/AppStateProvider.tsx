@@ -776,6 +776,13 @@ const generateTimeSlots = (): TimeSlot[] => {
   return slots
 }
 
+// Mapa de horarios reservados por cancha para la generación unificada
+const reservedSlotsByCourtId: Record<string, string[]> = {
+  'cmew6nvsd0001u2jcngxgt8au': ['09:00', '14:00', '18:00'],
+  'cmew6nvsd0002u2jcc24nirbn': ['10:00', '15:30'],
+  'cmew6nvi40000u2jcmer3av60': ['11:30', '17:30']
+}
+
 const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
   const slots: TimeSlot[] = []
   
