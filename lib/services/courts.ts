@@ -43,19 +43,20 @@ function transformCourtData(court: any): Court {
     const name = courtName.toLowerCase()
     if (name.includes('a') || courtId === 'cmew6nvsd0001u2jcngxgt8au') {
       return {
-        color: '#8b5cf6',
+        // colores originales en Tailwind para gradiente
+        color: 'from-purple-400 to-purple-600',
         bgColor: 'bg-purple-100',
         textColor: 'text-purple-700'
       }
     } else if (name.includes('b') || courtId === 'cmew6nvsd0002u2jcc24nirbn') {
       return {
-        color: '#ef4444',
+        color: 'from-red-400 to-red-600',
         bgColor: 'bg-red-100',
         textColor: 'text-red-700'
       }
     } else {
       return {
-        color: '#22c55e',
+        color: 'from-green-400 to-green-600',
         bgColor: 'bg-green-100',
         textColor: 'text-green-700'
       }

@@ -190,7 +190,11 @@ function PadelBookingPage() {
 
   // scrollToNextAvailable ahora está en el contexto global
 
-  const selectedCourtData = courts.find((court) => court.id === selectedCourt) || courts[0]
+  // Fallback seguro para evitar TypeError cuando aún no hay canchas cargadas
+  const selectedCourtData =
+    courts.find((court) => court.id === selectedCourt) ||
+    courts[0] ||
+    ({ id: 'unknown', name: 'Cancha' } as any)
 
   const availableDays = getNextDays(4)
   // getAvailableDays ahora está en el contexto global
@@ -955,7 +959,7 @@ function PadelBookingPage() {
               ) : paymentProcessing ? (
                 "Procesando pago..."
               ) : (
-                `Confirma tu reserva para ${selectedCourtData.name}`
+                `Confirma tu reserva para ${selectedCourtData?.name ?? 'Cancha'}`
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -973,7 +977,7 @@ function PadelBookingPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Cancha:</span>
-                  <span>{selectedCourtData.name}</span>
+                  <span>{selectedCourtData?.name ?? 'Cancha'}</span>
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span>Total:</span>

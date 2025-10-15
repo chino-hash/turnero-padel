@@ -177,38 +177,7 @@ const mockBookings = [
   },
 ]
 
-const courts: Court[] = removeDuplicatesByKey([
-  {
-    id: "cmew6nvsd0001u2jcngxgt8au",
-    name: "Cancha 1 - Premium",
-    description: "Professional court with LED lighting",
-    color: "from-purple-500 to-purple-600",
-    bgColor: "bg-purple-50",
-    textColor: "#a855f7", // Purple-500 - más claro y visible
-    features: removeDuplicates(["LED Lighting", "Premium Surface", "Climate Control"]),
-    priceMultiplier: 1.0,
-  },
-  {
-    id: "cmew6nvsd0002u2jcc24nirbn",
-    name: "Cancha 2 - Estándar",
-    description: "Standard court with natural lighting",
-    color: "from-red-500 to-red-600",
-    bgColor: "bg-red-50",
-    textColor: "#ff0000", // Rojo específico
-    features: removeDuplicates(["Natural Lighting", "Standard Surface", "Outdoor Feel"]),
-    priceMultiplier: 0.9,
-  },
-  {
-    id: "cmew6nvi40000u2jcmer3av60",
-    name: "Cancha 3 - Económica",
-    description: "Deluxe court with premium amenities",
-    color: "from-green-500 to-green-600",
-    bgColor: "bg-green-50",
-    textColor: "#008000", // Verde específico
-    features: removeDuplicates(["Premium Lighting", "Deluxe Surface", "VIP Amenities"]),
-    priceMultiplier: 1.2,
-  },
-], 'id')
+// Nota: hooks deben estar dentro del componente; se moverán abajo
 
 // Funciones auxiliares
 const formatDate = (date: string) => {
@@ -355,31 +324,11 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Estados básicos
   const [activeNavItem, setActiveNavItem] = useState("inicio")
   const [isDarkMode, setIsDarkMode] = useState(false)
-  const [selectedCourt, setSelectedCourt] = useState("cmew6nvsd0001u2jcngxgt8au")
+  const [selectedCourt, setSelectedCourt] = useState("")
   const [selectedDateState, setSelectedDateState] = useState(() => {
-    // Limpiar localStorage y usar fecha actual
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('selectedDate')
-      localStorage.clear() // Limpiar todo el localStorage
-    }
-    
     const today = new Date()
-    const cutoffDate = new Date('2024-12-31') // Fecha límite para considerar válida
-    
-    let validDate
-    if (today > cutoffDate) {
-      // Usar una fecha válida basada en la fecha del sistema (15 días después)
-      validDate = new Date(today)
-      validDate.setDate(validDate.getDate() + 15)
-    } else {
-      validDate = new Date(today)
-    }
-    
-    validDate.setHours(0, 0, 0, 0)
-    
-    console.log('🗓️ Fecha del sistema:', today.toISOString().split('T')[0])
-    console.log('🗓️ Fecha inicializada:', validDate.toISOString().split('T')[0])
-    return validDate
+    today.setHours(0, 0, 0, 0)
+    return today
   })
   
   // Estabilizar la fecha para evitar re-renderizados
@@ -400,6 +349,31 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [loading] = useState(false)
   const [notification, setNotification] = useState<{message: string, type: 'info' | 'success' | 'warning'} | null>(null)
+  // Estado de canchas y carga inicial desde API
+  const [courts, setCourts] = useState<Court[]>([])
+  useEffect(() => {
+    const controller = new AbortController()
+    const loadCourts = async () => {
+      try {
+        const res = await fetch('/api/courts', { credentials: 'include', signal: controller.signal })
+        if (!res.ok) throw new Error(`Error ${res.status}`)
+        const data: Court[] = await res.json()
+        setCourts(data)
+        const firstActive = data.find(c => c.isActive !== false) || data[0]
+        if (firstActive) setSelectedCourt(firstActive.id)
+      } catch (err) {
+        // Ignorar abortos de la petición para evitar ruido en consola durante Fast Refresh
+        if (err instanceof Error && err.name === 'AbortError') {
+          return
+        }
+        console.error('Error al cargar canchas:', err)
+        setNotification({ message: 'Error al cargar canchas', type: 'warning' })
+        setTimeout(() => setNotification(null), 3000)
+      }
+    }
+    loadCourts()
+    return () => controller.abort()
+  }, [])
   
   // Hooks de slots (usando versión optimizada)
    const {
@@ -441,7 +415,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   // Configurar Server-Sent Events para invalidar caché cuando se actualicen las canchas
   useEffect(() => {
-    const eventSource = new EventSource('/api/courts/events')
+    const eventSource = new EventSource('/api/events')
     
     eventSource.onmessage = (event) => {
       try {
@@ -510,7 +484,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Si no hay datos de tarifas del hook, usar valores por defecto
   const defaultRatesByCourt = useMemo(() => {
     return courts.reduce((acc, court) => {
-      acc[court.id] = 16000 * court.priceMultiplier // Precio base * multiplicador
+      acc[court.id] = 0 // Fallback seguro como 0% mientras carga
       return acc
     }, {} as Record<string, number>)
   }, [courts])
@@ -597,9 +571,9 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   }
   
   const getAvailableDays = () => {
-    // Generar próximos 3 días (día actual + 2 siguientes)
-    const days = []
-    for (let i = 0; i < 3; i++) {
+    // Generar próximos 7 días (día actual + 6 siguientes)
+    const days: Date[] = []
+    for (let i = 0; i < 7; i++) {
       const date = new Date()
       date.setDate(date.getDate() + i)
       days.push(date)

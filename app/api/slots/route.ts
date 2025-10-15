@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+// Fuerza ejecución en Node y evita optimización estática en Vercel
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
 import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'

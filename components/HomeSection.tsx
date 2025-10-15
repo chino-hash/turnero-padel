@@ -107,8 +107,36 @@ export default function HomeSection({
   // Estado de carga para el botón de refresh
   const isRefreshing = isUnifiedView ? isRefreshingMultipleSlots : isRefreshingSlots
 
-  const selectedCourtData = courts.find((court) => court.id === selectedCourt) || courts[0]
+  // Fallback seguro para evitar errores mientras aún no cargan las canchas
+  const defaultCourt: Court = {
+    id: 'unknown',
+    name: 'Cancha',
+    description: '',
+    features: [],
+    priceMultiplier: 1,
+    color: 'from-green-400 to-green-600',
+    bgColor: 'bg-white',
+    textColor: 'text-gray-900',
+  }
+  const selectedCourtData = courts.find((court) => court.id === selectedCourt) || courts[0] || defaultCourt
   const availableDays = getAvailableDays()
+  // Color hex para el ícono/ilustración de la cancha seleccionada en la tarjeta superior
+  const selectedNameLower = (selectedCourtData?.name || '').toLowerCase()
+  const selectedCourtHex = (
+    (selectedCourtData?.id === 'cmew6nvsd0001u2jcngxgt8au') ||
+    selectedNameLower.includes('cancha 1') ||
+    selectedNameLower.includes(' a') || selectedNameLower.startsWith('a')
+  ) ? '#8b5cf6' : (
+    (selectedCourtData?.id === 'cmew6nvsd0002u2jcc24nirbn') ||
+    selectedNameLower.includes('cancha 2') ||
+    selectedNameLower.includes(' b') || selectedNameLower.startsWith('b')
+  ) ? '#ef4444' : (
+    (selectedCourtData?.id === 'cmew6nvi40000u2jcmer3av60') ||
+    selectedNameLower.includes('cancha 3') ||
+    selectedNameLower.includes(' c') || selectedNameLower.startsWith('c')
+  ) ? '#008000' : '#4b5563'
+  
+  // Court.color ahora usa clases Tailwind originales (from-... to-...)
   
   const handleSlotClickWithModal = (slot: any) => {
     setSelectedSlotForModal(slot)
@@ -169,42 +197,89 @@ export default function HomeSection({
         >
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Sección Izquierda - Información de la Cancha */}
+              {/* Sección Izquierda - Información general de disponibilidad */}
               <div className="flex items-start gap-4 flex-1">
                 <div
-                  className={`w-16 h-16 bg-gradient-to-br ${selectedCourtData.color} rounded-lg flex items-center justify-center shadow-md flex-shrink-0`}
+                  className={"w-16 h-16 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"}
+                  style={{ backgroundColor: '#4b5563' }}
                 >
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className={`text-xl font-semibold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                    {selectedCourtData.name}
+                    Disponibilidad de hoy
                   </h2>
-                  
-                  {/* Barra de Disponibilidad */}
-                  {(() => {
-                    const rate = ratesByCourt[selectedCourt] ?? 0
-                    return (
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            Disponibilidad
-                          </span>
-                          <span className={`text-sm font-semibold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                            {rate}%
-                          </span>
-                        </div>
-                        <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500" 
-                            style={{ width: `${rate}%` }} 
-                          />
-                        </div>
-                      </div>
-                    )
-                  })()}
 
-                  {/* Información Adicional */}
+                  {/* Barra de disponibilidad combinada / individual */}
+                  <div className="mb-3">
+                    {courts && courts.length > 0 ? (
+                      (() => {
+                        // Calcular tasa desde los slots visibles (preciso y ponderado)
+                        const currentSlots = Array.isArray(slotsForRender) ? slotsForRender : []
+                        const totalSlots = currentSlots.length
+                        const availableSlots = currentSlots.filter((s: any) => s?.available ?? s?.isAvailable).length
+                        const computedRate = totalSlots > 0 ? Math.round((availableSlots / totalSlots) * 100) : 0
+
+                        // Si no hay slots (p.ej. durante carga), usar tasa por cancha si aplica
+                        const fallbackRate = (() => {
+                          if (!isUnifiedView && selectedCourt) {
+                            return Math.round(Math.min(100, Math.max(0, ratesByCourt?.[selectedCourt] ?? 0)))
+                          }
+                          // En vista unificada sin slots, promediar tasas conocidas (ponderación no disponible aquí)
+                          const values = Object.values(ratesByCourt || {})
+                          if (values.length === 0) return 0
+                          const avg = Math.round(values.reduce((a, b) => a + (b || 0), 0) / values.length)
+                          return Math.min(100, Math.max(0, avg))
+                        })()
+
+                        const ratePercent = (totalSlots > 0) ? computedRate : fallbackRate
+                        const showLoadingRate = loading || isRefreshing
+                        const safeRate = Math.min(100, Math.max(0, ratePercent))
+
+                        const getBarClass = (p: number) => {
+                          if (p >= 75) return 'from-emerald-500 to-emerald-600'
+                          if (p >= 50) return 'from-yellow-400 to-yellow-500'
+                          if (p >= 25) return 'from-orange-400 to-orange-500'
+                          return 'from-red-500 to-red-600'
+                        }
+
+                        const label = isUnifiedView
+                          ? 'Disponibilidad combinada (tres canchas)'
+                          : `Disponibilidad de ${selectedCourtData?.name || 'Cancha'}`
+
+                        return (
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{label}</span>
+                              <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{showLoadingRate ? '—%' : `${safeRate}%`}</span>
+                            </div>
+                            <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden relative">
+                              <div
+                                className={`h-full bg-gradient-to-r ${getBarClass(safeRate)} rounded-full transition-[width,background-color] duration-500 ease-out`}
+                                style={{ width: showLoadingRate ? '0%' : `${safeRate}%` }}
+                              />
+                              {/* Indicador numérico dentro de la barra cuando hay espacio */}
+                              {!showLoadingRate && safeRate > 15 && (
+                                <div className="absolute inset-y-0 left-2 flex items-center">
+                                  <span className="text-xs font-semibold text-white drop-shadow-sm">{safeRate}%</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* Detalle de conteo para precisión */}
+                            {totalSlots > 0 && (
+                              <div className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {availableSlots} de {totalSlots} horarios disponibles
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()
+                    ) : (
+                      <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>No se encontraron canchas activas.</div>
+                    )}
+                  </div>
+
+                  {/* Información Adicional (sin cambios) */}
                   <div className="space-y-2">
                     <div className={`flex items-center gap-2 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                       <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
@@ -215,9 +290,9 @@ export default function HomeSection({
                       <span>1:30 hour sessions</span>
                     </div>
                   </div>
-                  
+
                   <p className={`text-sm mt-3 leading-relaxed ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                    {selectedCourtData.description}
+                    Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.
                   </p>
                 </div>
               </div>
@@ -229,14 +304,14 @@ export default function HomeSection({
                     ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600' 
                     : 'bg-gradient-to-br from-white to-gray-100 border-gray-200'
                 }`}>
-                  <div className={`text-3xl font-bold mb-1 ${isDarkMode ? 'text-white' : selectedCourtData.textColor}`}>
-                    ${Math.round(6000 * selectedCourtData.priceMultiplier).toLocaleString()}
+                  <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? selectedCourtHex : '#000000' }}>
+                    ${Math.round(6000 * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
                   </div>
-                  <div className={`text-sm font-medium mb-2 ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+                  <div className={`text-sm font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-600"}`}>
                     por persona
                   </div>
-                  <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-300" : "bg-gray-200/50 text-gray-600"}`}>
-                    Total: ${Math.round(24000 * selectedCourtData.priceMultiplier).toLocaleString()}
+                  <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-200" : "bg-gray-200/50 text-gray-600"}`}>
+                    Total: ${Math.round(24000 * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -249,6 +324,21 @@ export default function HomeSection({
           {courts.map((court) => {
             const rate = ratesByCourt[court.id] ?? 0
             const price = Math.round(6000 * court.priceMultiplier)
+            // Color hex histórico para que el div de cancha coincida exactamente con el color del nombre
+            const nameLower = (court.name || '').toLowerCase()
+            const courtHex = (
+              court.id === 'cmew6nvsd0001u2jcngxgt8au' ||
+              nameLower.includes('cancha 1') ||
+              nameLower.includes(' a') || nameLower.startsWith('a')
+            ) ? '#8b5cf6' : (
+              court.id === 'cmew6nvsd0002u2jcc24nirbn' ||
+              nameLower.includes('cancha 2') ||
+              nameLower.includes(' b') || nameLower.startsWith('b')
+            ) ? '#ef4444' : (
+              court.id === 'cmew6nvi40000u2jcmer3av60' ||
+              nameLower.includes('cancha 3') ||
+              nameLower.includes(' c') || nameLower.startsWith('c')
+            ) ? '#008000' : '#4b5563'
             return (
               <button
                 key={court.id}
@@ -270,18 +360,23 @@ export default function HomeSection({
                 <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${
                   isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
                 }`}>
-                  <div className={`text-xs font-medium ${
-                    isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                  }`}>{rate}%</div>
+                  {(() => {
+                    const showLoadingRate = loading || isRefreshing
+                    const rateText = showLoadingRate ? '—%' : `${rate}%`
+                    return (
+                      <div className={`text-xs font-medium ${
+                        isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                      }`}>{rateText}</div>
+                    )
+                  })()}
                   <div className="text-xs text-gray-600">Disponible</div>
                 </div>
 
                 {/* Court Illustration */}
-                <div className={`mx-auto mb-4 w-24 h-32 rounded-lg border-2 border-white/30 relative ${
-                  court.id === 'cmew6nvsd0001u2jcngxgt8au' ? 'bg-gradient-to-b from-purple-400 to-purple-600' :
-                  court.id === 'cmew6nvsd0002u2jcc24nirbn' ? 'bg-gradient-to-b from-red-400 to-red-600' :
-                  'bg-gradient-to-b from-green-400 to-green-600'
-                }`}>
+                <div
+                  className={"mx-auto mb-4 w-24 h-32 rounded-lg border-2 border-white/30 relative"}
+                  style={{ backgroundColor: courtHex }}
+                >
                   {/* Court lines */}
                   <div className="absolute inset-2 border border-white/50 rounded">
                     <div className="absolute top-1/2 left-0 right-0 h-px bg-white/50 transform -translate-y-1/2"></div>
@@ -299,11 +394,11 @@ export default function HomeSection({
                 </div>
 
                 {/* Price */}
-                <div className={`text-2xl font-bold ${isDarkMode && selectedCourt !== court.id ? 'text-gray-300' : court.textColor}`}>
+                <div className={"text-2xl font-bold transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? courtHex : '#000000' }}>
                   ${price.toLocaleString()}
                 </div>
-                <div className={`text-xs ${
-                  selectedCourt === court.id ? (isDarkMode ? 'text-gray-300 opacity-80' : court.textColor + ' opacity-80') : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                <div className={`text-xs transition-colors duration-300 ease-in-out ${
+                  isDarkMode ? (selectedCourt === court.id ? 'text-gray-200 opacity-90' : 'text-gray-300') : 'text-black opacity-80'
                 }`}>
                   por persona
                 </div>
@@ -467,7 +562,8 @@ export default function HomeSection({
             </h3>
             <div className="flex flex-col space-y-2 lg:max-w-xs">
               {/* Mobile: Horizontal scroll for dates */}
-              <div className="flex lg:hidden justify-center items-center space-x-4 pb-2">
+              <div className="lg:hidden w-full overflow-x-auto pb-2">
+                <div className="flex items-center gap-4 px-2 snap-x snap-mandatory">
                 {availableDays.map((date, index) => {
                   const isSelected = selectedDate.toDateString() === date.toDateString()
                   const isToday = new Date().toDateString() === date.toDateString()
@@ -484,7 +580,10 @@ export default function HomeSection({
                         e.stopPropagation()
                         setSelectedDate(date)
                       }}
-                      className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center ${
+                      aria-label={`Seleccionar ${isToday ? 'hoy, ' : ''}${dayName} ${dayNumber} ${monthName}`}
+                      aria-pressed={isSelected}
+                      title={`${isToday ? 'Hoy - ' : ''}${dayName} ${dayNumber} ${monthName}`}
+                      className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center snap-center ${
                         isSelected
                           ? "bg-blue-500 text-white shadow-lg"
                           : isDarkMode
@@ -508,10 +607,16 @@ export default function HomeSection({
                         }`}>
                           {monthName}
                         </div>
+                        {isToday && (
+                          <div className="text-[10px] font-medium text-blue-300">
+                            Hoy
+                          </div>
+                        )}
                       </div>
                     </button>
                   )
                 })}
+                </div>
               </div>
 
               {/* Desktop: Vertical layout for dates */}
@@ -644,21 +749,30 @@ export default function HomeSection({
                   
                   // Obtener colores específicos de la cancha
                   const getCourtColor = (courtId: string, courtName: string) => {
-                    const court = courts.find(c => c.id === courtId || c.name === courtName)
-                    if (court) {
-                      return court.textColor
+                    const nameLower = (courtName || '').toLowerCase()
+                    // Usar valores hex históricos por cancha
+                    if (
+                      courtId === 'cmew6nvsd0001u2jcngxgt8au' ||
+                      nameLower.includes('cancha 1') ||
+                      nameLower.includes(' a') || nameLower.startsWith('a')
+                    ) {
+                      return '#8b5cf6' // púrpura
                     }
-                    // Colores por defecto basados en el ID de la cancha
-                    switch (courtId) {
-                      case 'cmew6nvsd0001u2jcngxgt8au':
-                        return '#a855f7' // purple-500 - más claro y visible
-                      case 'cmew6nvsd0002u2jcc24nirbn':
-                        return '#dc2626' // red-600
-                      case 'cmew6nvi40000u2jcmer3av60':
-                        return '#008000' // green específico
-                      default:
-                        return '#4b5563' // gray-600
+                    if (
+                      courtId === 'cmew6nvsd0002u2jcc24nirbn' ||
+                      nameLower.includes('cancha 2') ||
+                      nameLower.includes(' b') || nameLower.startsWith('b')
+                    ) {
+                      return '#ef4444' // rojo
                     }
+                    if (
+                      courtId === 'cmew6nvi40000u2jcmer3av60' ||
+                      nameLower.includes('cancha 3') ||
+                      nameLower.includes(' c') || nameLower.startsWith('c')
+                    ) {
+                      return '#008000' // verde específico de versiones anteriores
+                    }
+                    return '#4b5563' // gris por defecto
                   }
                   
                   const courtColor = getCourtColor(slot.courtId || '', courtName)
@@ -714,11 +828,11 @@ export default function HomeSection({
                     </div>
                     
                     {/* Price - Bottom */}
-                    <div className={`text-xs font-medium ${
+                    <div className={`text-xs font-medium transition-colors duration-300 ease-in-out ${
                       !isAvailable
                         ? "text-gray-400"
                         : isDarkMode
-                          ? "text-gray-300"
+                          ? "text-gray-200"
                           : "text-black"
                     }`}>
                       ${(price/1000).toFixed(0)}000/persona

@@ -5,15 +5,15 @@ import { eventEmitters } from '../../../lib/sse-events'
 
 export async function GET() {
   try {
-    const session = await auth()
-    
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Intentar obtener sesión; si no existe, devolver canchas activas de forma pública
+    let session: any = null
+    try {
+      session = await auth()
+    } catch {}
 
     // Si es administrador, obtener todas las canchas (activas e inactivas)
-    // Si es usuario normal, solo las activas
-    const courts = session.user.isAdmin ? await getAllCourts() : await getCourts()
+    // Si es usuario normal o sin sesión, solo las activas
+    const courts = session?.user?.isAdmin ? await getAllCourts() : await getCourts()
     return NextResponse.json(courts)
   } catch (error) {
     console.error('Error en GET /api/courts:', error)
