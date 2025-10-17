@@ -7,6 +7,7 @@ import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, Refres
 import { Input } from "./ui/input"
 import { removeDuplicates } from '../lib/utils/array-utils'
 import { useAppState } from './providers/AppStateProvider'
+import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
 import { useCourtPrices } from '../hooks/useCourtPrices'
 import CalendarModal from './CalendarModal'
 
@@ -51,7 +52,7 @@ interface AdminTurnosProps {
 }
 
 const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: propIsDarkMode }) => {
-  const { isDarkMode: contextIsDarkMode, getPaymentStatusColor, getStatusColor } = useAppState()
+  const { isDarkMode: contextIsDarkMode, getPaymentStatusColor } = useAppState()
   const isDarkMode = propIsDarkMode !== undefined ? propIsDarkMode : contextIsDarkMode
   const { courts, getCourtTotalPrice, getCourtPrice, isCourtActive } = useCourtPrices()
   
@@ -175,6 +176,30 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       extras: []
     }
   ]
+
+  // Normalizar estado en español/inglés a clave BookingStatus (mayúsculas)
+  const toBookingStatus = (status: Booking['status']): BookingStatus => {
+    const s = status.toLowerCase()
+    switch (s) {
+      case 'confirmado':
+      case 'confirmed':
+        return 'CONFIRMED'
+      case 'pendiente':
+      case 'pending':
+        return 'PENDING'
+      case 'cancelado':
+      case 'cancelled':
+        return 'CANCELLED'
+      case 'completado':
+      case 'completed':
+        return 'COMPLETED'
+      case 'activa':
+      case 'active':
+        return 'ACTIVE'
+      default:
+        return 'PENDING'
+    }
+  }
 
   // Funciones de utilidad según especificaciones
   
@@ -625,9 +650,14 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     <CardTitle className="text-lg flex items-center gap-2">
                       <MapPin className="w-5 h-5 text-blue-600" />
                       {booking.courtName}
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status, 'current', isDarkMode)}`}>
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </span>
+                      {(() => {
+                        const statusKey = toBookingStatus(booking.status)
+                        return (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
+                            {BOOKING_STATUS_LABELS[statusKey]}
+                          </span>
+                        )
+                      })()}
                     </CardTitle>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                       <span className="flex items-center gap-1">

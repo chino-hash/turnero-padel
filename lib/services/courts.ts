@@ -1,5 +1,5 @@
 import { prisma } from '../database/neon-config'
-import type { Court } from '../../types/types'
+import type { Court, CourtFeatures, OperatingHours } from '../../types/types'
 
 export interface CreateCourtData {
   name: string
@@ -26,16 +26,21 @@ export interface UpdateCourtData {
 
 // Helper function to transform Prisma court data to Court type
 function transformCourtData(court: any): Court {
-  // Parse features from JSON string if needed
-  let features: string[] = []
+  // Parse features JSON (colors), con fallback a colores derivados
+  let features: CourtFeatures | null = null
   try {
-    if (Array.isArray(court.features)) {
-      features = court.features
-    } else if (typeof court.features === 'string') {
-      features = JSON.parse(court.features || '[]')
+    if (court.features && typeof court.features === 'string') {
+      const parsed = JSON.parse(court.features)
+      if (parsed && typeof parsed === 'object' && parsed.color && parsed.bgColor && parsed.textColor) {
+        features = {
+          color: String(parsed.color),
+          bgColor: String(parsed.bgColor),
+          textColor: String(parsed.textColor)
+        }
+      }
     }
   } catch {
-    features = []
+    // ignore JSON parse errors
   }
 
   // Generate colors based on court name or ID
@@ -65,18 +70,58 @@ function transformCourtData(court: any): Court {
 
   const colors = getCourtColors(court.id, court.name)
 
+  // Parse operatingHours JSON desde DB string, con fallback seguro
+  let operatingHours: OperatingHours = { start: '00:00', end: '23:00', slot_duration: 90 }
+  try {
+    if (court.operatingHours && typeof court.operatingHours === 'string') {
+      const oh = JSON.parse(court.operatingHours)
+      if (oh && typeof oh === 'object' && oh.start && oh.end && oh.slot_duration) {
+        operatingHours = {
+          start: String(oh.start),
+          end: String(oh.end),
+          slot_duration: Number(oh.slot_duration) || 90
+        }
+      }
+    }
+  } catch {
+    // keep default
+  }
+
   return {
     id: court.id,
     name: court.name,
-    description: court.description || '',
-    features,
+    description: court.description || null,
+    features: features || {
+      color: colors.color,
+      bgColor: colors.bgColor,
+      textColor: colors.textColor
+    },
     priceMultiplier: court.priceMultiplier || 1,
     color: colors.color,
     bgColor: colors.bgColor,
     textColor: colors.textColor,
-    base_price: court.basePrice / 100,
-    isActive: court.isActive
+    basePrice: Math.round((court.basePrice ?? 0) / 100),
+    isActive: Boolean(court.isActive),
+    operatingHours
   }
+}
+
+// Normaliza el nombre para obtener el "nombre canónico" (ej: "Cancha 1")
+function canonicalCourtName(name: string): string {
+  const base = (name || '').trim()
+  // Si viene con sufijo ("Cancha 1 - Premium"), tomar la parte anterior al guión
+  const dashIdx = base.indexOf(' - ')
+  const leading = dashIdx !== -1 ? base.slice(0, dashIdx).trim() : base
+  // Detectar "Cancha N"
+  const m = leading.match(/cancha\s*(\d+)/i)
+  if (m) return `Cancha ${m[1]}`
+  // Detectar alias tipo "Court A/B/C"
+  const m2 = leading.match(/court\s*([abc])/i)
+  if (m2) {
+    const map: Record<string, string> = { a: 'Cancha 1', b: 'Cancha 2', c: 'Cancha 3' }
+    return map[m2[1].toLowerCase()] || leading
+  }
+  return leading
 }
 
 // Obtener todas las canchas activas
@@ -86,14 +131,37 @@ export async function getCourts(): Promise<Court[]> {
       where: { isActive: true },
       orderBy: { name: 'asc' }
     })
-    return courts.map(transformCourtData)
+    // Deduplicar por nombre canónico
+    const groups = new Map<string, any[]>()
+    for (const c of courts) {
+      const canon = canonicalCourtName(c.name)
+      const arr = groups.get(canon) || []
+      arr.push(c)
+      groups.set(canon, arr)
+    }
+
+    const selected: any[] = []
+    for (const [canon, items] of groups) {
+      // Preferir el que tenga nombre exactamente igual al canónico
+      const exact = items.find(it => canonicalCourtName(it.name).toLowerCase() === canon.toLowerCase() && it.name.trim().toLowerCase() === canon.toLowerCase())
+      if (exact) {
+        selected.push(exact)
+        continue
+      }
+      // En su defecto, el más antiguo (probablemente el original)
+      items.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      selected.push(items[0])
+    }
+
+    // Transformar y ordenar por nombre
+    return selected.map(transformCourtData).sort((a, b) => a.name.localeCompare(b.name))
   } catch (error) {
     console.error('Error obteniendo canchas:', error)
     throw new Error('Error al obtener las canchas')
   }
 }
 
-// Obtener todas las canchas (para administración)
+// Obtener todas las canchas (para administraci�n)
 export async function getAllCourts(): Promise<Court[]> {
   try {
     const courts = await prisma.court.findMany({
@@ -109,10 +177,31 @@ export async function getAllCourts(): Promise<Court[]> {
 // Obtener cancha por ID
 export async function getCourtById(id: string): Promise<Court | null> {
   try {
-    const court = await prisma.court.findUnique({
-      where: { id }
+    // Intento directo por ID
+    const court = await prisma.court.findUnique({ where: { id } })
+    if (court) return transformCourtData(court)
+
+    // Fallback: mapear IDs antiguos y alias a nombres canónicos
+    const idToCanonicalName: Record<string, string> = {
+      'cmew6nvsd0001u2jcngxgt8au': 'Cancha 1',
+      'cmew6nvsd0002u2jcc24nirbn': 'Cancha 2',
+      'cmew6nvi40000u2jcmer3av60': 'Cancha 3',
+      'court-a': 'Cancha 1',
+      'court-b': 'Cancha 2',
+      'court-c': 'Cancha 3'
+    }
+    const canonicalName = idToCanonicalName[id]
+    if (!canonicalName) return null
+
+    // Preferir cancha activa con ese nombre
+    const activeByName = await prisma.court.findFirst({
+      where: { name: canonicalName, isActive: true }
     })
-    return court ? transformCourtData(court) : null
+    if (activeByName) return transformCourtData(activeByName)
+
+    // Último recurso: cualquier cancha con ese nombre
+    const anyByName = await prisma.court.findFirst({ where: { name: canonicalName } })
+    return anyByName ? transformCourtData(anyByName) : null
   } catch (error) {
     console.error('Error obteniendo cancha:', error)
     throw new Error('Error al obtener la cancha')
@@ -146,7 +235,7 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 // Actualizar cancha
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
-    // Preparar datos para Prisma, convirtiendo basePrice si está presente
+    // Preparar datos para Prisma, convirtiendo basePrice si est� presente
     const prismaData: any = { ...data }
     if (data.basePrice !== undefined) {
       prismaData.basePrice = Math.round(data.basePrice * 100)

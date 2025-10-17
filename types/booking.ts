@@ -205,6 +205,33 @@ export const BOOKING_STATUS_COLORS: Record<BookingStatus, string> = {
   CANCELLED: 'bg-red-100 text-red-800 border-red-200',
 }
 
+// Fondos suaves para barras y elementos de fondo
+export const BOOKING_STATUS_SOFT_BG: Record<BookingStatus, string> = {
+  PENDING: 'bg-yellow-100',
+  CONFIRMED: 'bg-green-100',
+  ACTIVE: 'bg-blue-100',
+  COMPLETED: 'bg-gray-100',
+  CANCELLED: 'bg-red-100',
+}
+
+// Fondos sólidos para puntos/indicadores
+export const BOOKING_STATUS_SOLID_BG: Record<BookingStatus, string> = {
+  PENDING: 'bg-yellow-500',
+  CONFIRMED: 'bg-green-500',
+  ACTIVE: 'bg-blue-500',
+  COMPLETED: 'bg-gray-500',
+  CANCELLED: 'bg-red-500',
+}
+
+// Clase para colorear el indicador interno del Progress por estado
+export const BOOKING_STATUS_PROGRESS_INDICATOR_BG: Record<BookingStatus, string> = {
+  PENDING: '[&>div]:bg-yellow-500',
+  CONFIRMED: '[&>div]:bg-green-500',
+  ACTIVE: '[&>div]:bg-blue-500',
+  COMPLETED: '[&>div]:bg-gray-500',
+  CANCELLED: '[&>div]:bg-red-500',
+}
+
 export const TIME_SLOTS = [
   '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
   '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',

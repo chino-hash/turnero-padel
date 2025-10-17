@@ -5,6 +5,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -40,7 +41,8 @@ import {
   MoreHorizontal,
   BarChart3,
   Settings,
-  X
+  X,
+  Home
 } from 'lucide-react'
 
 // Funciones auxiliares para colores
@@ -117,6 +119,7 @@ export default function AdminDashboard() {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [expandedExtras, setExpandedExtras] = useState<string | null>(null)
   const [showFilterModal, setShowFilterModal] = useState(false)
+  const router = useRouter()
   
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
@@ -342,13 +345,24 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Panel de Administración
-        </h1>
-        <p className="text-gray-600">
-          Gestiona todos los aspectos de tu sistema de turnos de pádel
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Panel de Administración
+          </h1>
+          <p className="text-gray-600">
+            Gestiona todos los aspectos de tu sistema de turnos de pádel
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => router.push('/dashboard')}
+          className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+        >
+          <span>Ir a</span>
+          <Home className="w-4 h-4 text-blue-600" />
+        </Button>
       </div>
 
       {/* Resumen del Sistema - Movido a la parte superior */}

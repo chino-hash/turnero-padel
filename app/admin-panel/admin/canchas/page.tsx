@@ -9,7 +9,7 @@ import { Button } from '../../../../components/ui/button'
 import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Switch } from '../../../../components/ui/switch'
-import { ArrowLeft, Save, Plus, Edit2, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Edit2, Trash2, X, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAppState } from '../../../../components/providers/AppStateProvider'
@@ -199,6 +199,15 @@ export default function GestionCanchas() {
             <h1 className="text-2xl font-bold text-gray-900">Gestión de Canchas</h1>
             <p className="text-gray-600">Administra las canchas y sus precios</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+          >
+            <span>Ir a</span>
+            <Home className="w-4 h-4 text-blue-600" />
+          </Button>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
           <Plus className="w-4 h-4 mr-2" />

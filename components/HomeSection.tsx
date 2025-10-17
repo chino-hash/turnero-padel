@@ -152,6 +152,7 @@ export default function HomeSection({
   return (
     <div
       id="courts-section"
+      data-testid="home-section"
       className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${
         isDarkMode ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-blue-50 to-emerald-50"
       }`}
@@ -348,6 +349,7 @@ export default function HomeSection({
                   e.stopPropagation()
                   setSelectedCourt(court.id)
                 }}
+                data-testid="court-card"
                 className={`relative p-6 rounded-2xl border-4 transition-all duration-300 transform hover:scale-105 ${
                   selectedCourt === court.id
                     ? isDarkMode 
@@ -387,9 +389,12 @@ export default function HomeSection({
                 </div>
 
                 {/* Court Name */}
-                <div className={`text-sm font-medium mb-2 ${
+                <div
+                  data-testid="court-name"
+                  className={`text-sm font-medium mb-2 ${
                   isDarkMode ? 'text-white' : 'text-black'
-                }`}>
+                }`}
+                >
                   {court.name}
                 </div>
 
@@ -783,6 +788,7 @@ export default function HomeSection({
                     id={`slot-${slot.id}`}
                     onClick={() => handleSlotClickWithModal(slot)}
                     disabled={!isAvailable}
+                    data-testid="time-slot"
                     className={`p-3 md:p-2 rounded-lg border-2 transition-all duration-200 text-center min-h-[85px] md:min-h-[80px] flex flex-col justify-center ${
                       !isAvailable
                         ? isDarkMode
@@ -799,6 +805,7 @@ export default function HomeSection({
                   >
                     {/* Court Name - Top with specific color */}
                     <div 
+                      data-testid="slot-court-name"
                       className={`text-sm font-medium mb-0.5 px-2 py-0.5 rounded ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'}`}
                       style={{ 
                         color: !isAvailable 
@@ -822,7 +829,10 @@ export default function HomeSection({
                     
                     {/* Availability Status Badge */}
                     <div className="mb-0.5">
-                      <span className={isAvailable ? "badge-disponible" : "badge-reservado"}>
+                      <span
+                        data-testid="slot-status-badge"
+                        className={isAvailable ? "badge-disponible" : "badge-reservado"}
+                      >
                         {isAvailable ? "Disponible" : "Reservado"}
                       </span>
                     </div>

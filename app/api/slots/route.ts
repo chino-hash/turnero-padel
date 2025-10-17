@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Fuerza ejecución en Node y evita optimización estática en Vercel
+// Fuerza ejecuci�n en Node y evita optimizaci�n est�tica en Vercel
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
+import { getDefaultOperatingHours } from '../../../lib/services/system-settings'
 import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'
+import { OperatingHoursSchema, parseJsonSafely } from '../../../lib/schemas'
 
-// Esquema de validación para los parámetros de entrada
+// Esquema de validaci�n para los par�metros de entrada
 const slotsQuerySchema = z.object({
   courtId: z.string().min(1, 'courtId es requerido'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date debe tener formato YYYY-MM-DD')
@@ -39,11 +41,11 @@ export async function GET(req: NextRequest) {
       date: searchParams.get('date')
     }
 
-    // Validar parámetros de entrada
+    // Validar par�metros de entrada
     const validationResult = slotsQuerySchema.safeParse(rawParams)
     if (!validationResult.success) {
       return NextResponse.json({ 
-        error: 'Parámetros inválidos', 
+        error: 'Par�metros inv�lidos', 
         details: validationResult.error.issues 
       }, { status: 400 })
     }
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
     const cacheKey = `${courtId}-${dateStr}`
     const cached = slotsCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log(`📦 Cache hit para ${cacheKey}`)
+      console.log('Cache hit para', cacheKey)
       return NextResponse.json({
         ...cached.data,
         cached: true,
@@ -73,13 +75,13 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validar que la fecha no sea más de 30 días en el futuro
+    // Validar que la fecha no sea m�s de 30 d�as en el futuro
     const maxDate = new Date(today)
     maxDate.setDate(maxDate.getDate() + 30)
     
     if (requestedDate > maxDate) {
       return NextResponse.json({ 
-        error: 'No se pueden consultar slots con más de 30 días de anticipación' 
+        error: 'No se pueden consultar slots con m�s de 30 d�as de anticipaci�n' 
       }, { status: 400 })
     }
 
@@ -91,32 +93,25 @@ export async function GET(req: NextRequest) {
       }, { status: 404 })
     }
 
-    // Parsear operating hours de la cancha
-    let operatingHours
-    try {
-      if (court.operatingHours) {
-        operatingHours = typeof court.operatingHours === 'string' 
-          ? JSON.parse(court.operatingHours) 
-          : court.operatingHours
-      }
-    } catch (e) {
-      console.error('Error parseando operating hours:', e, 'Raw data:', court.operatingHours)
+    // Parsear + validar operating hours de la cancha con fallback seguro (desde SystemSetting)
+    const defaultOperatingHours = await getDefaultOperatingHours()
+    const parsedHours = parseJsonSafely(court.operatingHours ?? null, OperatingHoursSchema, defaultOperatingHours)
+    if (!parsedHours.ok) {
+      console.warn('OperatingHours inv�lido, usando fallback:', parsedHours.error)
     }
 
-    // Usar operating hours de la cancha o valores por defecto
-    const defaultHours = { start: '08:00', end: '23:00' }
-    const hours = operatingHours || defaultHours
-    const startHour = hhmmToHour(hours.start || '08:00')
-    const endHour = hhmmToHour(hours.end || '23:00')
-    const slotDuration = 1.5 // 90 minutos
-    const basePrice = court.base_price || 6000
+    const hours = parsedHours.data
+    const startHour = hhmmToHour(hours.start)
+    const endHour = hhmmToHour(hours.end)
+    const slotDuration = (hours.slot_duration || 90) / 60 // minutos  horas
+    const basePrice = (court as any).basePrice ?? (court as any).base_price ?? 6000
     const priceMultiplier = court.priceMultiplier || 1
     const finalPrice = Math.round(basePrice * priceMultiplier)
 
-    console.log(`🏓 Generando slots para cancha ${court.name} (${courtId}) el ${dateStr}`)
-    console.log(`⏰ Horarios: ${hours.start} - ${hours.end} (${startHour}h - ${endHour}h)`)
-    
-    // Generar slots de forma más eficiente
+    console.log('Generando slots para cancha', court.name, `(${court.id})`, 'el', dateStr)
+    console.log(`Horarios: ${hours.start} - ${hours.end} (${startHour}h - ${endHour}h)`)    
+
+    // Generar slots de forma m�s eficiente
     const slots = []
     const availabilityPromises = []
     
@@ -128,7 +123,7 @@ export async function GET(req: NextRequest) {
       availabilityPromises.push(
         checkCourtAvailability(courtId, requestedDate, startTime, endTime)
           .then(isAvailable => ({
-            id: `${courtId}-${dateStr}-${startTime}`,
+            id: `${courtId}--${dateStr}--${startTime}`,
             startTime,
             endTime,
             timeRange: `${startTime} - ${endTime}`,
@@ -144,7 +139,7 @@ export async function GET(req: NextRequest) {
     const slotsResults = await Promise.all(availabilityPromises)
     slots.push(...slotsResults)
 
-    // Calcular estadísticas
+    // Calcular estad�sticas
     const open = slots.filter(s => s.isAvailable).length
     const total = slots.length
     const rate = total > 0 ? Math.round((open / total) * 100) : 0
@@ -171,17 +166,17 @@ export async function GET(req: NextRequest) {
       timestamp: Date.now()
     })
 
-    console.log(`✅ Slots generados: ${total} total, ${open} disponibles (${rate}%) en ${responseTime}ms`)
+    console.log(`Slots generados: ${total} total, ${open} disponibles (${rate}%) en ${responseTime} ms`)
     
     return NextResponse.json(responseData)
   } catch (err) {
     const responseTime = Date.now() - startTime
-    console.error('❌ GET /api/slots error:', err)
+    console.error('GET /api/slots error:', err)
     
-    // Manejo de errores más específico
+    // Manejo de errores m�s espec�fico
     if (err instanceof z.ZodError) {
       return NextResponse.json({ 
-        error: 'Datos de entrada inválidos',
+        error: 'Datos de entrada inv�lidos',
         details: err.issues,
         responseTime
       }, { status: 400 })
@@ -202,7 +197,7 @@ export async function GET(req: NextRequest) {
    }
  }
 
-// Endpoint para limpiar cache (útil para administradores)
+// Endpoint para limpiar cache (�til para administradores)
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
@@ -213,7 +208,7 @@ export async function DELETE(req: NextRequest) {
     if (action === 'clear-all') {
       const cacheSize = slotsCache.size
       slotsCache.clear()
-      console.log(`🗑️ Cache completo limpiado (${cacheSize} entradas)`)
+      console.log(`Cache completo limpiado (${cacheSize} entradas)`)
       return NextResponse.json({ 
         message: 'Cache completo limpiado',
         clearedEntries: cacheSize
@@ -223,7 +218,7 @@ export async function DELETE(req: NextRequest) {
     if (courtId && date) {
       const cacheKey = `${courtId}-${date}`
       const deleted = slotsCache.delete(cacheKey)
-      console.log(`🗑️ Cache limpiado para ${cacheKey}: ${deleted ? 'éxito' : 'no encontrado'}`)
+      console.log('Cache limpiado para', cacheKey)
       return NextResponse.json({ 
         message: deleted ? 'Entrada de cache eliminada' : 'Entrada no encontrada',
         cacheKey,
@@ -239,7 +234,7 @@ export async function DELETE(req: NextRequest) {
           deletedCount++
         }
       }
-      console.log(`🗑️ Cache limpiado para cancha ${courtId}: ${deletedCount} entradas`)
+      console.log(`Cache limpiado para cancha ${courtId}: ${deletedCount} entradas`)
       return NextResponse.json({ 
         message: `Cache limpiado para cancha ${courtId}`,
         courtId,
@@ -248,18 +243,18 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      error: 'Parámetros inválidos. Use action=clear-all, o proporcione courtId y/o date'
+      error: 'Par�metros inv�lidos. Use action=clear-all, o proporcione courtId y/o date'
     }, { status: 400 })
 
   } catch (err) {
-    console.error('❌ DELETE /api/slots error:', err)
+    console.error('DELETE /api/slots error:', err)
     return NextResponse.json({ 
       error: 'Error interno del servidor'
     }, { status: 500 })
   }
 }
 
-// Endpoint para obtener estadísticas del cache
+// Endpoint para obtener estad�sticas del cache
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -297,14 +292,13 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      error: 'Acción no válida. Use action: "cache-stats"'
+      error: 'Acci�n no v�lida. Use action: "cache-stats"'
     }, { status: 400 })
 
   } catch (err) {
-    console.error('❌ POST /api/slots error:', err)
+    console.error('POST /api/slots error:', err)
     return NextResponse.json({ 
       error: 'Error interno del servidor'
     }, { status: 500 })
   }
 }
-

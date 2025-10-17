@@ -16,18 +16,36 @@ export interface TimeSlot {
   bookingId?: string;
 }
 
-export interface Court {
-  id: string;
-  name: string;
-  description: string;
-  features: string[];
-  priceMultiplier: number;
+// Interfaz para el JSON de operatingHours
+export interface OperatingHours {
+  start: string;
+  end: string;
+  slot_duration: number;
+}
+
+// Interfaz para el JSON de features (configuración de estilos)
+export interface CourtFeatures {
   color: string;
   bgColor: string;
   textColor: string;
-  base_price?: number;
-  isActive?: boolean;
-  operatingHours?: string;
+}
+
+export interface Court {
+  id: string;
+  name: string;
+  description: string | null;
+  // Alinear con Prisma: camelCase y obligatorio
+  basePrice: number;
+  priceMultiplier: number;
+  // Estado activo obligatorio para mayor consistencia
+  isActive: boolean;
+  // Usa las nuevas interfaces en lugar de 'string'
+  operatingHours: OperatingHours;
+  features: CourtFeatures;
+  // Campos de estilo existentes para compatibilidad con UI actual
+  color: string;
+  bgColor: string;
+  textColor: string;
 }
 
 export interface Player {

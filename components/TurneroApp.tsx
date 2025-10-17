@@ -26,8 +26,8 @@ export default function TurneroApp() {
     try {
       setLoading(true)
       
-      // Cargar canchas
-      const courtsResponse = await fetch('/api/courts')
+      // Cargar canchas (vista pública deduplicada incluso si eres admin)
+      const courtsResponse = await fetch('/api/courts?view=public')
       if (courtsResponse.ok) {
         const courtsData = await courtsResponse.json()
         setCourts(courtsData)

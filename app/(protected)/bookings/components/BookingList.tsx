@@ -50,6 +50,7 @@ import {
   Users,
 } from 'lucide-react'
 import type { Booking } from '../../../../types/booking'
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from '@/lib/booking-status-map'
 
 interface BookingListProps {
   bookings: Booking[]
@@ -65,21 +66,7 @@ interface BookingListProps {
   onPageChange: (page: number) => void
 }
 
-const statusColors = {
-  PENDING: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  CONFIRMED: 'bg-green-100 text-green-800 border-green-200',
-  ACTIVE: 'bg-blue-100 text-blue-800 border-blue-200',
-  COMPLETED: 'bg-gray-100 text-gray-800 border-gray-200',
-  CANCELLED: 'bg-red-100 text-red-800 border-red-200',
-}
-
-const statusLabels = {
-  PENDING: 'Pendiente',
-  CONFIRMED: 'Confirmada',
-  ACTIVE: 'Activa',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-}
+// Usar mapas centralizados de estado
 
 export function BookingList({
   bookings,
@@ -182,9 +169,9 @@ export function BookingList({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={statusColors[booking.status as keyof typeof statusColors]}
+                      className={BOOKING_STATUS_COLORS[booking.status]}
                     >
-                      {statusLabels[booking.status as keyof typeof statusLabels]}
+                      {BOOKING_STATUS_LABELS[booking.status]}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -251,9 +238,9 @@ export function BookingList({
                 </div>
                 <Badge
                   variant="outline"
-                  className={statusColors[booking.status as keyof typeof statusColors]}
+                  className={BOOKING_STATUS_COLORS[booking.status]}
                 >
-                  {statusLabels[booking.status as keyof typeof statusLabels]}
+                  {BOOKING_STATUS_LABELS[booking.status]}
                 </Badge>
               </div>
               
@@ -383,9 +370,9 @@ export function BookingList({
                   <p className="font-medium text-muted-foreground">Estado</p>
                   <Badge
                     variant="outline"
-                    className={statusColors[selectedBooking.status as keyof typeof statusColors]}
+                    className={BOOKING_STATUS_COLORS[selectedBooking.status]}
                   >
-                    {statusLabels[selectedBooking.status as keyof typeof statusLabels]}
+                    {BOOKING_STATUS_LABELS[selectedBooking.status]}
                   </Badge>
                 </div>
                 <div className="col-span-2">

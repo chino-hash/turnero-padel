@@ -27,8 +27,9 @@ async function seedTestData() {
         data: {
           name: 'Cancha 1 - Premium',
           description: 'Cancha premium con césped sintético de última generación',
-          basePrice: 4000,
-          features: 'Césped sintético premium, Iluminación LED, Vestuarios, Ducha',
+          basePrice: 6000,
+          features: JSON.stringify({ color: '#8b5cf6', bgColor: '#a78bfa', textColor: '#ffffff' }),
+          operatingHours: JSON.stringify({ start: '08:00', end: '22:30', slot_duration: 90 }),
           isActive: true
         }
       }),
@@ -36,8 +37,9 @@ async function seedTestData() {
         data: {
           name: 'Cancha 2 - Estándar',
           description: 'Cancha estándar con buena iluminación',
-          basePrice: 4000,
-          features: 'Césped sintético, Iluminación estándar, Vestuarios',
+          basePrice: 6000,
+          features: JSON.stringify({ color: '#ef4444', bgColor: '#f87171', textColor: '#ffffff' }),
+          operatingHours: JSON.stringify({ start: '08:00', end: '22:30', slot_duration: 90 }),
           isActive: true
         }
       }),
@@ -45,8 +47,9 @@ async function seedTestData() {
         data: {
           name: 'Cancha 3 - Económica',
           description: 'Cancha económica ideal para principiantes',
-          basePrice: 4000,
-          features: 'Césped sintético básico, Iluminación básica',
+          basePrice: 6000,
+          features: JSON.stringify({ color: '#22c55e', bgColor: '#4ade80', textColor: '#ffffff' }),
+          operatingHours: JSON.stringify({ start: '08:00', end: '22:30', slot_duration: 90 }),
           isActive: true
         }
       })
@@ -107,7 +110,7 @@ async function seedTestData() {
 
     console.log(`✅ Creados ${users.length} usuarios`);
 
-    // 4. Crear reservas de prueba con horario completo (8:00 - 23:30)
+    // 4. Crear reservas de prueba con horario completo (8:00 - 22:30)
     console.log('📅 Creando reservas de prueba con horario completo...');
     
     const now = new Date();
@@ -125,13 +128,13 @@ async function seedTestData() {
     const statuses = ['CONFIRMED', 'PENDING', 'CANCELLED', 'COMPLETED'];
     const paymentStatuses = ['FULLY_PAID', 'PENDING', 'DEPOSIT_PAID'];
 
-    // Función para generar horarios de 90 minutos desde 8:00 hasta 23:30
+    // Función para generar horarios de 90 minutos desde 8:00 hasta 22:30
     function generateTimeSlots() {
       const slots = [];
       let currentHour = 8;
       let currentMinute = 0;
       
-      while (currentHour < 23 || (currentHour === 23 && currentMinute === 0)) {
+      while (currentHour < 22 || (currentHour === 22 && currentMinute <= 30)) {
         const startTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
         
         // Calcular hora de fin (90 minutos después)
@@ -351,8 +354,8 @@ async function seedTestData() {
     console.log('   ✓ Diferentes estados de pago');
     console.log('   ✓ Reservas históricas, actuales y futuras');
     console.log('   ✓ Duración uniforme (90 minutos exactos)');
-    console.log('   ✓ Precios uniformes ($4000 para todas las canchas)');
-    console.log('   ✓ Horario completo (8:00 - 23:30 horas)');
+    console.log('   ✓ Precios uniformes ($6000 para todas las canchas)');
+    console.log('   ✓ Horario completo (8:00 - 22:30 horas)');
     console.log('   ✓ Superposiciones entre canchas diferentes');
     console.log('   ✓ Slots cada 30 minutos para máxima ocupación');
     console.log('   ✓ Casos límite (nombres largos, emails largos)');

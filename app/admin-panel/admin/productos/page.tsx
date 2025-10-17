@@ -10,7 +10,7 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../../components/ui/dialog'
 import { Badge } from '../../../../components/ui/badge'
-import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive } from 'lucide-react'
+import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { useAppState } from '@/components/providers/AppStateProvider'
@@ -278,12 +278,23 @@ export default function ProductosPage() {
               <span>Nuevo Producto</span>
             </Button>
           </div>
-          <div className="mt-6">
-            <h1 className="text-3xl font-light text-gray-900 mb-2">Gestión de Productos</h1>
-            <div className="w-16 h-0.5 bg-orange-500"></div>
-            <p className="text-gray-600 mt-2">
-              Última actualización: {new Date().toLocaleString('es-ES')}
-            </p>
+          <div className="mt-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-light text-gray-900 mb-2">Gestión de Productos</h1>
+              <div className="w-16 h-0.5 bg-orange-500"></div>
+              <p className="text-gray-600 mt-2">
+                Última actualización: {new Date().toLocaleString('es-ES')}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span>Ir a</span>
+              <Home className="w-4 h-4 text-blue-600" />
+            </Button>
           </div>
         </div>
 

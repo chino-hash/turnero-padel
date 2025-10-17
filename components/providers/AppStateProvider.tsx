@@ -36,7 +36,7 @@ type CourtBooking = {
 
 // Interface del contexto
 interface AppStateContextType {
-  // Estado de navegación
+  // Estado de navegaciÃ³n
   activeNavItem: string
   setActiveNavItem: (item: string) => void
   
@@ -100,7 +100,7 @@ interface AppStateContextType {
   ratesByCourt: Record<string, number>
   slotsForRender: TimeSlot[]
   
-  // Funciones de navegación
+  // Funciones de navegaciÃ³n
   scrollToNextAvailable: () => void
   getAvailableDays: () => Date[]
   
@@ -177,7 +177,7 @@ const mockBookings = [
   },
 ]
 
-// Nota: hooks deben estar dentro del componente; se moverán abajo
+// Nota: hooks deben estar dentro del componente; se moverÃ¡n abajo
 
 // Funciones auxiliares
 const formatDate = (date: string) => {
@@ -321,7 +321,7 @@ interface AppStateProviderProps {
 }
 
 export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) => {
-  // Estados básicos
+  // Estados bÃ¡sicos
   const [activeNavItem, setActiveNavItem] = useState("inicio")
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [selectedCourt, setSelectedCourt] = useState("")
@@ -355,14 +355,14 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     const controller = new AbortController()
     const loadCourts = async () => {
       try {
-        const res = await fetch('/api/courts', { credentials: 'include', signal: controller.signal })
+        const res = await fetch('/api/courts?view=public', { credentials: 'include', signal: controller.signal })
         if (!res.ok) throw new Error(`Error ${res.status}`)
         const data: Court[] = await res.json()
         setCourts(data)
         const firstActive = data.find(c => c.isActive !== false) || data[0]
         if (firstActive) setSelectedCourt(firstActive.id)
       } catch (err) {
-        // Ignorar abortos de la petición para evitar ruido en consola durante Fast Refresh
+        // Ignorar abortos de la peticiÃ³n para evitar ruido en consola durante Fast Refresh
         if (err instanceof Error && err.name === 'AbortError') {
           return
         }
@@ -375,7 +375,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     return () => controller.abort()
   }, [])
   
-  // Hooks de slots (usando versión optimizada)
+  // Hooks de slots (usando versiÃ³n optimizada)
    const {
      slots: rawSlots,
      loading: slotsLoading,
@@ -385,7 +385,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      courtName: currentCourtName
    } = useOptimizedSlots(selectedCourt, selectedDate)
 
-  // Convertir Slot[] a TimeSlot[] con useMemo para evitar recreación constante
+  // Convertir Slot[] a TimeSlot[] con useMemo para evitar recreaciÃ³n constante
   const timeSlots: TimeSlot[] = useMemo(() => {
     return rawSlots?.map(slot => ({
       id: slot.id,
@@ -413,15 +413,15 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      isRefreshing: isRefreshingMultipleSlots
    } = useOptimizedMultipleSlots(courts, selectedDate)
   
-  // Configurar Server-Sent Events para invalidar caché cuando se actualicen las canchas
+  // Configurar Server-Sent Events para invalidar cachÃ© cuando se actualicen las canchas
   useEffect(() => {
     const eventSource = new EventSource('/api/events')
     
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        // Escuchar eventos de actualización de canchas
-        if (data.action === 'updated' || data.action === 'created' || data.type === 'courtsUpdated') {
+        // Escuchar únicamente el evento unificado de actualización de canchas
+        if (data.type === 'courts_updated') {
           console.log('Canchas actualizadas, invalidando caché de slots...')
           // Invalidar caché y refrescar slots automáticamente
           if (isUnifiedView) {
@@ -453,18 +453,18 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   }, [isUnifiedView, refreshMultipleSlots, refreshSlots])
   
   // Hook para actualizaciones en tiempo real (solo para otros eventos, no para canchas)
-  const shouldUseRealTime = false // Mantenemos deshabilitado para evitar duplicación
+  const shouldUseRealTime = false // Mantenemos deshabilitado para evitar duplicaciÃ³n
   
   const handleNotification = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error') => {
-    // Mostrar notificación al usuario
+    // Mostrar notificaciÃ³n al usuario
     setNotification({ message, type: type as 'info' | 'success' | 'warning' })
-    // Auto-ocultar notificación después de 5 segundos
+    // Auto-ocultar notificaciÃ³n despuÃ©s de 5 segundos
     setTimeout(() => setNotification(null), 5000)
   }, [])
   
   const { isConnected } = useDashboardRealTimeUpdates({
     enabled: shouldUseRealTime,
-    onDataUpdate: () => {}, // Vacío ya que manejamos las canchas por separado
+    onDataUpdate: () => {}, // VacÃ­o ya que manejamos las canchas por separado
     onNotification: handleNotification
   })
   
@@ -473,7 +473,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const pastBookings = mockBookings.filter(booking => booking.type === "past")
   const adminBookings: CourtBooking[] = [] // Se puede llenar con datos reales
   
-  // Filtrar slots según configuración - memoizado para evitar re-renderizados
+  // Filtrar slots segÃºn configuraciÃ³n - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
     return showOnlyOpen 
       ? (timeSlots?.filter(slot => slot.available) || [])
@@ -566,12 +566,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   // Funciones auxiliares
   const scrollToNextAvailable = () => {
-    // Implementar lógica de scroll al siguiente slot disponible
+    // Implementar lÃ³gica de scroll al siguiente slot disponible
     console.log('Scrolling to next available slot')
   }
   
   const getAvailableDays = () => {
-    // Generar próximos 7 días (día actual + 6 siguientes)
+    // Generar prÃ³ximos 7 dÃ­as (dÃ­a actual + 6 siguientes)
     const days: Date[] = []
     for (let i = 0; i < 7; i++) {
       const date = new Date()
@@ -583,7 +583,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   const handleSlotClick = (slot: TimeSlot) => {
     setSelectedSlot(slot)
-    // Lógica adicional para manejar click en slot
+    // LÃ³gica adicional para manejar click en slot
   }
   
   const clearNotification = () => {
@@ -592,7 +592,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   // Valor del contexto
   const contextValue: AppStateContextType = {
-    // Estado de navegación
+    // Estado de navegaciÃ³n
     activeNavItem,
     setActiveNavItem,
     
@@ -655,7 +655,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     ratesByCourt: finalRatesByCourt,
     slotsForRender,
     
-    // Funciones de navegación
+    // Funciones de navegaciÃ³n
     scrollToNextAvailable,
     getAvailableDays,
     
@@ -717,7 +717,7 @@ const calculateRemainingTime = (endTime: Date) => {
 const generateTimeSlots = (): TimeSlot[] => {
   const slots: TimeSlot[] = []
   
-  // Horarios reservados de ejemplo para visualización
+  // Horarios reservados de ejemplo para visualizaciÃ³n
   const reservedSlots = [
     '09:00', '10:30', '14:00', '16:30', '18:00', '19:30'
   ]
@@ -729,7 +729,7 @@ const generateTimeSlots = (): TimeSlot[] => {
       const endMinute = minute === 30 ? 0 : 30
       const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`
       
-      // Marcar como no disponible si está en la lista de reservados
+      // Marcar como no disponible si estÃ¡ en la lista de reservados
       const isReserved = reservedSlots.includes(time)
       const available = !isReserved && Math.random() > 0.2 // Algunos slots adicionales ocupados aleatoriamente
       
@@ -750,7 +750,7 @@ const generateTimeSlots = (): TimeSlot[] => {
   return slots
 }
 
-// Mapa de horarios reservados por cancha para la generación unificada
+// Mapa de horarios reservados por cancha para la generaciÃ³n unificada
 const reservedSlotsByCourtId: Record<string, string[]> = {
   'cmew6nvsd0001u2jcngxgt8au': ['09:00', '14:00', '18:00'],
   'cmew6nvsd0002u2jcc24nirbn': ['10:00', '15:30'],
@@ -779,7 +779,7 @@ const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
       const finalEndMinute = endMinute >= 60 ? endMinute - 60 : endMinute
       const endTime = `${finalEndHour.toString().padStart(2, '0')}:${finalEndMinute.toString().padStart(2, '0')}`
       
-      // Marcar como no disponible si está reservado
+      // Marcar como no disponible si estÃ¡ reservado
       const isReserved = reservedTimes.includes(time)
       const available = !isReserved && Math.random() > 0.1 // Algunos slots adicionales ocupados aleatoriamente
       
@@ -825,7 +825,7 @@ export {
 // Exportar tipos
 export type { Player, CourtBooking }
 
-// Función getNextDays que faltaba
+// FunciÃ³n getNextDays que faltaba
 export const getNextDays = (count: number = 7) => {
   const days = []
   for (let i = 0; i < count; i++) {

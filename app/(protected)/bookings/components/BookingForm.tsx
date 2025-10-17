@@ -55,7 +55,9 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '../../../../lib/utils'
-import type { Booking, Court, User } from '../../../../types/booking'
+import type { Booking, Court, User, BookingStatus } from '../../../../types/booking'
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS } from '../../../../types/booking'
+import { useSlots } from '../../../../hooks/useSlots'
 
 const bookingSchema = z.object({
   courtId: z.string().min(1, 'Selecciona una cancha'),
@@ -86,21 +88,7 @@ interface BookingFormProps {
   loading?: boolean
 }
 
-const timeSlots = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
-  '20:00', '20:30', '21:00', '21:30', '22:00', '22:30',
-]
-
-const statusOptions = [
-  { value: 'PENDING', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'CONFIRMED', label: 'Confirmada', color: 'bg-green-100 text-green-800' },
-  { value: 'ACTIVE', label: 'Activa', color: 'bg-blue-100 text-blue-800' },
-  { value: 'COMPLETED', label: 'Completada', color: 'bg-gray-100 text-gray-800' },
-  { value: 'CANCELLED', label: 'Cancelada', color: 'bg-red-100 text-red-800' },
-]
+const STATUS_KEYS: BookingStatus[] = ['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']
 
 export function BookingForm({
   open,
@@ -114,7 +102,6 @@ export function BookingForm({
   const [players, setPlayers] = useState<Array<{ name: string; email?: string; phone?: string }>>(
     booking?.players || [{ name: '', email: '', phone: '' }]
   )
-  const [availableSlots, setAvailableSlots] = useState<string[]>(timeSlots)
   const [submitting, setSubmitting] = useState(false)
 
   const form = useForm<BookingFormData>({
@@ -135,28 +122,28 @@ export function BookingForm({
   const watchedCourtId = form.watch('courtId')
   const watchedStartTime = form.watch('startTime')
 
-  // Simular verificación de disponibilidad
-  useEffect(() => {
-    if (watchedDate && watchedCourtId) {
-      // Aquí iría la lógica para verificar disponibilidad real
-      // Por ahora simulamos que algunos slots están ocupados
-      const occupiedSlots = ['10:00', '14:00', '18:00']
-      const available = timeSlots.filter(slot => !occupiedSlots.includes(slot))
-      setAvailableSlots(available)
-    }
-  }, [watchedDate, watchedCourtId])
+  // Cargar horarios dinámicamente desde el API según cancha y fecha
+  const { slots: slotsData, loading: slotsLoading } = useSlots(
+    watchedCourtId || '',
+    watchedDate || new Date()
+  )
+
+  const allStartTimes = (slotsData ?? []).map(s => s.startTime)
+  const availableStartTimes = (slotsData ?? [])
+    .filter(s => s.isAvailable)
+    .map(s => s.startTime)
 
   // Filtrar horarios de fin basados en el horario de inicio
   const getEndTimeOptions = () => {
     if (!watchedStartTime) return []
     
-    const startIndex = timeSlots.indexOf(watchedStartTime)
+    const startIndex = allStartTimes.indexOf(watchedStartTime)
     if (startIndex === -1) return []
     
-    // Permitir reservas de 1 a 4 horas
-    return timeSlots.slice(startIndex + 1, startIndex + 9).filter(slot => 
-      availableSlots.includes(slot)
-    )
+    // Permitir reservas de 1 a 4 horas (8 intervalos de 30 minutos)
+    return allStartTimes
+      .slice(startIndex + 1, startIndex + 9)
+      .filter(slot => availableStartTimes.includes(slot))
   }
 
   const addPlayer = () => {
@@ -336,16 +323,21 @@ export function BookingForm({
                       </FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger disabled={!watchedCourtId || !watchedDate || slotsLoading}>
                             <SelectValue placeholder="Hora inicio" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {availableSlots.map((time) => (
+                          {availableStartTimes.map((time) => (
                             <SelectItem key={time} value={time}>
                               {time}
                             </SelectItem>
                           ))}
+                          {availableStartTimes.length === 0 && (
+                            <SelectItem value="" disabled>
+                              {slotsLoading ? 'Cargando horarios...' : 'Sin horarios disponibles'}
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -361,7 +353,7 @@ export function BookingForm({
                       <FormLabel>Hora fin</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger disabled={!watchedStartTime || slotsLoading}>
                             <SelectValue placeholder="Hora fin" />
                           </SelectTrigger>
                         </FormControl>
@@ -371,6 +363,11 @@ export function BookingForm({
                               {time}
                             </SelectItem>
                           ))}
+                          {getEndTimeOptions().length === 0 && (
+                            <SelectItem value="" disabled>
+                              {slotsLoading ? 'Cargando horarios...' : 'Selecciona hora inicio válida'}
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -393,11 +390,11 @@ export function BookingForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {statusOptions.map((status) => (
-                          <SelectItem key={status.value} value={status.value}>
+                        {STATUS_KEYS.map((status) => (
+                          <SelectItem key={status} value={status}>
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className={status.color}>
-                                {status.label}
+                              <Badge variant="outline" className={BOOKING_STATUS_COLORS[status]}>
+                                {BOOKING_STATUS_LABELS[status]}
                               </Badge>
                             </div>
                           </SelectItem>

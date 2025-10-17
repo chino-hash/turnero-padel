@@ -10,6 +10,7 @@ import React, { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { ArrowLeft, BookOpen, Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
+import { BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
 
 interface Player {
   name: string
@@ -64,6 +65,30 @@ const getTextClasses = (isDarkMode: boolean, variant: 'primary' | 'secondary' | 
     muted: isDarkMode ? 'text-gray-400' : 'text-gray-600'
   }
   return variants[variant]
+}
+
+// Normalizar estado en español/inglés a clave BookingStatus (mayúsculas)
+const toBookingStatus = (status: string): BookingStatus => {
+  const s = (status || '').toLowerCase()
+  switch (s) {
+    case 'confirmado':
+    case 'confirmed':
+      return 'CONFIRMED'
+    case 'pendiente':
+    case 'pending':
+      return 'PENDING'
+    case 'cancelado':
+    case 'cancelled':
+      return 'CANCELLED'
+    case 'completado':
+    case 'completed':
+      return 'COMPLETED'
+    case 'activa':
+    case 'active':
+      return 'ACTIVE'
+    default:
+      return 'PENDING'
+  }
 }
 
 // Componente memoizado para las tarjetas de reserva
@@ -149,7 +174,7 @@ const BookingCard = React.memo<{
             
             {/* Estado de confirmación */}
             <p className={`text-xs ${getTextClasses(isDarkMode, 'muted')}`}>
-              {booking.status === 'confirmed' ? 'Confirmado' : 'Pendiente'}
+              {BOOKING_STATUS_LABELS[toBookingStatus(booking.status)]}
             </p>
           </div>
           

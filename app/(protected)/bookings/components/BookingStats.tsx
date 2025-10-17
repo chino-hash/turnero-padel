@@ -24,7 +24,13 @@ import {
   XCircle,
   AlertCircle
 } from 'lucide-react'
-import type { Booking } from '../../../../types/booking'
+import type { Booking, BookingStatus } from '../../../../types/booking'
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_MAP } from '@/lib/booking-status-map'
+import {
+  BOOKING_STATUS_SOFT_BG,
+  BOOKING_STATUS_SOLID_BG,
+  BOOKING_STATUS_PROGRESS_INDICATOR_BG,
+} from '../../../../types/booking'
 
 // Componente simple de estadísticas sin gráficos por ahora
 const SimpleChart = ({ data, title }: { data: any[], title: string }) => (
@@ -41,21 +47,9 @@ interface BookingStatsProps {
   loading?: boolean
 }
 
-const statusColors = {
-  PENDING: '#f59e0b',
-  CONFIRMED: '#10b981',
-  ACTIVE: '#3b82f6',
-  COMPLETED: '#6b7280',
-  CANCELLED: '#ef4444',
-}
+// Colores centralizados mediante Tailwind (Soft/Solid)
 
-const statusLabels = {
-  PENDING: 'Pendiente',
-  CONFIRMED: 'Confirmada',
-  ACTIVE: 'Activa',
-  COMPLETED: 'Completada',
-  CANCELLED: 'Cancelada',
-}
+// Etiquetas centralizadas desde el mapa compartido
 
 export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
   const stats = useMemo(() => {
@@ -174,9 +168,9 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
 
   // Preparar datos para gráficos
   const statusChartData = Object.entries(stats.byStatus).map(([status, count]) => ({
-    name: statusLabels[status as keyof typeof statusLabels] || status,
+    status,
+    name: BOOKING_STATUS_LABELS[status as keyof typeof BOOKING_STATUS_LABELS] || status,
     value: count,
-    color: statusColors[status as keyof typeof statusColors] || '#6b7280',
   }))
 
   const courtChartData = Object.entries(stats.byCourt).map(([court, count]) => ({
@@ -269,8 +263,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
                   {statusChartData.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
+                        className={`w-3 h-3 rounded-full ${BOOKING_STATUS_SOLID_BG[item.status as BookingStatus] || 'bg-gray-500'}`}
                       />
                       <span className="text-sm">{item.name}: {item.value}</span>
                     </div>
@@ -368,7 +361,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {Object.entries(statusLabels).map(([status, label]) => {
+            {Object.entries(BOOKING_STATUS_LABELS).map(([status, label]) => {
               const count = stats.byStatus[status] || 0
               const percentage = stats.total > 0 ? (count / stats.total) * 100 : 0
               
@@ -376,12 +369,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
                 <div key={status} className="text-center space-y-2">
                   <Badge 
                     variant="outline" 
-                    className="w-full justify-center"
-                    style={{ 
-                      backgroundColor: `${statusColors[status as keyof typeof statusColors]}20`,
-                      borderColor: statusColors[status as keyof typeof statusColors],
-                      color: statusColors[status as keyof typeof statusColors]
-                    }}
+                    className={`w-full justify-center ${(BOOKING_STATUS_MAP as Record<string, { label: string; className: string }>)[status]?.className ?? 'bg-gray-100 text-gray-800 border-gray-200'}`}
                   >
                     {label}
                   </Badge>
@@ -391,10 +379,7 @@ export function BookingStats({ bookings, loading = false }: BookingStatsProps) {
                   </div>
                   <Progress 
                     value={percentage} 
-                    className="h-2"
-                    style={{
-                      '--progress-background': statusColors[status as keyof typeof statusColors]
-                    } as React.CSSProperties}
+                    className={`h-2 ${BOOKING_STATUS_SOFT_BG[status as BookingStatus] || 'bg-gray-100'} ${BOOKING_STATUS_PROGRESS_INDICATOR_BG[status as BookingStatus] || '[&>div]:bg-gray-500'}`}
                   />
                 </div>
               )

@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Calendar, Clock, MapPin, Users, CreditCard, RefreshCw } from 'lucide-react'
 import type { BookingWithDetails } from '../lib/services/bookings'
+import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS, type BookingStatus } from '../types/booking'
 
 interface UserBookingsListProps {
   className?: string
@@ -60,31 +61,7 @@ export function UserBookingsList({
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border-red-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'Confirmada'
-      case 'pending':
-        return 'Pendiente'
-      case 'cancelled':
-        return 'Cancelada'
-      default:
-        return status
-    }
-  }
+  // Centralizar color y etiqueta de estado (adaptando a claves en mayúsculas)
 
   if (loading) {
     return (
@@ -195,6 +172,7 @@ export function UserBookingsList({
 // Componente para cada tarjeta de reserva
 function BookingCard({ booking }: { booking: BookingWithDetails }) {
   const isUpcoming = new Date(booking.bookingDate) >= new Date()
+  const statusKey = (booking.status || 'pending').toUpperCase() as BookingStatus
   
   return (
     <div className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
@@ -203,13 +181,8 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-4 h-4 text-gray-500" />
             <h3 className="font-semibold text-lg">{booking.court.name}</h3>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
-              booking.status === 'confirmed' ? 'bg-green-100 text-green-800 border-green-200' :
-              booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-              'bg-red-100 text-red-800 border-red-200'
-            }`}>
-              {booking.status === 'confirmed' ? 'Confirmada' :
-               booking.status === 'pending' ? 'Pendiente' : 'Cancelada'}
+            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
+              {BOOKING_STATUS_LABELS[statusKey]}
             </span>
           </div>
           

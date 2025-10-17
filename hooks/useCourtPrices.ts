@@ -11,15 +11,20 @@ interface Court {
   description?: string
 }
 
-export function useCourtPrices() {
+export function useCourtPrices(options?: { publicView?: boolean }) {
+  const { publicView = false } = options || {}
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Función para obtener precios iniciales
-  const fetchCourts = async () => {
+  const fetchCourts = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/courts')
+      const url = publicView ? '/api/courts?view=public' : '/api/courts'
+      const response = await fetch(url, {
+        credentials: 'include',
+        signal
+      })
       if (response.ok) {
         const data = await response.json()
         setCourts(data)
@@ -56,19 +61,20 @@ export function useCourtPrices() {
   }
 
   useEffect(() => {
-    // Cargar precios iniciales
-    fetchCourts()
+    const controller = new AbortController()
+    // Cargar precios iniciales con cancelación segura
+    fetchCourts(controller.signal)
 
-    // Configurar Server-Sent Events para actualizaciones en tiempo real
-    const eventSource = new EventSource('/api/courts/events')
+    // Configurar Server-Sent Events unificados para actualizaciones en tiempo real
+    const eventSource = new EventSource('/api/events')
     
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
-        // Escuchar eventos de actualización de canchas del sistema SSE existente
-        if (data.action === 'updated' || data.action === 'created' || data.type === 'courtsUpdated') {
+        // Escuchar eventos de actualización de canchas del sistema SSE unificado
+        if (data.type === 'courts_updated') {
           // Actualizar la lista de canchas cuando hay cambios
-          fetchCourts()
+          fetchCourts(controller.signal)
         }
       } catch (error) {
         console.error('Error parsing SSE data:', error)
@@ -79,13 +85,14 @@ export function useCourtPrices() {
       console.error('SSE connection error:', error)
       // Reconectar después de un error
       setTimeout(() => {
-        fetchCourts()
+        fetchCourts(controller.signal)
       }, 5000)
     }
 
     // Cleanup al desmontar el componente
     return () => {
       eventSource.close()
+      controller.abort()
     }
   }, [])
 

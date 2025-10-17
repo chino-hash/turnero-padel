@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { auth } from '../../../lib/auth'
 import { getCourts, getAllCourts, createCourt, updateCourt } from '../../../lib/services/courts'
 import { eventEmitters } from '../../../lib/sse-events'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Intentar obtener sesión; si no existe, devolver canchas activas de forma pública
     let session: any = null
@@ -11,9 +11,15 @@ export async function GET() {
       session = await auth()
     } catch {}
 
-    // Si es administrador, obtener todas las canchas (activas e inactivas)
-    // Si es usuario normal o sin sesión, solo las activas
-    const courts = session?.user?.isAdmin ? await getAllCourts() : await getCourts()
+    // Permitir forzar vista pública/deduplicada vía query param
+    const { searchParams } = new URL(request.url)
+    const view = searchParams.get('view') || searchParams.get('scope') || searchParams.get('mode')
+    const dedupe = searchParams.get('dedupe')
+    const forcePublic = (view && /public|active/i.test(view)) || dedupe === 'true'
+
+    // Si es administrador y no se fuerza vista pública, obtener todas las canchas
+    // Caso contrario, devolver solo activas (deduplicadas por nombre)
+    const courts = session?.user?.isAdmin && !forcePublic ? await getAllCourts() : await getCourts()
     return NextResponse.json(courts)
   } catch (error) {
     console.error('Error en GET /api/courts:', error)

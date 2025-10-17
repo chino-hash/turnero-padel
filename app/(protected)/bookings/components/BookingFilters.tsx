@@ -40,6 +40,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../../../../lib/utils'
 import type { Court, User } from '../../../../types/booking'
+import { useSlots } from '../../../../hooks/useSlots'
 
 export interface BookingFilters {
   search?: string
@@ -61,21 +62,6 @@ interface BookingFiltersProps {
   className?: string
 }
 
-const statusOptions = [
-  { value: 'PENDING', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'CONFIRMED', label: 'Confirmada', color: 'bg-green-100 text-green-800' },
-  { value: 'ACTIVE', label: 'Activa', color: 'bg-blue-100 text-blue-800' },
-  { value: 'COMPLETED', label: 'Completada', color: 'bg-gray-100 text-gray-800' },
-  { value: 'CANCELLED', label: 'Cancelada', color: 'bg-red-100 text-red-800' },
-]
-
-const timeSlots = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
-  '20:00', '20:30', '21:00', '21:30', '22:00', '22:30',
-]
 
 export function BookingFilters({
   filters,
@@ -86,6 +72,16 @@ export function BookingFilters({
   className,
 }: BookingFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+
+  // Preparar parámetros para cargar horarios dinámicos
+  const selectedCourtId = filters.courtId || courts[0]?.id || ''
+  const selectedDate = filters.dateFrom || new Date()
+  const { slots: slotsData, loading: slotsLoading } = useSlots(selectedCourtId, selectedDate)
+
+  // Unificar tiempos de inicio y fin para las opciones
+  const allTimes = Array.from(new Set((slotsData ?? []).flatMap(s => [s.startTime, s.endTime]))).sort()
+  const startTimeOptions = Array.from(new Set((slotsData ?? []).map(s => s.startTime))).sort()
+  const endTimeOptions = allTimes.filter(t => !filters.timeFrom || t > filters.timeFrom)
 
   const updateFilter = (key: keyof BookingFilters, value: any) => {
     onFiltersChange({
@@ -247,11 +243,11 @@ export function BookingFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todos los estados</SelectItem>
-                {statusOptions.map((status) => (
-                  <SelectItem key={status.value} value={status.value}>
+                {STATUS_KEYS.map((status) => (
+                  <SelectItem key={status} value={status}>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={status.color}>
-                        {status.label}
+                      <Badge variant="outline" className={BOOKING_STATUS_COLORS[status]}>
+                        {BOOKING_STATUS_LABELS[status]}
                       </Badge>
                     </div>
                   </SelectItem>
@@ -340,14 +336,14 @@ export function BookingFilters({
             <Select
               value={filters.timeFrom || ''}
               onValueChange={(value) => updateFilter('timeFrom', value || undefined)}
-              disabled={loading}
+              disabled={loading || slotsLoading || !filters.courtId || !filters.dateFrom}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Hora desde" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Cualquier hora</SelectItem>
-                {timeSlots.map((time) => (
+                {startTimeOptions.map((time) => (
                   <SelectItem key={time} value={time}>
                     {time}
                   </SelectItem>
@@ -362,20 +358,18 @@ export function BookingFilters({
             <Select
               value={filters.timeTo || ''}
               onValueChange={(value) => updateFilter('timeTo', value || undefined)}
-              disabled={loading}
+              disabled={loading || slotsLoading || !filters.courtId || !filters.dateFrom}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Hora hasta" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Cualquier hora</SelectItem>
-                {timeSlots
-                  .filter(time => !filters.timeFrom || time > filters.timeFrom)
-                  .map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time}
-                    </SelectItem>
-                  ))}
+                {endTimeOptions.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -427,7 +421,7 @@ export function BookingFilters({
               )}
               {filters.status && (
                 <Badge variant="secondary" className="flex items-center gap-1">
-                  Estado: {statusOptions.find(s => s.value === filters.status)?.label}
+                  Estado: {BOOKING_STATUS_LABELS[filters.status as BookingStatus]}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -497,3 +491,4 @@ export function BookingFilters({
     </Card>
   )
 }
+

@@ -49,7 +49,7 @@
 - Mantenimiento de jerarquía visual: el precio principal continúa destacando sobre textos secundarios.
 
 ## Verificación
-- Ejecución local con `npm run dev` (Next.js 15.5.3) en `http://localhost:3010/`.
+ - Ejecución local con `npm run dev` (Next.js 15.5.3) en `http://localhost:3000/`.
 - Validación visual alternando claro/oscuro y comprobando:
   - Precio principal: negro en claro, color de cancha en oscuro.
   - “por persona” y “Total”: mayor luminosidad en oscuro sin competir con el precio principal.
@@ -109,7 +109,7 @@
 - Estado de disponibilidad más honesto durante carga (evita confusiones mostrando “—%”).
 
 ### Verificación
-- Ejecución local con `npm run dev` en `http://localhost:3010/`.
+ - Ejecución local con `npm run dev` en `http://localhost:3000/`.
 - Validación visual:
   - Se muestran 7 días en el selector (móvil y desktop).
   - Desplazamiento horizontal en móvil con snapping estable.
