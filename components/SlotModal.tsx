@@ -129,13 +129,13 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
             
             <div className="detail-row">
               <div className="detail-label">Precio por persona:</div>
-              <div className="detail-value">${Math.round((slot.price || 6000) / 4).toLocaleString()}</div>
+              <div className="detail-value">${(slot.pricePerPerson ?? Math.round(((slot.finalPrice ?? slot.price ?? 6000) / 4))).toLocaleString()}</div>
             </div>
             
             <div className="total-section">
               <div className="detail-row total-row">
                 <div className="detail-label total-label">Total cancha (4 personas):</div>
-                <div className="detail-value total-amount">${(slot.price || 24000).toLocaleString()}</div>
+                <div className="detail-value total-amount">${(slot.finalPrice ?? slot.price ?? 24000).toLocaleString()}</div>
               </div>
             </div>
           </div>

@@ -137,27 +137,17 @@ test.describe('Panel de Administración', () => {
 
   test.describe('Gestión de Turnos', () => {
     test('debe permitir acceder a la gestión de turnos', async ({ page }) => {
-      await page.goto('/admin/turnos');
+      await page.goto('/admin-panel/admin/turnos');
       await page.waitForTimeout(3000);
       
-      // Verificar que la página de turnos carga
-      await expect(page.locator('body')).toBeVisible();
-      
-      // Buscar elementos relacionados con turnos
-      const turnoElements = page.locator('.turno, .booking, .reserva, table, .calendar, .schedule');
-      const turnoCount = await turnoElements.count();
-      
-      if (turnoCount > 0) {
-        await expect(turnoElements.first()).toBeVisible();
-      }
+      await expect(page.locator('[data-testid="admin-bookings-list"]')).toBeVisible();
     });
 
     test('debe mostrar lista de reservas/turnos', async ({ page }) => {
-      await page.goto('/admin/turnos');
+      await page.goto('/admin-panel/admin/turnos');
       await page.waitForTimeout(3000);
       
-      // Buscar tabla o lista de turnos
-      const turnosList = page.locator('table, .booking-list, .turno-item, .reservation-item');
+      const turnosList = page.locator('[data-testid="admin-bookings-list"]');
       const listCount = await turnosList.count();
       
       if (listCount > 0) {
@@ -166,18 +156,21 @@ test.describe('Panel de Administración', () => {
     });
 
     test('debe permitir filtrar turnos por fecha', async ({ page }) => {
-      await page.goto('/admin/turnos');
+      await page.goto('/admin-panel/admin/turnos');
       await page.waitForTimeout(3000);
       
-      // Buscar controles de filtro por fecha
-      const dateFilters = page.locator('input[type="date"], .date-picker, .calendar-input, select');
+      const openFiltersBtn = page.locator('[data-testid="admin-filters-open-btn"]');
+      if (await openFiltersBtn.count() > 0) {
+        await openFiltersBtn.click();
+      }
+      
+      const dateFilters = page.locator('input[type="date"], [data-testid="date-input"], .calendar-input, select');
       const filterCount = await dateFilters.count();
       
       if (filterCount > 0) {
         const firstFilter = dateFilters.first();
         await expect(firstFilter).toBeVisible();
         
-        // Intentar usar el filtro
         const filterType = await firstFilter.getAttribute('type');
         if (filterType === 'date') {
           await firstFilter.fill('2024-12-31');
@@ -186,25 +179,21 @@ test.describe('Panel de Administración', () => {
         }
         
         await page.waitForTimeout(2000);
-        
-        // Verificar que la página sigue funcionando
-        await expect(page.locator('body')).toBeVisible();
+        await expect(page.locator('[data-testid="admin-bookings-list"]')).toBeVisible();
       }
     });
 
     test('debe permitir cancelar reservas', async ({ page }) => {
-      await page.goto('/admin/turnos');
+      await page.goto('/admin-panel/admin/turnos');
       await page.waitForTimeout(3000);
       
-      // Buscar botones de cancelación
-      const cancelButtons = page.locator('button:has-text("Cancelar"), button:has-text("Cancel"), .cancel-button, .btn-cancel');
+      const cancelButtons = page.locator('[data-testid^="admin-cancel-btn-"]');
       const cancelCount = await cancelButtons.count();
       
       if (cancelCount > 0) {
         await cancelButtons.first().click();
         await page.waitForTimeout(2000);
         
-        // Verificar que se muestra confirmación o modal
         const confirmation = page.locator('.modal, .dialog, .confirm, .alert');
         const confirmCount = await confirmation.count();
         
@@ -216,6 +205,35 @@ test.describe('Panel de Administración', () => {
   });
 
   test.describe('Navegación del Panel Admin', () => {
+    test('debe permitir navegar entre secciones del admin', async ({ page }) => {
+      await page.goto('/admin-panel/admin');
+      await page.waitForTimeout(3000);
+      
+      const navItems = page.locator('[data-testid="admin-courts-link"], [data-testid="admin-bookings-link"], [data-testid="admin-users-link"], [data-testid="admin-stats-link"], [data-testid="admin-products-link"]');
+      const navCount = await navItems.count();
+      
+      if (navCount > 1) {
+        await page.locator('[data-testid="admin-bookings-link"]').click();
+        await page.waitForTimeout(2000);
+        
+        await expect(page).toHaveURL(/\/admin-panel\/admin\/turnos/);
+      }
+    });
+
+    test('debe mantener estado de navegación en el panel', async ({ page }) => {
+      await page.goto('/admin-panel/admin/canchas');
+      await page.waitForTimeout(2000);
+      
+      const currentUrl = page.url();
+      if (currentUrl.includes('/admin-panel/admin/canchas')) {
+        await page.goto('/admin-panel/admin/turnos');
+        await page.waitForTimeout(2000);
+        
+        await expect(page).toHaveURL(/\/admin-panel\/admin\/turnos/);
+      }
+    });
+  });
+
     test('debe permitir navegar entre secciones del admin', async ({ page }) => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
@@ -265,7 +283,6 @@ test.describe('Panel de Administración', () => {
         expect(page.url()).toBeTruthy();
       }
     });
-  });
 
   test.describe('Responsividad del Panel Admin', () => {
     test('debe funcionar correctamente en móvil', async ({ page }) => {

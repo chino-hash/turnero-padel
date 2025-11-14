@@ -413,60 +413,28 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      isRefreshing: isRefreshingMultipleSlots
    } = useOptimizedMultipleSlots(courts, selectedDate)
   
-  // Configurar Server-Sent Events para invalidar cachÃ© cuando se actualicen las canchas
-  useEffect(() => {
-    const eventSource = new EventSource('/api/events')
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        // Escuchar únicamente el evento unificado de actualización de canchas
-        if (data.type === 'courts_updated') {
-          console.log('Canchas actualizadas, invalidando caché de slots...')
-          // Invalidar caché y refrescar slots automáticamente
-          if (isUnifiedView) {
-            refreshMultipleSlots()
-          } else {
-            refreshSlots()
-          }
-          // Mostrar notificación al usuario
-          setNotification({ 
-            message: 'Precios actualizados automáticamente', 
-            type: 'success' 
-          })
-          // Auto-ocultar notificación después de 3 segundos
-          setTimeout(() => setNotification(null), 3000)
-        }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error)
-      }
-    }
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-    }
-
-    // Cleanup al desmontar el componente
-    return () => {
-      eventSource.close()
-    }
-  }, [isUnifiedView, refreshMultipleSlots, refreshSlots])
-  
-  // Hook para actualizaciones en tiempo real (solo para otros eventos, no para canchas)
-  const shouldUseRealTime = false // Mantenemos deshabilitado para evitar duplicaciÃ³n
-  
+  // Manejar actualizaciones en tiempo real usando el hook unificado
+  const shouldUseRealTime = true
   const handleNotification = useCallback((message: string, type: 'info' | 'success' | 'warning' | 'error') => {
-    // Mostrar notificaciÃ³n al usuario
     setNotification({ message, type: type as 'info' | 'success' | 'warning' })
-    // Auto-ocultar notificaciÃ³n despuÃ©s de 5 segundos
     setTimeout(() => setNotification(null), 5000)
   }, [])
-  
+
   const { isConnected } = useDashboardRealTimeUpdates({
     enabled: shouldUseRealTime,
-    onDataUpdate: () => {}, // VacÃ­o ya que manejamos las canchas por separado
+    onDataUpdate: () => {
+      if (isUnifiedView) {
+        refreshMultipleSlots()
+      } else {
+        refreshSlots()
+      }
+      setNotification({ message: 'Precios actualizados automáticamente', type: 'success' })
+      setTimeout(() => setNotification(null), 3000)
+    },
     onNotification: handleNotification
   })
+  
+  
   
   // Estados derivados
   const currentBookings = mockBookings.filter(booking => booking.type === "current")
@@ -791,7 +759,7 @@ const generateUnifiedSlots = (courts: Court[], date: Date): TimeSlot[] => {
         timeRange: `${time} - ${endTime}`,
         available,
         isAvailable: available,
-        price: Math.round(12000 * court.priceMultiplier),
+        price: Math.round(((court as any).basePrice ?? (court as any).base_price ?? 6000) * (court.priceMultiplier || 1)),
         courtId: court.id,
         courtName: court.name,
         date,

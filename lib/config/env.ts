@@ -119,22 +119,63 @@ const envSchema = z.object({
 // ============================================================================
 
 /**
- * Valida y parsea las variables de entorno
+ * Valida y parsea las variables de entorno con tolerancia en dev/test.
+ * En producción, la validación sigue siendo estricta.
  */
 function validateEnv() {
-  try {
-    return envSchema.parse(process.env)
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const errorMessages = error.issues.map(err => 
-        `❌ ${err.path.join('.')}: ${err.message}`
-      ).join('\n')
-      
-      console.error('🚨 Error en configuración de variables de entorno:\n' + errorMessages)
-      throw new Error('Configuración de variables de entorno inválida')
-    }
-    throw error
+  const nodeEnv = process.env.NODE_ENV || 'development'
+  const isProd = nodeEnv === 'production'
+
+  // Intento de parseo directo
+  const parsed = envSchema.safeParse(process.env)
+  if (parsed.success) {
+    return parsed.data
   }
+
+  // Si falla y no estamos en producción, aplicar defaults seguros
+  if (!isProd) {
+    const defaults = {
+      NODE_ENV: nodeEnv as 'development' | 'test' | 'production',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'dev-secret-1234567890-1234567890-1234567890',
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || 'dummy-client-id',
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || 'dummy-client-secret',
+      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/turnero',
+      ADMIN_EMAILS: process.env.ADMIN_EMAILS || 'admin@example.com',
+      TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
+      PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL,
+      CI: process.env.CI,
+      TZ: process.env.TZ,
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
+      EMAIL_NOTIFICATIONS: process.env.EMAIL_NOTIFICATIONS,
+      GITHUB_NOTIFICATIONS: process.env.GITHUB_NOTIFICATIONS,
+      SENTRY_DSN: process.env.SENTRY_DSN,
+      NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
+      ANALYZE: process.env.ANALYZE,
+    }
+
+    const reParsed = envSchema.safeParse(defaults)
+    if (reParsed.success) {
+      console.warn('⚠️ Variables de entorno incompletas; usando valores por defecto en modo', nodeEnv)
+      return reParsed.data
+    }
+
+    // Como último recurso, devolver defaults sin tipado estricto
+    console.warn('⚠️ No se pudo validar env; usando defaults no tipados en modo', nodeEnv)
+    return defaults as any
+  }
+
+  // En producción, informar detalladamente y lanzar
+  if (parsed.error instanceof z.ZodError) {
+    const errorMessages = parsed.error.issues.map(err => 
+      `❌ ${err.path.join('.')}: ${err.message}`
+    ).join('\n')
+    console.error('🚨 Error en configuración de variables de entorno (producción):\n' + errorMessages)
+  }
+  throw new Error('Configuración de variables de entorno inválida')
 }
 
 /**

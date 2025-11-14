@@ -37,6 +37,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-dark-primary: #0D0D0D;
+  --color-dark-secondary: #1A1A1A;
+  --color-neon-lime: #BEF264;
+  --shadow-neon-lime: 0 0 30px rgba(190, 242, 100, 0.3);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -119,6 +123,17 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.neon-text-gradient {
+  background: linear-gradient(to right, #BEF264, #a1d94f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.store-button-img {
+  height: 56px;
+  width: auto;
 }
 
 /* Badge Components */
@@ -544,8 +559,8 @@
   background: none;
   border: none;
   font-size: 24px;
-  color: #6b7280;
   cursor: pointer;
+  color: #6b7280;
   padding: 4px;
   border-radius: 4px;
   transition: background-color 0.2s;
@@ -706,4 +721,12 @@
   .btn-secondary {
     width: 100%;
   }
+}
+
+/* Cursor de enlace (mano) en botones al pasar el puntero */
+button:hover,
+[role="button"]:hover,
+.btn:hover,
+.button:hover {
+  cursor: pointer;
 }

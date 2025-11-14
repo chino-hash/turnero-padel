@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '../../../../lib/auth'
+import { auth } from '@/lib/auth'
 import { eventEmitters } from '../../../../lib/sse-events'
 import { getAdminConfig } from '../../../../lib/config/env'
 

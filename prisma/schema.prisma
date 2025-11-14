@@ -59,6 +59,7 @@ model User {
   accounts          Account[]
   bookings          Booking[]
   paymentsProcessed Payment[] @relation("ProcessedBy")
+  closedBookings    Booking[] @relation("ClosedBy")
   sessions          Session[]
 
   @@index([email])
@@ -113,11 +114,17 @@ model Booking {
   notes              String?
   cancelledAt        DateTime?
   cancellationReason String?
+  closedAt           DateTime?
+  closedById         String?
   deletedAt          DateTime?
   court              Court           @relation(fields: [courtId], references: [id])
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  closedBy           User?           @relation("ClosedBy", fields: [closedById], references: [id])
   players            BookingPlayer[]
   payments           Payment[]
+  extras             BookingExtra[]
+  recurringId        String?
+  recurringBooking   RecurringBooking? @relation(fields: [recurringId], references: [id])
 
   @@unique([courtId, bookingDate, startTime, endTime])
   @@index([courtId, bookingDate])
@@ -127,10 +134,13 @@ model Booking {
   @@index([bookingDate, startTime])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([closedAt])
+  @@index([closedById])
   @@index([courtId, status, bookingDate])
   @@index([courtId, bookingDate, status, paymentStatus], map: "idx_booking_complex_search")
   @@index([courtId, bookingDate, startTime, endTime], map: "idx_booking_time_range")
   @@index([status, paymentStatus, createdAt], map: "idx_booking_status_reports")
+  @@index([recurringId])
 }
 
 model BookingPlayer {
@@ -150,6 +160,7 @@ model BookingPlayer {
   deletedAt     DateTime?
   booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   payments      Payment[]
+  extras        BookingExtra[]
 
   @@unique([bookingId, position])
   @@index([bookingId])
@@ -209,9 +220,34 @@ model Producto {
   stock     Int      @default(0)
   categoria String
   activo    Boolean  @default(true)
+  extras    BookingExtra[]
 
   @@index([categoria])
   @@index([activo])
+}
+
+model BookingExtra {
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  bookingId     String
+  playerId      String?
+  productoId    Int
+  quantity      Int            @default(1)
+  unitPrice     Float
+  totalPrice    Float
+  assignedToAll Boolean        @default(false)
+  notes         String?
+  deletedAt     DateTime?
+
+  booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  player        BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  producto      Producto       @relation(fields: [productoId], references: [id])
+
+  @@index([bookingId])
+  @@index([playerId])
+  @@index([productoId])
+  @@index([deletedAt])
 }
 
 model AdminWhitelist {
@@ -256,4 +292,50 @@ enum PaymentType {
   PAYMENT
   REFUND
   ADJUSTMENT
+}
+model RecurringBooking {
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  courtId     String
+  userId      String
+  weekday     Int            // 0 (domingo) - 6 (sábado)
+  startTime   String
+  endTime     String
+  status      RecurringStatus @default(ACTIVE)
+  startsAt    DateTime
+  endsAt      DateTime?
+  notes       String?
+
+  court       Court          @relation(fields: [courtId], references: [id])
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings    Booking[]
+  exceptions  RecurringBookingException[]
+
+  @@index([courtId, weekday, startTime, status])
+}
+
+enum RecurringStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum ExceptionType {
+  SKIP
+  OVERRIDE
+}
+
+model RecurringBookingException {
+  id          Int             @id @default(autoincrement())
+  createdAt   DateTime        @default(now())
+  recurringId String
+  date        DateTime        // solo fecha (UTC normalizado)
+  type        ExceptionType
+  reason      String?
+  newPrice    Float?
+
+  recurring   RecurringBooking @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+
+  @@index([recurringId, date])
 }

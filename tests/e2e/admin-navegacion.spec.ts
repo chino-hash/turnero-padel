@@ -15,11 +15,9 @@ test.describe('Panel de Administración - Navegación', () => {
       const isInAdmin = currentUrl.includes('/admin');
       const isInLogin = currentUrl.includes('/login');
       
-      // Debe estar en admin o redirigido a login
       expect(isInAdmin || isInLogin).toBeTruthy();
       
       if (isInAdmin) {
-        // Verificar que la página carga correctamente
         const content = page.locator('body');
         await expect(content).toBeVisible();
       }
@@ -31,8 +29,7 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar elementos de navegación
-        const navElements = page.locator('nav, .navigation, .menu, .sidebar, header');
+        const navElements = page.locator('[data-testid="admin-navigation"]');
         const navCount = await navElements.count();
         
         if (navCount > 0) {
@@ -47,8 +44,7 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar enlaces de navegación
-        const navLinks = page.locator('a, button').filter({ hasText: /cancha|turno|usuario|estadística|producto/i });
+        const navLinks = page.locator('[data-testid="admin-courts-link"], [data-testid="admin-bookings-link"], [data-testid="admin-users-link"], [data-testid="admin-stats-link"], [data-testid="admin-products-link"]');
         const linkCount = await navLinks.count();
         
         if (linkCount > 0) {
@@ -81,26 +77,17 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar enlace a canchas
-        const canchasLink = page.locator('a, button').filter({ hasText: /cancha/i }).first();
+        const canchasLink = page.locator('[data-testid="admin-courts-link"]').first();
         const linkExists = await canchasLink.count() > 0;
         
         if (linkExists) {
           await canchasLink.click();
           await page.waitForTimeout(2000);
-          
-          // Verificar navegación exitosa
-          const newUrl = page.url();
-          const navigated = newUrl.includes('/canchas') || newUrl.includes('/admin');
-          expect(navigated).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/canchas/);
         } else {
-          // Si no hay enlace directo, intentar navegar directamente
-          await page.goto('/admin/canchas');
+          await page.goto('/admin-panel/admin/canchas');
           await page.waitForTimeout(2000);
-          
-          const finalUrl = page.url();
-          const accessible = finalUrl.includes('/canchas') || finalUrl.includes('/login');
-          expect(accessible).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/canchas/);
         }
       }
     });
@@ -111,25 +98,17 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar enlace a usuarios
-        const usuariosLink = page.locator('a, button').filter({ hasText: /usuario|user/i }).first();
+        const usuariosLink = page.locator('[data-testid="admin-users-link"]').first();
         const linkExists = await usuariosLink.count() > 0;
         
         if (linkExists) {
           await usuariosLink.click();
           await page.waitForTimeout(2000);
-          
-          const newUrl = page.url();
-          const navigated = newUrl.includes('/usuarios') || newUrl.includes('/admin');
-          expect(navigated).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/usuarios/);
         } else {
-          // Intentar navegar directamente
-          await page.goto('/admin/usuarios');
+          await page.goto('/admin-panel/admin/usuarios');
           await page.waitForTimeout(2000);
-          
-          const finalUrl = page.url();
-          const accessible = finalUrl.includes('/usuarios') || finalUrl.includes('/login');
-          expect(accessible).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/usuarios/);
         }
       }
     });
@@ -140,25 +119,17 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar enlace a estadísticas
-        const statsLink = page.locator('a, button').filter({ hasText: /estadística|reporte|analítica/i }).first();
+        const statsLink = page.locator('[data-testid="admin-stats-link"]').first();
         const linkExists = await statsLink.count() > 0;
         
         if (linkExists) {
           await statsLink.click();
           await page.waitForTimeout(2000);
-          
-          const newUrl = page.url();
-          const navigated = newUrl.includes('/estadisticas') || newUrl.includes('/admin');
-          expect(navigated).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/estadisticas/);
         } else {
-          // Intentar navegar directamente
-          await page.goto('/admin/estadisticas');
+          await page.goto('/admin-panel/admin/estadisticas');
           await page.waitForTimeout(2000);
-          
-          const finalUrl = page.url();
-          const accessible = finalUrl.includes('/estadisticas') || finalUrl.includes('/login');
-          expect(accessible).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/estadisticas/);
         }
       }
     });
@@ -169,25 +140,17 @@ test.describe('Panel de Administración - Navegación', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar enlace a productos
-        const productosLink = page.locator('a, button').filter({ hasText: /producto|extra|servicio/i }).first();
+        const productosLink = page.locator('[data-testid="admin-products-link"]').first();
         const linkExists = await productosLink.count() > 0;
         
         if (linkExists) {
           await productosLink.click();
           await page.waitForTimeout(2000);
-          
-          const newUrl = page.url();
-          const navigated = newUrl.includes('/productos') || newUrl.includes('/admin');
-          expect(navigated).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/productos/);
         } else {
-          // Intentar navegar directamente
-          await page.goto('/admin/productos');
+          await page.goto('/admin-panel/admin/productos');
           await page.waitForTimeout(2000);
-          
-          const finalUrl = page.url();
-          const accessible = finalUrl.includes('/productos') || finalUrl.includes('/login');
-          expect(accessible).toBeTruthy();
+          await expect(page).toHaveURL(/\/admin-panel\/admin\/productos/);
         }
       }
     });

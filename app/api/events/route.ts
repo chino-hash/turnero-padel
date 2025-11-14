@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server'
 import { addConnection, removeConnection, type SSEEvent } from '../../../lib/sse-events'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 // Endpoint GET para establecer conexión SSE
 export async function GET(request: NextRequest) {
   // Configurar headers para SSE con mejores prácticas
@@ -28,25 +31,18 @@ export async function GET(request: NextRequest) {
           timestamp: Date.now()
         })}\n\n`))
         
-        // Configurar heartbeat cada 25 segundos (menor que timeout típico de 30s)
+        // Heartbeat periódico para mantener viva la conexión
         const heartbeatInterval = setInterval(() => {
           try {
-            if (!controller.desiredSize || controller.desiredSize <= 0) {
-              console.log('Cliente desconectado, limpiando heartbeat')
-              clearInterval(heartbeatInterval)
-              return
-            }
-            
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ 
               type: 'heartbeat', 
               timestamp: Date.now(),
               connectionId
             })}\n\n`))
           } catch (error) {
-            console.error('Error enviando heartbeat:', error)
             clearInterval(heartbeatInterval)
           }
-        }, 25000)
+        }, 20000)
         
         // Agregar esta conexión a la lista de conexiones activas
         addConnection(controller)

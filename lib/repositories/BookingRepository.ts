@@ -31,6 +31,26 @@ export type BookingWithRelations = Booking & {
     position: number | null;
     notes: string | null;
   }>;
+  extras?: Array<{
+    id: string;
+    productoId: number;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    assignedToAll: boolean;
+    notes: string | null;
+    deletedAt: Date | null;
+    player?: {
+      id: string;
+      playerName: string;
+      position: number | null;
+    } | null;
+    producto?: {
+      id: number;
+      nombre: string;
+      precio: number;
+    } | null;
+  }>;
   payments: Array<{
     id: string;
     amount: number;
@@ -69,6 +89,7 @@ export type BookingUpdateInput = {
   paymentMethod?: PaymentMethod;
   notes?: string;
   cancellationReason?: string;
+  closedById?: string;
   players?: Array<{
     id?: string;
     playerName: string;
@@ -117,6 +138,13 @@ export class BookingRepository {
           role: true
         }
       },
+      closedBy: {
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      },
       players: {
         select: {
           id: true,
@@ -129,6 +157,33 @@ export class BookingRepository {
           notes: true
         },
         orderBy: { position: 'asc' as const }
+      },
+      extras: {
+        select: {
+          id: true,
+          productoId: true,
+          quantity: true,
+          unitPrice: true,
+          totalPrice: true,
+          assignedToAll: true,
+          notes: true,
+          deletedAt: true,
+          player: {
+            select: {
+              id: true,
+              playerName: true,
+              position: true
+            }
+          },
+          producto: {
+            select: {
+              id: true,
+              nombre: true,
+              precio: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' as const }
       },
       payments: {
         select: {
@@ -228,11 +283,13 @@ export class BookingRepository {
   // Verificar disponibilidad
   async checkAvailability(input: CheckAvailabilityInput): Promise<boolean> {
     const { courtId, bookingDate, startTime, endTime, excludeBookingId } = input;
+    const [y, m, d] = String(bookingDate).split('-').map(Number)
+    const bookingDateLocal = new Date(y as number, (m as number) - 1, d as number)
 
     const conflictingBooking = await this.prisma.booking.findFirst({
       where: {
         courtId,
-        bookingDate: new Date(bookingDate),
+        bookingDate: bookingDateLocal,
         status: { not: 'CANCELLED' },
         ...(excludeBookingId && { id: { not: excludeBookingId } }),
         OR: [
@@ -315,12 +372,18 @@ export class BookingRepository {
         ...(data.paymentMethod && { paymentMethod: data.paymentMethod }),
         ...(data.notes !== undefined && { notes: data.notes }),
         ...(data.cancellationReason && { cancellationReason: data.cancellationReason }),
+        ...(data.closedById && { closedById: data.closedById }),
         updatedAt: new Date()
       };
 
       // Si se está cancelando, agregar timestamp
       if (data.status === 'CANCELLED') {
         updateData.cancelledAt = new Date();
+      }
+
+      // Si se está completando, agregar timestamp de cierre
+      if (data.status === 'COMPLETED') {
+        updateData.closedAt = new Date();
       }
 
       // Actualizar la reserva
@@ -355,6 +418,54 @@ export class BookingRepository {
       // Obtener la reserva actualizada
       const updatedBooking = await tx.booking.findUnique({
         where: { id },
+        include: this.getIncludeRelations()
+      });
+
+      return updatedBooking as BookingWithRelations;
+    });
+  }
+
+  // Actualizar pago individual de un jugador y recalcular estado de pago de la reserva
+  async updateBookingPlayerPayment(
+    bookingId: string,
+    playerId: string,
+    data: { hasPaid: boolean; paidAmount?: number }
+  ): Promise<BookingWithRelations> {
+    return await this.prisma.$transaction(async (tx) => {
+      // Verificar que el jugador pertenece a la reserva
+      const player = await tx.bookingPlayer.findUnique({ where: { id: playerId } });
+      if (!player || player.bookingId !== bookingId) {
+        throw new Error('El jugador no pertenece a la reserva indicada');
+      }
+
+      // Actualizar campos de pago del jugador
+      await tx.bookingPlayer.update({
+        where: { id: playerId },
+        data: {
+          hasPaid: data.hasPaid,
+          paidAmount: data.paidAmount ?? player.paidAmount,
+          updatedAt: new Date()
+        }
+      });
+
+      // Recalcular estado de pago del turno basÃ¡ndose en los jugadores
+      const players = await tx.bookingPlayer.findMany({ where: { bookingId } });
+      let paymentStatus: PaymentStatus = 'PENDING';
+      const paidCount = players.filter(p => p.hasPaid).length;
+      if (players.length > 0 && paidCount === players.length) {
+        paymentStatus = 'FULLY_PAID';
+      } else if (paidCount > 0) {
+        paymentStatus = 'DEPOSIT_PAID';
+      }
+
+      await tx.booking.update({
+        where: { id: bookingId },
+        data: { paymentStatus, updatedAt: new Date() }
+      });
+
+      // Devolver la reserva actualizada con relaciones
+      const updatedBooking = await tx.booking.findUnique({
+        where: { id: bookingId },
         include: this.getIncludeRelations()
       });
 

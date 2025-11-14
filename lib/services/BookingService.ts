@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { BookingRepository, BookingWithRelations, BookingCreateInput, BookingUpdateInput } from '../repositories/BookingRepository';
-import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, CreateBookingInput, UpdateBookingInput } from '../validations/booking';
+import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, CreateBookingInput, UpdateBookingInput, UpdateBookingPlayerPaymentInput } from '../validations/booking';
 import { ApiResponse, PaginatedResponse } from '../validations/common';
 import { prisma } from '../database/neon-config';
+import { computePricing } from './bookings/pricing';
 
 // Tipos específicos del servicio
 export type BookingWithDetails = {
@@ -23,6 +24,7 @@ export type BookingWithDetails = {
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   cancelledAt: string | null; // ISO string
+  closedAt: string | null; // ISO string
   court: {
     id: string;
     name: string;
@@ -61,6 +63,33 @@ export type BookingWithDetails = {
     status: string;
     createdAt: string; // ISO string
   }>;
+  extras?: Array<{
+    id: string;
+    productoId: number;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    assignedToAll: boolean;
+    notes: string | null;
+    deletedAt: string | null;
+    player?: {
+      id: string;
+      playerName: string;
+      position: number | null;
+    } | null;
+    producto?: {
+      id: number;
+      nombre: string;
+      precio: number;
+    } | null;
+  }>;
+  pricing?: {
+    basePrice: number;
+    extrasTotal: number;
+    amountPaid: number;
+    totalCalculated: number;
+    pendingBalance: number;
+  };
 };
 
 export type BookingAvailabilitySlot = {
@@ -68,6 +97,8 @@ export type BookingAvailabilitySlot = {
   endTime: string;
   available: boolean;
   price: number;
+  finalPrice?: number;
+  pricePerPerson?: number;
 };
 
 export type BookingStats = {
@@ -87,9 +118,41 @@ export class BookingService {
     this.repository = new BookingRepository(client);
   }
 
+  private parseYmd(date: string) {
+    const [y, m, d] = date.split('-').map(Number)
+    return new Date(y as number, (m as number) - 1, d as number)
+  }
+
   // Transformar datos del repository al formato del servicio
   private transformBookingData(booking: BookingWithRelations): BookingWithDetails {
-    return {
+    const extras = (booking as any).extras?.map((e: any) => ({
+      id: e.id,
+      productoId: e.productoId,
+      quantity: e.quantity,
+      unitPrice: e.unitPrice,
+      totalPrice: e.totalPrice,
+      assignedToAll: e.assignedToAll,
+      notes: e.notes ?? null,
+      deletedAt: e.deletedAt ? e.deletedAt.toISOString() : null,
+      player: e.player
+        ? {
+            id: e.player.id,
+            playerName: e.player.playerName,
+            position: e.player.position
+          }
+        : null,
+      producto: e.producto
+        ? {
+            id: e.producto.id,
+            nombre: e.producto.nombre,
+            precio: e.producto.precio
+          }
+        : null
+    })) || undefined;
+
+    const pricing = computePricing(booking);
+
+  return {
       id: booking.id,
       courtId: booking.courtId,
       userId: booking.userId,
@@ -107,6 +170,7 @@ export class BookingService {
       createdAt: booking.createdAt.toISOString(),
       updatedAt: booking.updatedAt.toISOString(),
       cancelledAt: booking.cancelledAt?.toISOString() || null,
+      closedAt: (booking as any).closedAt ? (booking as any).closedAt.toISOString() : null,
       court: {
         id: booking.court.id,
         name: booking.court.name,
@@ -141,7 +205,9 @@ export class BookingService {
         paymentType: payment.paymentType,
         status: payment.status,
         createdAt: payment.createdAt.toISOString()
-      }))
+      })),
+      extras,
+      pricing
     };
   }
 
@@ -154,10 +220,19 @@ export class BookingService {
     }
   }
 
-  // Parsear horarios de operación
+  // Parsear horarios de operación (soporta claves 'open/close' y 'start/end')
   private parseOperatingHours(operatingHours: string): { open: string; close: string } {
     try {
-      return JSON.parse(operatingHours);
+      const parsed = JSON.parse(operatingHours);
+      if (parsed && typeof parsed === 'object') {
+        const open = typeof parsed.open === 'string' ? parsed.open : (typeof parsed.start === 'string' ? parsed.start : undefined);
+        const close = typeof parsed.close === 'string' ? parsed.close : (typeof parsed.end === 'string' ? parsed.end : undefined);
+        return {
+          open: open || '08:00',
+          close: close || '22:00'
+        };
+      }
+      return { open: '08:00', close: '22:00' };
     } catch {
       return { open: '08:00', close: '22:00' };
     }
@@ -246,7 +321,7 @@ export class BookingService {
       // Obtener reservas existentes para la fecha
       const existingBookings = await this.repository.findByDateAndCourt(
         courtId,
-        new Date(date)
+        this.parseYmd(date)
       );
 
       // Obtener información de la cancha
@@ -290,11 +365,15 @@ export class BookingService {
           );
         });
 
+        const computedFinalPrice = Math.round(court.basePrice * court.priceMultiplier);
+
         slots.push({
           startTime: startTimeStr,
           endTime: endTimeStr,
           available: !hasConflict,
-          price: court.basePrice * court.priceMultiplier
+          price: computedFinalPrice,
+          finalPrice: computedFinalPrice,
+          pricePerPerson: Math.round(computedFinalPrice / 4)
         });
 
         currentTime += 30; // Incrementar 30 minutos
@@ -390,8 +469,8 @@ export class BookingService {
         };
       }
 
-      // Verificar permisos (solo owner o admin)
-      if (userId && userRole !== 'admin' && existingBooking.userId !== userId) {
+      const isAdmin = userRole === 'ADMIN' || userRole === 'admin'
+      if (userId && !isAdmin && existingBooking.userId !== userId) {
         return {
           success: false,
           message: 'Error al actualizar reserva',
@@ -443,6 +522,49 @@ export class BookingService {
     }
   }
 
+  // Actualizar pago de un jugador y recalcular el estado de pago de la reserva
+  async updatePlayerPaymentAndRecalc(
+    bookingId: string,
+    playerId: string,
+    input: UpdateBookingPlayerPaymentInput,
+    userRole?: string
+  ): Promise<ApiResponse<BookingWithDetails>> {
+    try {
+      const isAdminUpdate = userRole === 'ADMIN' || userRole === 'admin'
+      if (!isAdminUpdate) {
+        return {
+          success: false,
+          message: 'Error al actualizar pago del jugador',
+          error: 'No tienes permisos para modificar pagos de jugadores'
+        };
+      }
+
+      // Verificar existencia de la reserva
+      const existingBooking = await this.repository.findById(bookingId);
+      if (!existingBooking) {
+        return {
+          success: false,
+          message: 'Reserva no encontrada',
+          error: 'Reserva no encontrada'
+        };
+      }
+
+      const updated = await this.repository.updateBookingPlayerPayment(bookingId, playerId, {
+        hasPaid: input.hasPaid,
+        paidAmount: input.paidAmount
+      });
+
+      return {
+        success: true,
+        data: this.transformBookingData(updated),
+        message: 'Pago de jugador actualizado exitosamente'
+      };
+    } catch (error) {
+      console.error('Error updating player payment:', error);
+      throw new Error('Error al actualizar el pago del jugador');
+    }
+  }
+
   // Cancelar reserva (soft delete)
   async cancelBooking(
     id: string,
@@ -461,8 +583,8 @@ export class BookingService {
         };
       }
 
-      // Verificar permisos
-      if (userId && userRole !== 'admin' && existingBooking.userId !== userId) {
+      const isAdminCancel = userRole === 'ADMIN' || userRole === 'admin'
+      if (userId && !isAdminCancel && existingBooking.userId !== userId) {
         return {
           success: false,
           message: 'Error al cancelar reserva',
@@ -498,8 +620,8 @@ export class BookingService {
     userRole?: string
   ): Promise<ApiResponse<{ count: number }>> {
     try {
-      // Solo admin puede hacer operaciones bulk
-      if (userRole !== 'admin') {
+      const isAdminBulk = userRole === 'ADMIN' || userRole === 'admin'
+      if (!isAdminBulk) {
         return {
           success: false,
           message: 'Error en operación masiva',

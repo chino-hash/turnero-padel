@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { beforeAll, afterAll, beforeEach } from '@jest/globals';
+const { PrismaClient } = require('@prisma/client');
+const { beforeAll, afterAll, beforeEach } = require('@jest/globals');
 
 // Mock NextAuth
 jest.mock('next-auth', () => {
@@ -76,7 +76,7 @@ jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn(() => mockPrisma),
   Prisma: {
     PrismaClientKnownRequestError: class extends Error {
-      constructor(message: string, code: string, clientVersion: string) {
+      constructor(message, code, clientVersion) {
         super(message);
         this.name = 'PrismaClientKnownRequestError';
         this.code = code;
@@ -84,28 +84,28 @@ jest.mock('@prisma/client', () => ({
       }
     },
     PrismaClientUnknownRequestError: class extends Error {
-      constructor(message: string, clientVersion: string) {
+      constructor(message, clientVersion) {
         super(message);
         this.name = 'PrismaClientUnknownRequestError';
         this.clientVersion = clientVersion;
       }
     },
     PrismaClientValidationError: class extends Error {
-       constructor(message: string, clientVersion: string) {
+       constructor(message, clientVersion) {
          super(message);
          this.name = 'PrismaClientValidationError';
          this.clientVersion = clientVersion;
        }
      },
      PrismaClientRustPanicError: class extends Error {
-        constructor(message: string, clientVersion: string) {
+        constructor(message, clientVersion) {
           super(message);
           this.name = 'PrismaClientRustPanicError';
           this.clientVersion = clientVersion;
         }
       },
       PrismaClientInitializationError: class extends Error {
-        constructor(message: string, clientVersion: string) {
+        constructor(message, clientVersion) {
           super(message);
           this.name = 'PrismaClientInitializationError';
           this.clientVersion = clientVersion;
@@ -117,7 +117,7 @@ jest.mock('@prisma/client', () => ({
 // Mock global de Prisma para importaciones directas
 global.Prisma = {
   PrismaClientKnownRequestError: class extends Error {
-    constructor(message: string, code: string, clientVersion: string) {
+    constructor(message, code, clientVersion) {
       super(message);
       this.name = 'PrismaClientKnownRequestError';
       this.code = code;
@@ -125,28 +125,28 @@ global.Prisma = {
     }
   },
   PrismaClientUnknownRequestError: class extends Error {
-    constructor(message: string, clientVersion: string) {
+    constructor(message, clientVersion) {
       super(message);
       this.name = 'PrismaClientUnknownRequestError';
       this.clientVersion = clientVersion;
     }
   },
   PrismaClientValidationError: class extends Error {
-     constructor(message: string, clientVersion: string) {
+     constructor(message, clientVersion) {
        super(message);
        this.name = 'PrismaClientValidationError';
        this.clientVersion = clientVersion;
      }
    },
    PrismaClientRustPanicError: class extends Error {
-      constructor(message: string, clientVersion: string) {
+      constructor(message, clientVersion) {
         super(message);
         this.name = 'PrismaClientRustPanicError';
         this.clientVersion = clientVersion;
       }
     },
     PrismaClientInitializationError: class extends Error {
-      constructor(message: string, clientVersion: string) {
+      constructor(message, clientVersion) {
         super(message);
         this.name = 'PrismaClientInitializationError';
         this.clientVersion = clientVersion;
@@ -155,7 +155,7 @@ global.Prisma = {
   };
 
 // Datos de prueba comunes
-export const testData = {
+const testData = {
   user: {
     id: 'test-user-id',
     name: 'Test User',
@@ -200,6 +200,8 @@ export const testData = {
   },
 };
 
+module.exports = { testData, mockPrisma };
+
 // Configuración global de tests
 beforeAll(async () => {
   // Configuración inicial si es necesaria
@@ -214,5 +216,4 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-export { mockPrisma };
-export default mockPrisma;
+ 

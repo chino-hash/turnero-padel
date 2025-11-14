@@ -306,13 +306,13 @@ export default function HomeSection({
                     : 'bg-gradient-to-br from-white to-gray-100 border-gray-200'
                 }`}>
                   <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? selectedCourtHex : '#000000' }}>
-                    ${Math.round(6000 * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
+                    ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
                   </div>
                   <div className={`text-sm font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-600"}`}>
                     por persona
                   </div>
                   <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-200" : "bg-gray-200/50 text-gray-600"}`}>
-                    Total: ${Math.round(24000 * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
+                    Total: ${Math.round(((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -324,7 +324,9 @@ export default function HomeSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 p-2 -m-2">
           {courts.map((court) => {
             const rate = ratesByCourt[court.id] ?? 0
-            const price = Math.round(6000 * court.priceMultiplier)
+            // Calcular precio final de cancha y precio por persona desde datos de la cancha
+            const finalCourtPrice = Math.round((((court as any)?.basePrice ?? (court as any)?.base_price ?? 24000) * (court?.priceMultiplier ?? 1)))
+            const pricePerPerson = Math.round(finalCourtPrice / 4)
             // Color hex histórico para que el div de cancha coincida exactamente con el color del nombre
             const nameLower = (court.name || '').toLowerCase()
             const courtHex = (
@@ -352,7 +354,7 @@ export default function HomeSection({
                 data-testid="court-card"
                 className={`relative p-6 rounded-2xl border-4 transition-all duration-300 transform hover:scale-105 ${
                   selectedCourt === court.id
-                    ? isDarkMode 
+                    ? isDarkMode
                       ? 'bg-gray-700 border-gray-500 shadow-xl'
                       : `${court.bgColor} border-current shadow-xl`
                     : `${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} hover:border-gray-300 shadow-md`
@@ -400,7 +402,7 @@ export default function HomeSection({
 
                 {/* Price */}
                 <div className={"text-2xl font-bold transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? courtHex : '#000000' }}>
-                  ${price.toLocaleString()}
+                  ${pricePerPerson.toLocaleString()} por persona
                 </div>
                 <div className={`text-xs transition-colors duration-300 ease-in-out ${
                   isDarkMode ? (selectedCourt === court.id ? 'text-gray-200 opacity-90' : 'text-gray-300') : 'text-black opacity-80'
@@ -488,7 +490,7 @@ export default function HomeSection({
           {/* Desktop: Horizontal Layout */}
           <div className="hidden md:flex flex-col sm:flex-row justify-center items-center gap-8">
             {/* View Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} data-testid="view-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -501,6 +503,7 @@ export default function HomeSection({
                     ? 'bg-green-500 text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                data-testid="toggle-view-by-court"
               >
                 Por cancha
               </button>
@@ -516,13 +519,14 @@ export default function HomeSection({
                     ? 'bg-green-500 text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                data-testid="toggle-view-unified"
               >
                 Vista unificada
               </button>
             </div>
 
             {/* Filter Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} data-testid="filter-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -535,6 +539,7 @@ export default function HomeSection({
                     ? 'bg-blue-500 text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                data-testid="toggle-filter-all"
               >
                 Todos los horarios
               </button>
@@ -550,6 +555,7 @@ export default function HomeSection({
                     ? 'bg-blue-500 text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                data-testid="toggle-filter-open"
               >
                 Solo disponibles
               </button>
@@ -560,14 +566,14 @@ export default function HomeSection({
         {/* Main Content Layout - Responsive */}
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Date Selection - Full width on mobile, left column on desktop */}
-          <div className="w-full lg:w-auto lg:flex-shrink-0 mb-4 lg:mb-0">
+          <div className="w-full lg:w-auto lg:flex-shrink-0 mb-4 lg:mb-0" data-testid="date-selection">
             <h3 className={`text-lg font-semibold mb-3 flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               <Calendar className="w-5 h-5" />
               Seleccionar Fecha
             </h3>
             <div className="flex flex-col space-y-2 lg:max-w-xs">
               {/* Mobile: Horizontal scroll for dates */}
-              <div className="lg:hidden w-full overflow-x-auto pb-2">
+              <div className="lg:hidden w-full overflow-x-auto pb-2" data-testid="date-selection-mobile">
                 <div className="flex items-center gap-4 px-2 snap-x snap-mandatory">
                 {availableDays.map((date, index) => {
                   const isSelected = selectedDate.toDateString() === date.toDateString()
@@ -595,6 +601,7 @@ export default function HomeSection({
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                       }`}
+                      data-testid={`date-btn-mobile-${index}`}
                     >
                       <div className="flex flex-col">
                         <div className={`text-xs font-medium capitalize ${
@@ -625,7 +632,7 @@ export default function HomeSection({
               </div>
 
               {/* Desktop: Vertical layout for dates */}
-              <div className="hidden lg:flex flex-col space-y-2">
+              <div className="hidden lg:flex flex-col space-y-2" data-testid="date-selection-desktop">
                 {availableDays.map((date, index) => {
                   const isSelected = selectedDate.toDateString() === date.toDateString()
                   const isToday = new Date().toDateString() === date.toDateString()
@@ -649,6 +656,7 @@ export default function HomeSection({
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                       }`}
+                      data-testid={`date-btn-desktop-${index}`}
                     >
                       <div className="flex flex-col">
                         <div className={`font-medium capitalize ${
@@ -673,6 +681,7 @@ export default function HomeSection({
               <Button
                 onClick={scrollToNextAvailable}
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                data-testid="next-available-btn"
               >
                 <Calendar className="w-5 h-5 mr-2" />
                 Ir al próximo disponible
@@ -681,8 +690,8 @@ export default function HomeSection({
           </div>
 
           {/* Right Column - Time Slots Grid */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-3">
+          <div className="flex-1" data-testid="slots-grid">
+            <div className="flex items-center justify-between mb-3" data-testid="slots-header">
               <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
                 Horarios disponibles
               </h3>
@@ -693,14 +702,25 @@ export default function HomeSection({
                   size="sm"
                   disabled={isRefreshing}
                   className={`flex items-center gap-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                  data-testid="refresh-slots-btn"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   {isRefreshing ? 'Actualizando...' : 'Actualizar'}
                 </Button>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" data-testid="slot-count">
                   <Filter className={`w-4 h-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
                   <span className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                    {slotsForRender.filter(s => s.isAvailable).length} disponibles
+                    {slotsForRender.filter(s => {
+                      const available = s.status === 'available' || s.isAvailable || s.available
+                      const isToday = new Date().toDateString() === selectedDate.toDateString()
+                      const start = s.startTime || s.time
+                      if (!start) return false
+                      const [h, m] = start.split(':').map(Number)
+                      const slotDate = new Date(selectedDate)
+                      slotDate.setHours(h, m, 0, 0)
+                      const isPast = isToday && slotDate < new Date()
+                      return available && !isPast
+                    }).length} disponibles
                   </span>
                 </div>
               </div>
@@ -750,7 +770,7 @@ export default function HomeSection({
                   const isAvailable = slot.status === 'available' || slot.isAvailable || slot.available
                   const courtName = slot.courtName || slot.court || `Cancha ${slot.courtId?.replace('court-', '') || '1'}`
                   const timeRange = slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : slot.startTime || slot.time
-                  const price = slot.price || 6000
+                  const pricePerPerson = slot.pricePerPerson ?? Math.round(((slot.finalPrice ?? slot.price ?? 6000) / 4))
                   
                   // Obtener colores específicos de la cancha
                   const getCourtColor = (courtId: string, courtName: string) => {
@@ -781,16 +801,28 @@ export default function HomeSection({
                   }
                   
                   const courtColor = getCourtColor(slot.courtId || '', courtName)
+
+                  const isTodaySelected = new Date().toDateString() === selectedDate.toDateString()
+                  const slotStartStr = slot.startTime || slot.time
+                  let isPast = false
+                  if (isTodaySelected && slotStartStr) {
+                    const [h, m] = slotStartStr.split(':').map(Number)
+                    const slotDate = new Date(selectedDate)
+                    slotDate.setHours(h, m, 0, 0)
+                    isPast = slotDate < new Date()
+                  }
+                  const isClickable = isAvailable && !isPast
                 
                 return (
                   <button
                     key={slot.id}
                     id={`slot-${slot.id}`}
                     onClick={() => handleSlotClickWithModal(slot)}
-                    disabled={!isAvailable}
+                    disabled={!isClickable}
+                    aria-disabled={!isClickable}
                     data-testid="time-slot"
                     className={`p-3 md:p-2 rounded-lg border-2 transition-all duration-200 text-center min-h-[85px] md:min-h-[80px] flex flex-col justify-center ${
-                      !isAvailable
+                      !isClickable
                         ? isDarkMode
                           ? "bg-gray-800 border-gray-600 cursor-not-allowed"
                           : "bg-gray-100 border-gray-300 cursor-not-allowed"
@@ -808,7 +840,7 @@ export default function HomeSection({
                       data-testid="slot-court-name"
                       className={`text-sm font-medium mb-0.5 px-2 py-0.5 rounded ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'}`}
                       style={{ 
-                        color: !isAvailable 
+                        color: !isClickable 
                           ? (isDarkMode ? '#6b7280' : '#9ca3af')
                           : courtColor 
                       }}
@@ -818,7 +850,7 @@ export default function HomeSection({
                     
                     {/* Time Range - Second */}
                     <div className={`text-sm font-medium mb-0.5 ${
-                      !isAvailable
+                      !isClickable
                         ? "text-gray-400"
                         : isDarkMode
                           ? "text-white"
@@ -831,21 +863,21 @@ export default function HomeSection({
                     <div className="mb-0.5">
                       <span
                         data-testid="slot-status-badge"
-                        className={isAvailable ? "badge-disponible" : "badge-reservado"}
+                        className={isClickable ? "badge-disponible" : "badge-reservado"}
                       >
-                        {isAvailable ? "Disponible" : "Reservado"}
+                        {isPast ? "No disponible" : (isAvailable ? "Disponible" : "Reservado")}
                       </span>
                     </div>
                     
                     {/* Price - Bottom */}
                     <div className={`text-xs font-medium transition-colors duration-300 ease-in-out ${
-                      !isAvailable
+                      !isClickable
                         ? "text-gray-400"
                         : isDarkMode
                           ? "text-gray-200"
                           : "text-black"
                     }`}>
-                      ${(price/1000).toFixed(0)}000/persona
+                      ${pricePerPerson.toLocaleString()} por persona
                     </div>
                   </button>
                 )

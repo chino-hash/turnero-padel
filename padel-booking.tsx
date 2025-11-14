@@ -565,9 +565,10 @@ function PadelBookingPage() {
                               ? "bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600"
                               : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
                           }`}
+                          data-testid="admin-date-picker-trigger"
                         >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {selectedAdminDate ? format(selectedAdminDate, "PPP") : <span>Pick a date</span>}
+                          <Calendar className="mr-2 w-3 h-3 sm:w-4 sm:h-4" />
+                          {selectedAdminDate ? format(selectedAdminDate, "PPP") : "Select date"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -582,7 +583,7 @@ function PadelBookingPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <div className="space-y-3">
+                  <div className="space-y-3" data-testid="admin-bookings-list">
                     {filteredAdminBookings.length > 0 ? (
                       filteredAdminBookings.map((booking) => {
                         const individualPlayerAmount = booking.totalPrice / 4
@@ -596,6 +597,7 @@ function PadelBookingPage() {
                                   ? "border-blue-200 bg-blue-50"
                                   : "border-gray-200 bg-gray-50"
                             }`}
+                            data-testid="admin-booking-item"
                           >
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                               <div className="flex-1">
@@ -608,10 +610,12 @@ function PadelBookingPage() {
                                           ? "bg-blue-500"
                                           : "bg-gray-400"
                                     }`}
+                                  data-testid="admin-booking-status-indicator"
                                   ></div>
-                                  <h3 className="font-semibold text-gray-900">{booking.courtName}</h3>
+                                  <h3 className="font-semibold text-gray-900" data-testid="admin-booking-court">{booking.courtName}</h3>
                                   <span
                                     className={`px-2 py-1 rounded-full text-xs font-medium border ${getAdminStatusColor(booking.status)}`}
+                                  data-testid="admin-booking-status"
                                   >
                                     {booking.status}
                                   </span>
@@ -619,17 +623,17 @@ function PadelBookingPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600">
                                   <div className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    <span>
+                                    <span data-testid="admin-booking-time">
                                       {booking.startTime} - {booking.endTime}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
-                                    <span>{formatShortDate(booking.date)}</span>
+                                    <span data-testid="admin-booking-date">{formatShortDate(booking.date)}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <BankIcon className="w-3 h-3" />
-                                    <span>{booking.paymentMethod}</span>
+                                    <span data-testid="admin-booking-payment">{booking.paymentMethod}</span>
                                   </div>
                                 </div>
                               </div>
@@ -638,7 +642,7 @@ function PadelBookingPage() {
                         )
                       })
                     ) : (
-                      <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                      <div className={`text-center py-8 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} data-testid="admin-bookings-empty">
                         No bookings found for this date.
                       </div>
                     )}
@@ -866,6 +870,7 @@ function PadelBookingPage() {
                     ? `${item.activeColor} bg-opacity-20 shadow-md`
                     : `${item.color} hover:bg-gray-100 hover:bg-opacity-50`
                 }`}
+                data-testid={`nav-${item.id}-btn`}
               >
                 <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? item.activeColor : item.color}`} />
                 <span className={`text-xs sm:text-xs font-medium text-center leading-tight ${isActive ? item.activeColor : item.color}`}>
@@ -920,14 +925,14 @@ function PadelBookingPage() {
                     <span>{selectedDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Horario por persona</span>
-                    <span>${selectedSlotForConfirmation.price?.toLocaleString()}</span>
+                    <span>Precio por persona</span>
+                    <span>${(selectedSlotForConfirmation.pricePerPerson ?? Math.round(((selectedSlotForConfirmation.finalPrice ?? selectedSlotForConfirmation.price ?? 24000) / 4))).toLocaleString()}</span>
                   </div>
                   <hr className={isDarkMode ? "border-gray-600" : "border-gray-200"} />
                   <div className="flex justify-between font-semibold">
                     <span>Total cancha (4 personas)</span>
                     <span className="text-lg">
-                      ${((selectedSlotForConfirmation.price || 6000) * 4).toLocaleString()}
+                      ${(selectedSlotForConfirmation.finalPrice ?? selectedSlotForConfirmation.price ?? 24000).toLocaleString()}
                     </span>
                   </div>
                 </div>

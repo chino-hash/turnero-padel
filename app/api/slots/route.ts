@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-// Fuerza ejecuci�n en Node y evita optimizaci�n est�tica en Vercel
+// Fuerza ejecución en Node y evita optimización estática en Vercel
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
+import { auth } from '@/lib/auth'
+import { getAvailableSlots } from '@/lib/services/availabilityService'
 import { getDefaultOperatingHours } from '../../../lib/services/system-settings'
 import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'
 import { OperatingHoursSchema, parseJsonSafely } from '../../../lib/schemas'
 
-// Esquema de validaci�n para los par�metros de entrada
+// Esquema de validación para los parámetros de entrada
 const slotsQuerySchema = z.object({
   courtId: z.string().min(1, 'courtId es requerido'),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date debe tener formato YYYY-MM-DD')
@@ -35,22 +37,27 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now()
   
   try {
-    const { searchParams } = new URL(req.url)
+    // Usar API nativa de Next para parámetros, evitando new URL(req.url)
+    const searchParams = req.nextUrl.searchParams
     const rawParams = {
       courtId: searchParams.get('courtId'),
       date: searchParams.get('date')
     }
 
-    // Validar par�metros de entrada
+    // Validar parámetros de entrada
     const validationResult = slotsQuerySchema.safeParse(rawParams)
     if (!validationResult.success) {
       return NextResponse.json({ 
-        error: 'Par�metros inv�lidos', 
+        error: 'Parámetros inválidos', 
         details: validationResult.error.issues 
       }, { status: 400 })
     }
 
     const { courtId, date: dateStr } = validationResult.data
+
+    // Determinar rol de usuario (role-aware)
+    const session = await auth().catch(() => null)
+    const userRole: 'ADMIN' | 'USER' = (session?.user?.role === 'ADMIN') ? 'ADMIN' : 'USER'
 
     // Verificar cache
     const cacheKey = `${courtId}-${dateStr}`
@@ -75,13 +82,13 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validar que la fecha no sea m�s de 30 d�as en el futuro
+    // Validar que la fecha no sea más de 30 días en el futuro
     const maxDate = new Date(today)
     maxDate.setDate(maxDate.getDate() + 30)
     
     if (requestedDate > maxDate) {
       return NextResponse.json({ 
-        error: 'No se pueden consultar slots con m�s de 30 d�as de anticipaci�n' 
+        error: 'No se pueden consultar slots con más de 30 días de anticipación' 
       }, { status: 400 })
     }
 
@@ -97,21 +104,22 @@ export async function GET(req: NextRequest) {
     const defaultOperatingHours = await getDefaultOperatingHours()
     const parsedHours = parseJsonSafely(court.operatingHours ?? null, OperatingHoursSchema, defaultOperatingHours)
     if (!parsedHours.ok) {
-      console.warn('OperatingHours inv�lido, usando fallback:', parsedHours.error)
+      console.warn('OperatingHours inválido, usando fallback:', parsedHours.error)
     }
 
     const hours = parsedHours.data
     const startHour = hhmmToHour(hours.start)
     const endHour = hhmmToHour(hours.end)
-    const slotDuration = (hours.slot_duration || 90) / 60 // minutos  horas
+    const slotDuration = (hours.slot_duration || 90) / 60 // minutos → horas
     const basePrice = (court as any).basePrice ?? (court as any).base_price ?? 6000
     const priceMultiplier = court.priceMultiplier || 1
     const finalPrice = Math.round(basePrice * priceMultiplier)
+    const pricePerPerson = Math.round(finalPrice / 4)
 
     console.log('Generando slots para cancha', court.name, `(${court.id})`, 'el', dateStr)
     console.log(`Horarios: ${hours.start} - ${hours.end} (${startHour}h - ${endHour}h)`)    
 
-    // Generar slots de forma m�s eficiente
+    // Generar slots de forma más eficiente
     const slots = []
     const availabilityPromises = []
     
@@ -129,6 +137,8 @@ export async function GET(req: NextRequest) {
             timeRange: `${startTime} - ${endTime}`,
             isAvailable,
             price: finalPrice,
+            finalPrice,
+            pricePerPerson,
             courtId,
             date: dateStr
           }))
@@ -136,10 +146,30 @@ export async function GET(req: NextRequest) {
     }
     
     // Ejecutar todas las consultas de disponibilidad en paralelo
-    const slotsResults = await Promise.all(availabilityPromises)
-    slots.push(...slotsResults)
+    const settled = await Promise.allSettled(availabilityPromises)
+    for (const r of settled) {
+      if (r.status === 'fulfilled') {
+        slots.push(r.value)
+      }
+    }
 
-    // Calcular estad�sticas
+    // Aplicar bloqueos virtuales (>7 días) para ADMIN usando reglas recurrentes
+    if (userRole === 'ADMIN') {
+      try {
+        const { virtualBlocks, thresholdDate } = await getAvailableSlots(courtId, dateStr, dateStr, userRole)
+        if (dateStr > thresholdDate && virtualBlocks.length > 0) {
+          const blockSet = new Set(virtualBlocks.filter(v => v.date === dateStr).map(v => `${v.startTime} - ${v.endTime}`))
+          for (const s of slots) {
+            if (blockSet.has(s.timeRange)) {
+              s.isAvailable = false
+            }
+          }
+        }
+      } catch (_err) {
+      }
+    }
+
+    // Calcular estadísticas
     const open = slots.filter(s => s.isAvailable).length
     const total = slots.length
     const rate = total > 0 ? Math.round((open / total) * 100) : 0
@@ -157,6 +187,7 @@ export async function GET(req: NextRequest) {
       courtName: court.name,
       courtId: court.id,
       cached: false,
+      role: userRole,
       responseTime
     }
 
@@ -173,10 +204,10 @@ export async function GET(req: NextRequest) {
     const responseTime = Date.now() - startTime
     console.error('GET /api/slots error:', err)
     
-    // Manejo de errores m�s espec�fico
+    // Manejo de errores más específico
     if (err instanceof z.ZodError) {
       return NextResponse.json({ 
-        error: 'Datos de entrada inv�lidos',
+        error: 'Datos de entrada inválidos',
         details: err.issues,
         responseTime
       }, { status: 400 })
@@ -195,12 +226,13 @@ export async function GET(req: NextRequest) {
        responseTime
      }, { status: 500 })
    }
- }
+}
 
-// Endpoint para limpiar cache (�til para administradores)
+// Endpoint para limpiar cache (útil para administradores)
 export async function DELETE(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url)
+    // Usar req.nextUrl para leer parámetros de forma segura
+    const searchParams = req.nextUrl.searchParams
     const courtId = searchParams.get('courtId')
     const date = searchParams.get('date')
     const action = searchParams.get('action')
@@ -243,7 +275,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      error: 'Par�metros inv�lidos. Use action=clear-all, o proporcione courtId y/o date'
+      error: 'Parámetros inválidos. Use action=clear-all, o proporcione courtId y/o date'
     }, { status: 400 })
 
   } catch (err) {
@@ -254,7 +286,7 @@ export async function DELETE(req: NextRequest) {
   }
 }
 
-// Endpoint para obtener estad�sticas del cache
+// Endpoint para obtener estadísticas del cache
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -292,7 +324,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      error: 'Acci�n no v�lida. Use action: "cache-stats"'
+      error: 'Acción no válida. Use action: "cache-stats"'
     }, { status: 400 })
 
   } catch (err) {

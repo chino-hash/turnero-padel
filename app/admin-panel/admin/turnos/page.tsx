@@ -6,7 +6,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../components/ui/dialog'
@@ -14,11 +14,16 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
 import { Textarea } from '../../../../components/ui/textarea'
-import { Calendar, Clock, Users, TrendingUp, Plus, User, Mail, Phone, FileText, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
+import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { useRealTimeUpdates } from '../../../../hooks/useRealTimeUpdates'
+import { useAuth } from '../../../../hooks/useAuth'
+import { useBookings } from '../../../../hooks/useBookings'
+import { useCourtPrices } from '../../../../hooks/useCourtPrices'
 
 // Importación dinámica para evitar problemas de prerenderización
-const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos'), {
+// Se asegura de resolver explícitamente el export default del módulo
+const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos').then(mod => mod.default), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-screen">
@@ -28,8 +33,14 @@ const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos'), 
 })
 
 export default function TurnosPage() {
+  const { isAuthenticated, isAdmin, user, loading: authLoading } = useAuth()
+  const { bookings, stats, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({ autoFetch: isAuthenticated })
+
+  const { courts, loading: courtsLoading } = useCourtPrices({ publicView: true })
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false)
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [isTimeAvailable, setIsTimeAvailable] = useState<boolean | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [isRealTimeConnected, setIsRealTimeConnected] = useState(false)
@@ -38,25 +49,131 @@ export default function TurnosPage() {
     'Cancha 2': [false, true, false, true, false],
     'Cancha 3': [true, true, false, false, true]
   })
+  const formatDateYMD = (date: Date) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+  const ymdToDate = (ymd: string) => {
+    const [y, m, d] = ymd.split('-').map(Number)
+    return new Date(y, (m as number) - 1, d as number)
+  }
   
+  // Anchura exacta de los dropdowns (igual a la casilla de selección)
+  const dateTriggerRef = useRef<HTMLButtonElement>(null)
+  const timeTriggerRef = useRef<HTMLButtonElement>(null)
+  const [dateMenuWidth, setDateMenuWidth] = useState<number | undefined>(undefined)
+  const [timeMenuWidth, setTimeMenuWidth] = useState<number | undefined>(undefined)
+  const [isRecurring, setIsRecurring] = useState<boolean>(false)
+  const [recurringWeekday, setRecurringWeekday] = useState<number>(new Date().getDay())
+  const [recurringStartsAt, setRecurringStartsAt] = useState<string>(formatDateYMD(new Date()))
+  const [recurringEndsAt, setRecurringEndsAt] = useState<string>('')
+  const computeNextDateForWeekday = (weekday: number, startYmd: string) => {
+    const today = new Date(); today.setHours(0,0,0,0)
+    const start = ymdToDate(startYmd)
+    const base = today < start ? start : today
+    const diff = (weekday - base.getDay() + 7) % 7
+    const target = new Date(base); target.setDate(base.getDate() + diff)
+    return formatDateYMD(target)
+  }
+
+  const handleSkipThisWeek = async () => {
+    try {
+      if (!isRecurring) return
+      if (!formData.courtName || !formData.timeRange) {
+        alert('Completa cancha y horario')
+        return
+      }
+      const courtId = findCourtIdByName(formData.courtName)
+      if (!courtId) {
+        alert('Cancha inválida')
+        return
+      }
+      const [startTime, endTime] = formData.timeRange.split(' - ')
+      const startsAt = recurringStartsAt
+      const endsAt = recurringEndsAt || undefined
+      const weekday = recurringWeekday
+
+      const createRuleRes = await fetch('/api/recurring-bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ courtId, userId: user?.id, weekday, startTime, endTime, startsAt, endsAt, notes: formData.notes || undefined })
+      })
+      if (!createRuleRes.ok) {
+        const data = await createRuleRes.json().catch(() => ({}))
+        alert(`Error creando turno fijo: ${data?.error || createRuleRes.status}`)
+        return
+      }
+      const ruleData = await createRuleRes.json()
+      const recurringId = ruleData?.data?.id as string
+      const targetDate = computeNextDateForWeekday(weekday, startsAt)
+
+      const skipRes = await fetch('/api/recurring-exceptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ recurringId, date: targetDate, type: 'SKIP', reason: 'Baja puntual (esta semana)' })
+      })
+      if (!skipRes.ok) {
+        const data = await skipRes.json().catch(() => ({}))
+        alert(`Error dando de baja esta semana: ${data?.error || skipRes.status}`)
+        return
+      }
+      alert('Turno fijo creado y dado de baja para esta semana')
+      setShowCreateBookingModal(false)
+    } catch (err) {
+      console.error(err)
+      alert('Error procesando baja semanal')
+    }
+  }
+
+  useEffect(() => {
+    const btn = dateTriggerRef.current
+    if (!btn) return
+    setDateMenuWidth(btn.offsetWidth)
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver((entries) => {
+        const w = entries[0]?.contentRect?.width
+        if (w) setDateMenuWidth(w)
+      })
+      ro.observe(btn)
+      return () => ro.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    const btn = timeTriggerRef.current
+    if (!btn) return
+    setTimeMenuWidth(btn.offsetWidth)
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver((entries) => {
+        const w = entries[0]?.contentRect?.width
+        if (w) setTimeMenuWidth(w)
+      })
+      ro.observe(btn)
+      return () => ro.disconnect()
+    }
+  }, [])
+
   // Estados del formulario
   const [formData, setFormData] = useState({
-    userName: '',
-    userEmail: '',
-    userPhone: '',
-    courtName: '',
-    date: '',
-    timeRange: '',
-    players: {
-      player1: '',
-      player2: '',
-      player3: '',
-      player4: ''
-    },
-    notes: ''
-  })
+  userName: '',
+  courtName: '',
+  date: formatDateYMD(new Date()),
+  timeRange: '',
+  players: {
+    player1: '',
+    player2: '',
+    player3: '',
+    player4: ''
+  },
+  notes: ''
+})
 
-  const courts = ['Cancha 1', 'Cancha 2', 'Cancha 3', 'Cancha 4']
+  // Canchas provistas por useCourtPrices (vista pública)
+  // const courts = ['Cancha 1', 'Cancha 2', 'Cancha 3', 'Cancha 4']
   const allTimeSlots = [
     '08:00 - 09:30', '09:30 - 11:00', '11:00 - 12:30',
     '12:30 - 14:00', '14:00 - 15:30', '15:30 - 17:00',
@@ -64,38 +181,127 @@ export default function TurnosPage() {
     '21:30 - 23:00'
   ]
 
-  // Función para obtener horarios disponibles
+  // Métricas reales para la cabecera
+  const todayKey = new Date().toISOString().split('T')[0]
+  const turnosHoy = stats?.byDay?.[todayKey] ?? 0
+  const proximosTurnos = (bookings || []).filter((b) => {
+    try {
+      const dt = new Date(`${(b as any).bookingDate}T${(b as any).startTime}:00`)
+      const now = new Date()
+      const diff = dt.getTime() - now.getTime()
+      return diff > 0 && diff <= 2 * 60 * 60 * 1000
+    } catch {
+      return false
+    }
+  }).length
+  const ocupacionRate = Math.round(((stats?.occupancyRate ?? 0) as number) * 100)
+
+  // Función auxiliar para obtener courtId por nombre
+  const findCourtIdByName = (name: string) => courts.find(c => c.name === name)?.id
+
+  // Función para obtener horarios disponibles (validación real)
   const getAvailableTimeSlots = async (courtName: string, date: string) => {
     try {
-      // Aquí iría la lógica real para consultar disponibilidad
-      // Por ahora simulamos que algunos horarios están ocupados
-      const occupiedSlots = ['09:30 - 11:00', '15:30 - 17:00', '20:00 - 21:30']
-      const available = allTimeSlots.filter(slot => !occupiedSlots.includes(slot))
-      setAvailableTimeSlots(available)
+      const courtId = findCourtIdByName(courtName)
+      if (!courtId) {
+        setAvailableTimeSlots(allTimeSlots)
+        return
+      }
+      const slots = await getAvailabilitySlots(courtId, date, 90)
+      if (slots && Array.isArray(slots)) {
+        const available = slots.filter(s => s.available).map(s => `${s.startTime} - ${s.endTime}`)
+        setAvailableTimeSlots(available.length ? available : allTimeSlots)
+      } else {
+        setAvailableTimeSlots(allTimeSlots)
+      }
     } catch (error) {
       console.error('Error al obtener horarios disponibles:', error)
-      setAvailableTimeSlots(allTimeSlots) // Fallback: mostrar todos
+      setAvailableTimeSlots(allTimeSlots)
     }
   }
 
-  // Función para actualizar disponibilidad de turnos
+
+  
+
+
+  const handleCreateBooking = async () => {
+    try {
+      if (!formData.courtName || !formData.date || !formData.timeRange) {
+        alert('Completa cancha, fecha y horario')
+        return
+      }
+      const courtId = findCourtIdByName(formData.courtName)
+      if (!courtId) {
+        alert('Cancha inválida')
+        return
+      }
+      const [startTime, endTime] = formData.timeRange.split(' - ')
+      const players = [formData.players.player1, formData.players.player2, formData.players.player3, formData.players.player4]
+        .map((name, idx) => name?.trim() ? ({ playerName: name.trim(), position: idx + 1 }) : null)
+        .filter(Boolean)
+      if (isRecurring) {
+        // Crear regla de turno fijo (RecurringBooking)
+        const weekday = recurringWeekday
+        const startsAt = recurringStartsAt
+        const endsAt = recurringEndsAt || undefined
+        const res = await fetch('/api/recurring-bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ courtId, userId: user?.id, weekday, startTime, endTime, startsAt, endsAt, notes: formData.notes || undefined })
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          alert(`Error creando turno fijo: ${data?.error || res.status}`)
+          return
+        }
+        alert('Turno fijo creado exitosamente')
+        setShowCreateBookingModal(false)
+      } else {
+        // Crear reserva puntual
+        const payload = {
+          courtId,
+          bookingDate: formData.date,
+          startTime,
+          endTime,
+          notes: formData.notes || undefined,
+          userId: user?.id,
+          players: players as any
+        }
+        const created = await createBooking(payload as any)
+        if (created) {
+          alert('Reserva creada exitosamente')
+          setShowCreateBookingModal(false)
+          setFormData({
+            userName: '',
+            courtName: '',
+            date: formatDateYMD(new Date()),
+            timeRange: '',
+            players: { player1: '', player2: '', player3: '', player4: '' },
+            notes: ''
+          })
+        } else {
+          alert('No se pudo crear la reserva')
+        }
+      }
+    } catch (error) {
+      console.error('Error al crear reserva:', error)
+      alert('Error al crear la reserva')
+    }
+  }
+
+  // Actualizar disponibilidad (simulado para panel visual)
   const updateAvailability = async () => {
     setIsUpdating(true)
     try {
-      // Simular llamada a API para obtener disponibilidad actualizada
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Simular datos actualizados con cambios aleatorios
       const newAvailability = {
         'Cancha 1': Array.from({length: 5}, () => Math.random() > 0.4),
         'Cancha 2': Array.from({length: 5}, () => Math.random() > 0.4),
         'Cancha 3': Array.from({length: 5}, () => Math.random() > 0.4)
       }
-      
       setAvailabilityData(newAvailability)
       setLastUpdated(new Date())
-      
-      // Mostrar notificación de actualización exitosa
       console.log('Disponibilidad actualizada exitosamente')
     } catch (error) {
       console.error('Error al actualizar disponibilidad:', error)
@@ -108,7 +314,6 @@ export default function TurnosPage() {
   useRealTimeUpdates({
     onSlotsUpdated: (data) => {
       console.log('Slots actualizados en tiempo real:', data)
-      // Actualizar datos de disponibilidad automáticamente
       if (data && data.availability) {
         setAvailabilityData(data.availability)
         setLastUpdated(new Date())
@@ -128,14 +333,40 @@ export default function TurnosPage() {
     }
   })
 
+  // Confirmar disponibilidad para el horario seleccionado
+  useEffect(() => {
+    const run = async () => {
+      const targetDate = isRecurring ? computeNextDateForWeekday(recurringWeekday, recurringStartsAt) : formData.date
+      if (!formData.courtName || !formData.timeRange || (!isRecurring && !formData.date)) {
+        setIsTimeAvailable(null)
+        return
+      }
+      const courtId = findCourtIdByName(formData.courtName)
+      if (!courtId) {
+        setIsTimeAvailable(null)
+        return
+      }
+      const [start, end] = formData.timeRange.split(' - ')
+      try {
+        const resp = await checkAvailability({ courtId, date: targetDate, startTime: start, endTime: end })
+        setIsTimeAvailable(!!resp?.available)
+      } catch (e) {
+        setIsTimeAvailable(false)
+      }
+    }
+    run()
+  }, [formData.courtName, formData.date, formData.timeRange, courts, isRecurring, recurringWeekday, recurringStartsAt])
+
   // Efecto para actualizar horarios disponibles cuando cambia cancha o fecha
   useEffect(() => {
-    if (formData.courtName && formData.date) {
-      getAvailableTimeSlots(formData.courtName, formData.date)
+    const targetDate = isRecurring ? computeNextDateForWeekday(recurringWeekday, recurringStartsAt) : formData.date
+    if (formData.courtName && (isRecurring || formData.date)) {
+      getAvailableTimeSlots(formData.courtName, targetDate)
     } else {
       setAvailableTimeSlots([])
+      setIsTimeAvailable(null)
     }
-  }, [formData.courtName, formData.date])
+  }, [formData.courtName, formData.date, isRecurring, recurringWeekday, recurringStartsAt])
 
   const handleInputChange = (field: string, value: string) => {
     if (field.startsWith('players.')) {
@@ -152,36 +383,7 @@ export default function TurnosPage() {
     }
   }
 
-  const handleCreateBooking = async () => {
-    try {
-      // Aquí iría la lógica para crear la reserva
-      console.log('Creando reserva:', formData)
-      
-      // Simular creación exitosa
-      alert('Reserva creada exitosamente')
-      setShowCreateBookingModal(false)
-      
-      // Resetear formulario
-      setFormData({
-        userName: '',
-        userEmail: '',
-        userPhone: '',
-        courtName: '',
-        date: '',
-        timeRange: '',
-        players: {
-          player1: '',
-          player2: '',
-          player3: '',
-          player4: ''
-        },
-        notes: ''
-      })
-    } catch (error) {
-      console.error('Error al crear reserva:', error)
-      alert('Error al crear la reserva')
-    }
-  }
+
 
   return (
     <div className="space-y-8">
@@ -193,10 +395,27 @@ export default function TurnosPage() {
             Administra todas las reservas y turnos del sistema
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
+          <span
+            className={`text-xs px-2 py-1 rounded ${
+              authLoading
+                ? 'bg-gray-100 text-gray-700'
+                : isAdmin
+                ? 'bg-green-100 text-green-700'
+                : isAuthenticated
+                ? 'bg-yellow-100 text-yellow-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+            aria-live="polite"
+            title={authLoading ? 'Autenticando...' : isAdmin ? 'Administrador' : isAuthenticated ? 'Usuario autenticado' : 'No autenticado'}
+          >
+            {authLoading ? 'Autenticando...' : isAdmin ? 'Admin' : isAuthenticated ? 'Usuario' : 'No autenticado'}
+          </span>
           <Button 
             onClick={() => setShowCreateBookingModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={!isAdmin}
+            title={!isAdmin ? 'Disponible solo para Administradores' : 'Crear nueva reserva'}
           >
             <Plus className="w-4 h-4 mr-2" />
             Nueva Reserva
@@ -212,9 +431,9 @@ export default function TurnosPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">
-              +2 desde ayer
+            <div className="text-2xl font-bold">{bookingsLoading ? '...' : turnosHoy}</div>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {bookingsLoading ? 'Cargando' : '+2 desde ayer'}
             </p>
           </CardContent>
         </Card>
@@ -225,9 +444,9 @@ export default function TurnosPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">
-              En las próximas 2 horas
+            <div className="text-2xl font-bold">{bookingsLoading ? '...' : proximosTurnos}</div>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {bookingsLoading ? 'Cargando' : 'En las próximas 2 horas'}
             </p>
           </CardContent>
         </Card>
@@ -238,9 +457,9 @@ export default function TurnosPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">75%</div>
-            <p className="text-xs text-muted-foreground">
-              Promedio del día
+            <div className="text-2xl font-bold">{bookingsLoading ? '...' : `${ocupacionRate}%`}</div>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {bookingsLoading ? 'Cargando' : 'Promedio del día'}
             </p>
           </CardContent>
         </Card>
@@ -287,7 +506,7 @@ export default function TurnosPage() {
                 Información del Cliente
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="userName" className="text-sm font-medium text-gray-700">Nombre Completo *</Label>
                   <Input
@@ -299,35 +518,100 @@ export default function TurnosPage() {
                     className="h-11"
                   />
                 </div>
-                
+              </div>
+            </div>
+
+            {/* Opcional: Turno Fijo (Regla recurrente) */}
+            <div className="space-y-5 bg-purple-50 p-5 rounded-lg">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-purple-800">
+                <FileText className="w-5 h-5" />
+                Turno Fijo (Opcional)
+              </h3>
+              <p className="text-xs text-purple-700">Si seleccionas esta opción, se creará una regla recurrente que bloqueará este horario cada semana hasta que se dé de baja.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="userEmail" className="text-sm font-medium text-gray-700">Email</Label>
-                  <Input
-                    id="userEmail"
-                    type="email"
-                    value={formData.userEmail}
-                    onChange={(e) => handleInputChange('userEmail', e.target.value)}
-                    placeholder="juan@email.com"
-                    className="h-11"
-                  />
+                  <Label className="text-sm font-medium text-gray-700">Activar turno fijo</Label>
+                  <Select value={isRecurring ? 'si' : 'no'} onValueChange={(v) => setIsRecurring(v === 'si')}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="no">No</SelectItem>
+                      <SelectItem value="si">Sí</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
-                <div className="space-y-2 md:col-span-1">
-                  <Label htmlFor="userPhone" className="text-sm font-medium text-gray-700">Teléfono *</Label>
-                  <Input
-                    id="userPhone"
-                    value={formData.userPhone}
-                    onChange={(e) => handleInputChange('userPhone', e.target.value)}
-                    placeholder="+54 9 11 1234-5678"
-                    required
-                    className="h-11"
-                  />
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Día de la semana</Label>
+                  <Select value={String(recurringWeekday)} onValueChange={(v) => setRecurringWeekday(Number(v))} disabled={!isRecurring}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Domingo</SelectItem>
+                      <SelectItem value="1">Lunes</SelectItem>
+                      <SelectItem value="2">Martes</SelectItem>
+                      <SelectItem value="3">Miércoles</SelectItem>
+                      <SelectItem value="4">Jueves</SelectItem>
+                      <SelectItem value="5">Viernes</SelectItem>
+                      <SelectItem value="6">Sábado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">Inicio</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg" disabled={!isRecurring}>
+                        <span>{ymdToDate(recurringStartsAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                        <Calendar className="w-4 h-4 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="max-h-44 overflow-y-auto p-1">
+                      {Array.from({ length: 30 }, (_, i) => {
+                        const d = new Date(); d.setDate(d.getDate() + i)
+                        const label = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                        const value = formatDateYMD(d)
+                        const isSelected = recurringStartsAt === value
+                        return (
+                          <DropdownMenuItem key={i} onSelect={() => setRecurringStartsAt(value)} className={`${isSelected ? 'bg-purple-600 text-white' : ''} h-10 px-3 text-sm`}>
+                            {label}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="space-y-2 md:col-span-3">
+                  <Label className="text-sm font-medium text-gray-700">Fin (opcional)</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg" disabled={!isRecurring}>
+                        <span>{recurringEndsAt ? ymdToDate(recurringEndsAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha fin'}</span>
+                        <Calendar className="w-4 h-4 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="max-h-44 overflow-y-auto p-1">
+                      <DropdownMenuItem onSelect={() => setRecurringEndsAt('')} className="h-10 px-3 text-sm">Sin fecha fin</DropdownMenuItem>
+                      {Array.from({ length: 180 }, (_, i) => {
+                        const d = new Date(); d.setDate(d.getDate() + i + 30)
+                        const label = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+                        const value = formatDateYMD(d)
+                        const isSelected = recurringEndsAt === value
+                        return (
+                          <DropdownMenuItem key={i} onSelect={() => setRecurringEndsAt(value)} className={`${isSelected ? 'bg-purple-600 text-white' : ''} h-10 px-3 text-sm`}>
+                            {label}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
 
             {/* Información de la reserva */}
-            <div className="space-y-5 bg-blue-50 p-5 rounded-lg">
+            <div className={`space-y-5 bg-blue-50 p-5 rounded-lg ${isRecurring ? 'opacity-60' : ''}`} aria-disabled={isRecurring}>
               <h3 className="text-lg font-semibold flex items-center gap-2 text-blue-800">
                 <Calendar className="w-5 h-5" />
                 Detalles de la Reserva
@@ -341,141 +625,100 @@ export default function TurnosPage() {
                       <SelectValue placeholder="Seleccionar cancha" />
                     </SelectTrigger>
                     <SelectContent>
-                      {courts.map((court) => (
-                        <SelectItem key={court} value={court}>
-                          {court}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                       {courts?.length ? courts.map((court) => (
+                         <SelectItem key={court.id} value={court.name}>
+                           {court.name}
+                         </SelectItem>
+                       )) : (
+                         <SelectItem value="" disabled>
+                           {courtsLoading ? 'Cargando canchas...' : 'No hay canchas activas'}
+                         </SelectItem>
+                       )}
+                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="date" className="text-sm font-medium text-gray-700">Fecha *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                    className="h-11"
-                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        ref={dateTriggerRef}
+                        type="button"
+                        variant="outline"
+                        className="h-11 w-full justify-between px-3 rounded-lg"
+                        aria-haspopup="menu"
+                        aria-label="Seleccionar fecha"
+                        disabled={isRecurring}
+                      >
+                        <span>
+                          {ymdToDate(formData.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        </span>
+                        <Calendar className="w-4 h-4 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent style={{ width: dateMenuWidth }} className="max-h-44 overflow-y-auto p-1">
+                      {Array.from({ length: 7 }, (_, i) => {
+                        const d = new Date()
+                        d.setDate(d.getDate() + i)
+                        const label = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })
+                        const value = formatDateYMD(d)
+                        const isSelected = formData.date === value
+                        return (
+                          <DropdownMenuItem
+                            key={i}
+                            onSelect={() => handleInputChange('date', value)}
+                            className={`${isSelected ? 'bg-blue-600 text-white' : ''} h-10 px-3 text-sm`}
+                          >
+                            {label}
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="timeRange" className="text-sm font-medium text-gray-700">
-                    Horario * 
-                    {availableTimeSlots.length === 0 && formData.courtName && formData.date && (
-                      <span className="text-xs text-orange-600 ml-1">(Selecciona cancha y fecha)</span>
-                    )}
-                  </Label>
-                  <Select 
-                    value={formData.timeRange} 
-                    onValueChange={(value) => handleInputChange('timeRange', value)}
-                    disabled={availableTimeSlots.length === 0}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder={
-                        availableTimeSlots.length === 0 
-                          ? "Primero selecciona cancha y fecha" 
-                          : "Seleccionar horario disponible"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableTimeSlots.map((slot) => (
-                        <SelectItem key={slot} value={slot}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{slot}</span>
-                            <span className="text-xs text-green-600 ml-2">✓ Disponible</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                      {availableTimeSlots.length === 0 && formData.courtName && formData.date && (
-                        <SelectItem value="" disabled>
-                          <span className="text-gray-500">No hay horarios disponibles</span>
-                        </SelectItem>
+                  <Label htmlFor="timeRange" className="text-sm font-medium text-gray-700">Horario *</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        ref={timeTriggerRef}
+                        type="button"
+                        variant="outline"
+                        className="h-11 w-full justify-between px-3 rounded-lg"
+                        aria-haspopup="menu"
+                        aria-label="Horarios"
+                      >
+                        <span>Horarios</span>
+                        <Clock className="w-4 h-4 opacity-70" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent style={{ width: timeMenuWidth }} className="max-h-44 overflow-y-auto p-1">
+                      {availableTimeSlots.length ? (
+                        availableTimeSlots.map((slot) => (
+                          <DropdownMenuItem
+                            key={slot}
+                            onSelect={() => handleInputChange('timeRange', slot)}
+                            className={`${formData.timeRange === slot ? 'bg-green-600 text-white' : ''} h-10 px-3 text-sm`}
+                          >
+                            {slot}
+                          </DropdownMenuItem>
+                        ))
+                      ) : (
+                        <DropdownMenuItem disabled>
+                          {isRecurring ? (formData.courtName ? 'No hay horarios disponibles' : 'Seleccione cancha') : (formData.courtName && formData.date ? 'No hay horarios disponibles' : 'Seleccione cancha y fecha')}
+                        </DropdownMenuItem>
                       )}
-                    </SelectContent>
-                  </Select>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
 
-            {/* Jugadores */}
-            <div className="space-y-5 bg-green-50 p-5 rounded-lg">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-green-800">
-                <Users className="w-5 h-5" />
-                Jugadores
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label htmlFor="player1" className="text-sm font-medium text-gray-700">Jugador 1 *</Label>
-                  <Input
-                    id="player1"
-                    value={formData.players.player1}
-                    onChange={(e) => handleInputChange('players.player1', e.target.value)}
-                    placeholder="Nombre del jugador 1"
-                    required
-                    className="h-11"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="player2" className="text-sm font-medium text-gray-700">Jugador 2</Label>
-                  <Input
-                    id="player2"
-                    value={formData.players.player2}
-                    onChange={(e) => handleInputChange('players.player2', e.target.value)}
-                    placeholder="Nombre del jugador 2"
-                    className="h-11"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="player3" className="text-sm font-medium text-gray-700">Jugador 3</Label>
-                  <Input
-                    id="player3"
-                    value={formData.players.player3}
-                    onChange={(e) => handleInputChange('players.player3', e.target.value)}
-                    placeholder="Nombre del jugador 3"
-                    className="h-11"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="player4" className="text-sm font-medium text-gray-700">Jugador 4</Label>
-                  <Input
-                    id="player4"
-                    value={formData.players.player4}
-                    onChange={(e) => handleInputChange('players.player4', e.target.value)}
-                    placeholder="Nombre del jugador 4"
-                    className="h-11"
-                  />
-                </div>
-              </div>
-            </div>
 
-            {/* Notas adicionales */}
-            <div className="space-y-5 bg-yellow-50 p-5 rounded-lg">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-yellow-800">
-                <FileText className="w-5 h-5" />
-                Notas adicionales
-              </h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-sm font-medium text-gray-700">Observaciones</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Agregar notas o comentarios sobre la reserva..."
-                  rows={3}
-                  className="min-h-[80px] resize-none"
-                />
-              </div>
-            </div>
+
+
 
             {/* Botones de acción */}
             <div className="flex justify-end gap-4 pt-6 mt-6 border-t border-gray-200">
@@ -487,166 +730,31 @@ export default function TurnosPage() {
               >
                 Cancelar
               </Button>
+              {isRecurring && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSkipThisWeek}
+                  className="px-6 py-2.5 h-auto text-purple-700 border-purple-300 hover:bg-purple-50"
+                  title="Dar de baja esta semana"
+                >
+                  Dar baja semana
+                </Button>
+              )}
               <Button
-                type="button"
-                onClick={handleCreateBooking}
-                className="bg-blue-600 hover:bg-blue-700 px-6 py-2.5 h-auto"
-                disabled={!formData.userName || !formData.userPhone || !formData.courtName || !formData.date || !formData.timeRange || !formData.players.player1}
-              >
-                Crear Reserva
-              </Button>
-            </div>
+                 type="button"
+                 onClick={handleCreateBooking}
+                 disabled={!formData.userName || !formData.courtName || !formData.timeRange || (isRecurring ? false : (!formData.date || isTimeAvailable !== true))}
+                 className="w-full bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+               >
+                 {isRecurring ? 'Crear Turno Fijo' : 'Crear Reserva'}
+               </Button>
+          </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Sección de Disponibilidad de Turnos */}
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-gray-900 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Disponibilidad de Turnos - Próximos 4 Días
-              </div>
-              <div className="flex items-center gap-3">
-                {/* Indicador de conexión en tiempo real */}
-                <div className="flex items-center gap-2 text-xs">
-                  {isRealTimeConnected ? (
-                    <>
-                      <Wifi className="w-3 h-3 text-green-500" />
-                      <span className="text-green-600">En vivo</span>
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="w-3 h-3 text-orange-500" />
-                      <span className="text-orange-600">Desconectado</span>
-                    </>
-                  )}
-                </div>
-                
-                {/* Indicador de última actualización */}
-                {lastUpdated && (
-                  <span className="text-xs text-gray-500">
-                    Actualizado: {lastUpdated.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-                
-                {/* Botón de actualización manual */}
-                <button
-                  onClick={updateAvailability}
-                  disabled={isUpdating}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    isUpdating
-                      ? 'text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed'
-                      : isRealTimeConnected
-                      ? 'text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300'
-                      : 'text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300'
-                  }`}
-                  title={isRealTimeConnected ? 'Actualizar manualmente' : 'Actualizar (conexión perdida)'}
-                >
-                  <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
-                  {isUpdating ? 'Actualizando...' : 'Actualizar'}
-                </button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <div className="grid grid-cols-5 gap-4 min-w-[800px]">
-                {/* Columna de horarios */}
-                <div className="space-y-3">
-                  <div className="h-12 flex items-center justify-center font-semibold text-gray-700 bg-gray-100 rounded-lg">
-                    Horarios
-                  </div>
-                  {[
-                    '14:00 - 15:30',
-                    '15:30 - 17:00', 
-                    '17:00 - 18:30',
-                    '18:30 - 20:00',
-                    '20:00 - 21:30'
-                  ].map((time, index) => (
-                    <div key={index} className="h-16 flex items-center justify-center text-sm font-medium text-gray-600 bg-gray-50 rounded-lg border">
-                      {time}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Columnas de días */}
-                {(() => {
-                  const today = new Date()
-                  const days = []
-                  
-                  for (let i = 0; i < 4; i++) {
-                    const date = new Date(today)
-                    date.setDate(today.getDate() + i)
-                    
-                    const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' })
-                    const dayNumber = date.getDate()
-                    const month = date.toLocaleDateString('es-ES', { month: 'short' })
-                    
-                    days.push(
-                      <div key={i} className="space-y-3">
-                        <div className="h-12 flex flex-col items-center justify-center font-semibold text-gray-700 bg-blue-50 rounded-lg border border-blue-200">
-                          <span className="text-xs uppercase">{dayName}</span>
-                          <span className="text-sm">{dayNumber} {month}</span>
-                        </div>
-                        
-                        {/* Slots para cada cancha en este día */}
-                        {[
-                          { court: 'Cancha 1', slots: availabilityData['Cancha 1'] },
-                          { court: 'Cancha 2', slots: availabilityData['Cancha 2'] },
-                          { court: 'Cancha 3', slots: availabilityData['Cancha 3'] }
-                        ].map((courtData, courtIndex) => (
-                          <div key={courtIndex} className="space-y-1">
-                            <div className="text-xs font-medium text-gray-600 text-center mb-1">
-                              {courtData.court}
-                            </div>
-                            {courtData.slots.map((isAvailable, slotIndex) => (
-                              <div
-                                key={slotIndex}
-                                className={`h-4 rounded border ${
-                                  isAvailable
-                                    ? 'bg-green-100 border-green-300'
-                                    : 'bg-red-100 border-red-300'
-                                } flex items-center justify-center`}
-                              >
-                                <span className={`text-xs ${
-                                  isAvailable ? 'text-green-700' : 'text-red-700'
-                                }`}>
-                                  {isAvailable ? '✓' : '✗'}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  }
-                  
-                  return days
-                })()}
-              </div>
-            </div>
-            
-            {/* Leyenda */}
-            <div className="mt-6 flex items-center justify-center gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded flex items-center justify-center">
-                  <span className="text-xs text-green-700">✓</span>
-                </div>
-                <span className="text-gray-600">Disponible</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-100 border border-red-300 rounded flex items-center justify-center">
-                  <span className="text-xs text-red-700">✗</span>
-                </div>
-                <span className="text-gray-600">Ocupado</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Sección de Disponibilidad de Turnos eliminada según requerimiento */}
     </div>
   )
 }

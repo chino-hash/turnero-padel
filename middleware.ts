@@ -21,7 +21,7 @@ export default auth((req) => {
   const isAuthRoute = nextUrl.pathname.startsWith('/api/auth')
   
   // Rutas de API públicas (que no requieren autenticación)
-  const publicApiRoutes = ['/api/courts', '/api/slots']
+  const publicApiRoutes = ['/api/courts', '/api/slots', '/api/events']
   const isPublicApiRoute = publicApiRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Permitir rutas de autenticación y APIs públicas

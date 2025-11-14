@@ -11,12 +11,12 @@ const timeSchema = z.string().regex(TIME_REGEX, {
   message: 'El formato de hora debe ser HH:MM (24 horas)'
 });
 
-// Schema para validar fechas
-const dateSchema = z.string().refine((date) => {
-  const parsedDate = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return parsedDate >= today;
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
+  const [y, m, d] = date.split('-').map(Number)
+  const parsedDate = new Date(y as number, (m as number) - 1, d as number)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return parsedDate >= today
 }, {
   message: 'La fecha no puede ser anterior a hoy'
 });
@@ -158,7 +158,7 @@ export const bulkUpdateBookingsSchema = z.object({
 
 // Schema para validar disponibilidad
 export const checkAvailabilitySchema = z.object({
-  courtId: z.string().cuid(),
+  courtId: z.string().min(1),
   bookingDate: dateSchema,
   startTime: timeSchema,
   endTime: timeSchema,
@@ -197,6 +197,16 @@ export const bookingReportSchema = z.object({
   path: ['dateTo']
 });
 
+// Schema para actualizar pago individual de un jugador
+export const updateBookingPlayerPaymentSchema = z.object({
+  hasPaid: z.boolean({
+    required_error: 'Debe indicar si el jugador pagó'
+  }),
+  paidAmount: z.number().int().min(0, {
+    message: 'El monto pagado debe ser 0 o mayor'
+  }).optional()
+});
+
 // Tipos derivados de los schemas
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
@@ -204,6 +214,7 @@ export type BookingFilters = z.infer<typeof bookingFiltersSchema>;
 export type BulkUpdateBookingsInput = z.infer<typeof bulkUpdateBookingsSchema>;
 export type CheckAvailabilityInput = z.infer<typeof checkAvailabilitySchema>;
 export type BookingReportInput = z.infer<typeof bookingReportSchema>;
+export type UpdateBookingPlayerPaymentInput = z.infer<typeof updateBookingPlayerPaymentSchema>;
 
 // Funciones de validación helper
 export const validateBookingTime = (startTime: string, endTime: string): boolean => {

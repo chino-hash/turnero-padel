@@ -116,8 +116,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar que la fecha no sea en el pasado
-    const bookingDate = new Date(date)
+    const [y, m, d] = date.split('-').map(Number)
+    const bookingDate = new Date(y as number, (m as number) - 1, d as number)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     

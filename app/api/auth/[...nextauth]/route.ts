@@ -1,6 +1,3 @@
-import { handlers } from "../../../../lib/auth"
-
-// Force Node.js runtime for Prisma compatibility
-export const runtime = 'nodejs'
+import { handlers } from '../../../../lib/auth'
 
 export const { GET, POST } = handlers

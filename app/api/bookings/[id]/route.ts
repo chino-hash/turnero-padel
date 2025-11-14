@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '../../../../lib/auth'
+import { auth } from '@/lib/auth'
 import { bookingService } from '../../../../lib/services/BookingService'
 import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '../../../../lib/rate-limit'
 import { updateBookingSchema } from '../../../../lib/validations/booking'
@@ -53,8 +53,9 @@ export async function GET(
       return NextResponse.json(result, { status: 404 })
     }
 
-    // Verificar permisos: solo admin o propietario pueden ver la reserva
-    if (session.user.role !== 'ADMIN' && result.data?.userId !== session.user.id) {
+    // Verificar permisos: admin (mayúsculas/minúsculas) o propietario pueden ver la reserva
+    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'admin'
+    if (!isAdmin && result.data?.userId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para ver esta reserva' },
         { status: 403 }
@@ -230,4 +231,3 @@ export async function DELETE(
     )
   }
 }
-

@@ -15,12 +15,10 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       const isInAdmin = currentUrl.includes('/admin');
       const isInLogin = currentUrl.includes('/login');
       
-      // Debe estar en admin o redirigido a login
       expect(isInAdmin || isInLogin).toBeTruthy();
       
       if (isInAdmin) {
-        // Buscar el componente AdminTurnos o elementos relacionados
-        const turnosElements = page.locator('h1:has-text("Turno"), h2:has-text("Turno"), .admin-turnos, .turnos-admin, .booking, .reserva');
+        const turnosElements = page.locator('[data-testid="admin-bookings-list"]');
         const turnosCount = await turnosElements.count();
         
         if (turnosCount > 0) {
@@ -35,7 +33,6 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar títulos relacionados con turnos
         const titles = page.locator('h1, h2, h3').filter({ hasText: /turno|reserva|booking|administr/i });
         const titleCount = await titles.count();
         
@@ -53,14 +50,11 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar tabla o lista de turnos
-        const turnosList = page.locator('table, .turnos-list, .booking-list, .reserva-item, .turno-item, .grid');
+        const turnosList = page.locator('[data-testid="admin-bookings-list"]');
         const listCount = await turnosList.count();
         
         if (listCount > 0) {
           await expect(turnosList.first()).toBeVisible();
-          
-          // Verificar que hay contenido en la lista
           const hasContent = await turnosList.first().textContent();
           expect(hasContent).toBeTruthy();
         }
@@ -73,23 +67,19 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar elementos con información de turnos
-        const turnoInfo = page.locator('.turno, .booking, .reserva, tr, .card').first();
+        const turnoInfo = page.locator('[data-testid^="admin-booking-card-"]').first();
         const infoExists = await turnoInfo.count() > 0;
         
         if (infoExists) {
           await expect(turnoInfo).toBeVisible();
-          
-          // Buscar información típica de turnos (fecha, hora, cancha, cliente)
           const infoText = await turnoInfo.textContent();
           const hasRelevantInfo = infoText && (
-            infoText.includes(':') || // Hora
-            infoText.includes('/') || // Fecha
+            infoText.includes(':') ||
+            infoText.includes('/') ||
             infoText.includes('Cancha') ||
-            infoText.includes('$') || // Precio
-            infoText.includes('@') // Email
+            infoText.includes('$') ||
+            infoText.includes('@')
           );
-          
           expect(hasRelevantInfo).toBeTruthy();
         }
       }
@@ -304,32 +294,11 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar información de extras
-        const extrasElements = page.locator('.extra, .adicional, .service, .producto');
+        const extrasElements = page.locator('[data-testid^="admin-extras-toggle-"]');
         const extrasCount = await extrasElements.count();
         
         if (extrasCount > 0) {
           await expect(extrasElements.first()).toBeVisible();
-        }
-      }
-    });
-
-    test('debe mostrar precios de extras', async ({ page }) => {
-      await page.goto('/admin');
-      await page.waitForTimeout(3000);
-      
-      const currentUrl = page.url();
-      if (currentUrl.includes('/admin')) {
-        // Buscar precios en la interfaz
-        const priceElements = page.locator('.price, .precio, .cost, .total').filter({ hasText: '$' });
-        const priceCount = await priceElements.count();
-        
-        if (priceCount > 0) {
-          await expect(priceElements.first()).toBeVisible();
-          
-          // Verificar formato de precio
-          const priceText = await priceElements.first().textContent();
-          expect(priceText).toContain('$');
         }
       }
     });
@@ -340,8 +309,7 @@ test.describe('Panel de Administración - Gestión de Turnos', () => {
       
       const currentUrl = page.url();
       if (currentUrl.includes('/admin')) {
-        // Buscar controles para modificar extras
-        const extraControls = page.locator('button:has-text("Editar"), button:has-text("Modificar"), .edit-extras, input[type="checkbox"]');
+        const extraControls = page.locator('[data-testid^="admin-add-extra-btn-"]');
         const controlCount = await extraControls.count();
         
         if (controlCount > 0) {

@@ -15,8 +15,8 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
-  const maxReconnectAttempts = 5
-  const baseReconnectDelay = 1000 // 1 segundo
+  const maxReconnectAttempts = 10
+  const baseReconnectDelay = 1000
 
   const connect = useCallback(() => {
     // Verificar si estamos en el navegador
@@ -92,29 +92,28 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
         }
 
         eventSource.onerror = (error) => {
-          console.error('Error en conexión SSE:', error, 'ReadyState:', eventSource.readyState)
-          options.onError?.(error)
-          
-          // Mejorar lógica de reconexión basada en el estado
-          const shouldReconnect = 
-            eventSource.readyState === EventSource.CLOSED || 
-            (eventSource.readyState === EventSource.CONNECTING && reconnectAttemptsRef.current === 0)
-          
+          const state = eventSource.readyState
+          if (state === EventSource.CONNECTING) {
+            // Durante la fase de conexión algunos navegadores disparan error; no contaminar consola
+            console.debug('SSE aún conectando, ignorando error transitorio')
+          } else {
+            console.error('Error en conexión SSE:', error, 'ReadyState:', state)
+            options.onError?.(error)
+          }
+
+          if (reconnectTimeoutRef.current) return
+
+          const shouldReconnect = state !== EventSource.OPEN
           if (shouldReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
-            const delay = Math.min(
-              baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current),
-              30000 // Máximo 30 segundos
-            )
-            
-            console.log(`Programando reconexión SSE en ${delay}ms (intento ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`)
-            
+            const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current), 30000)
             reconnectTimeoutRef.current = setTimeout(() => {
               reconnectAttemptsRef.current++
-              console.log(`Reintentando conexión SSE (intento ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`)
+              try {
+                eventSource.close()
+              } catch {}
               connect()
             }, delay)
           } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-            console.error('Máximo número de reintentos alcanzado para conexión SSE')
             eventSourceRef.current = null
             options.onDisconnect?.()
           }

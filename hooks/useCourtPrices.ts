@@ -33,10 +33,20 @@ export function useCourtPrices(options?: { publicView?: boolean }) {
         setError('Error al cargar los precios de canchas')
       }
     } catch (error) {
+      const isAbort =
+        (error instanceof Error && error.name === 'AbortError') ||
+        (typeof error === 'string' && error === 'cleanup') ||
+        (signal?.aborted === true)
+      if (isAbort) {
+        // Ignorar aborts provocados por cleanup o reconexión
+        return
+      }
       console.error('Error fetching courts:', error)
       setError('Error de conexión al cargar precios')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) {
+        setLoading(false)
+      }
     }
   }
 
@@ -65,34 +75,15 @@ export function useCourtPrices(options?: { publicView?: boolean }) {
     // Cargar precios iniciales con cancelación segura
     fetchCourts(controller.signal)
 
-    // Configurar Server-Sent Events unificados para actualizaciones en tiempo real
-    const eventSource = new EventSource('/api/events')
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        // Escuchar eventos de actualización de canchas del sistema SSE unificado
-        if (data.type === 'courts_updated') {
-          // Actualizar la lista de canchas cuando hay cambios
-          fetchCourts(controller.signal)
-        }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error)
-      }
-    }
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error)
-      // Reconectar después de un error
-      setTimeout(() => {
-        fetchCourts(controller.signal)
-      }, 5000)
-    }
-
     // Cleanup al desmontar el componente
     return () => {
-      eventSource.close()
-      controller.abort()
+      if (!controller.signal.aborted) {
+        try {
+          controller.abort('cleanup')
+        } catch (_) {
+          // Silenciar cualquier error inesperado de abort en entornos específicos
+        }
+      }
     }
   }, [])
 

@@ -9,6 +9,8 @@ export interface TimeSlot {
   available: boolean;
   isAvailable?: boolean;
   price: number;
+  finalPrice?: number;
+  pricePerPerson?: number;
   courtId: string;
   courtName?: string;
   date?: Date;

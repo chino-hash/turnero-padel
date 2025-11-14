@@ -30,24 +30,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validar operaciones
     for (const op of operations) {
-      if (!op.type || !op.model) {
+      const opType = (op as any).type ?? (op as any).operation;
+      if (!opType || !op.model) {
         return NextResponse.json(
-          { success: false, error: 'Cada operación debe tener tipo y modelo' },
+          { success: false, error: 'Cada operación debe tener operación/tipo y modelo' },
           { status: 400 }
         );
       }
 
-      if (!['create', 'update', 'delete'].includes(op.type)) {
+      if (!['create', 'update', 'delete'].includes(opType)) {
         return NextResponse.json(
-          { success: false, error: `Tipo de operación '${op.type}' no válido` },
+          { success: false, error: `Operación/tipo '${opType}' no válido` },
           { status: 400 }
         );
       }
     }
 
-    const result = await crudService.transaction(operations);
+    const normalizedOps = operations.map((op: any) => ({
+      model: op.model,
+      operation: op.operation ?? op.type,
+      data: op.data,
+      where: op.where
+    }));
+
+    const result = await crudService.transaction(normalizedOps);
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });

@@ -6,6 +6,7 @@ import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
 import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle } from "lucide-react"
 import { Input } from "./ui/input"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select"
 import { removeDuplicates } from '../lib/utils/array-utils'
 import { useAppState } from './providers/AppStateProvider'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
@@ -24,6 +25,8 @@ interface Booking {
   paymentStatus: 'pagado' | 'pendiente' | 'parcial'
   totalPrice: number
   createdAt: string
+  closedAt?: string | null
+  recurringId?: string | null
   players: {
     player1: string
     player2?: string
@@ -66,6 +69,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
+  const [extrasOpen, setExtrasOpen] = useState<Record<string, boolean>>({})
 
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
@@ -74,6 +78,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
   const [quantity, setQuantity] = useState<number>(1)
   const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
+  const [addingExtra, setAddingExtra] = useState<boolean>(false)
+  const selectedProduct = productos.find(p => p.id === (selectedProductId ?? -1)) || null
 
   // Estados para la modal de calendario
   const [showCalendarModal, setShowCalendarModal] = useState(false)
@@ -82,13 +88,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   // Tiempo en vivo para cálculo de estado EN CURSO y temporizador
   const [now, setNow] = useState<Date>(new Date())
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
+    const t = setInterval(() => setNow(new Date()), 3000)
     return () => clearInterval(t)
   }, [])
 
   // Doble validación para completar turno
   const [confirmBookingId, setConfirmBookingId] = useState<string | null>(null)
   const [confirmChecked, setConfirmChecked] = useState<boolean>(false)
+  const [cancelBookingId, setCancelBookingId] = useState<string | null>(null)
+  const [inFlightUpdates, setInFlightUpdates] = useState<Record<string, boolean>>({})
 
   // Utilidades de tiempo para determinar categoría del turno
   const parseTimeRange = (timeRange: string) => {
@@ -98,9 +106,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   const getBookingTimes = (booking: Booking) => {
     const { startStr, endStr } = parseTimeRange(booking.timeRange)
-    // Construir fecha en formato local ISO
-    const start = new Date(`${booking.date}T${startStr}:00`)
-    const end = new Date(`${booking.date}T${endStr}:00`)
+    const [y, m, d] = booking.date.split('-').map(Number)
+    const [sh, sm] = startStr.split(':').map(Number)
+    const [eh, em] = endStr.split(':').map(Number)
+    const start = new Date(y, (m || 1) - 1, d || 1, sh || 0, sm || 0, 0, 0)
+    const end = new Date(y, (m || 1) - 1, d || 1, eh || 0, em || 0, 0, 0)
     return { start, end }
   }
 
@@ -108,6 +118,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     const { start, end } = getBookingTimes(booking)
     // Completado siempre se muestra como completado
     if (booking.status === 'completado') {
+      if (booking.closedAt) {
+        return { category: 'closed' as const, remainingMs: 0 }
+      }
       return { category: 'completed' as const, remainingMs: 0 }
     }
     // Solo se categorizan las reservas confirmadas por administrador
@@ -216,6 +229,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       paymentStatus: mapPaymentStatusToSpanish(apiBooking?.paymentStatus),
       totalPrice: Number(apiBooking?.totalPrice || 0),
       createdAt: String(apiBooking?.createdAt || new Date().toISOString()),
+      closedAt: apiBooking?.closedAt ? String(apiBooking.closedAt) : null,
+      recurringId: apiBooking?.recurringId ? String(apiBooking.recurringId) : null,
       players: playersObj,
       individualPayments,
       extras: extrasMapped,
@@ -375,9 +390,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   useEffect(() => {
     const loadProductos = async () => {
+      const fetchWithRetry = async (retries: number, delayMs: number) => {
+        try {
+          const res = await fetch('/api/productos')
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return await res.json()
+        } catch (err) {
+          if (retries > 0) {
+            await new Promise(r => setTimeout(r, delayMs))
+            return fetchWithRetry(retries - 1, delayMs * 2)
+          }
+          throw err
+        }
+      }
       try {
-        const res = await fetch('/api/productos')
-        const data = await res.json()
+        const data = await fetchWithRetry(2, 300)
         const productosArr = Array.isArray(data?.data)
           ? data.data
           : Array.isArray(data)
@@ -395,8 +422,14 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
         setProductos(normalized)
       } catch (e) {
-        console.warn('No se pudieron cargar productos en /api/productos')
-        setProductos([])
+        // Mantener la lista actual si existe; evitar vaciar en errores intermitentes
+        // Registrar evento silencioso
+        fetch('/api/admin/test-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ type: 'product_fetch_error', message: 'Fallo obteniendo productos' })
+        }).catch(() => {})
       }
     }
     if (showExtrasModal) {
@@ -419,20 +452,31 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   const handleAddExtra = async () => {
     if (!selectedBookingId || !selectedProductId || quantity <= 0) return
+    if (addingExtra) return
+    if (!selectedProduct || !selectedProduct.activo || selectedProduct.stock <= 0) return
+    setAddingExtra(true)
 
     const producto = productos.find(p => p.id === selectedProductId)
     if (!producto) return
 
     try {
-      const res = await fetch(`/api/bookings/${selectedBookingId}/extras`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productoId: selectedProductId,
-          quantity,
-          assignedToAll: extraAssignedTo === 'all',
+      const postWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
+        const res = await fetch(`/api/bookings/${selectedBookingId}/extras`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productoId: selectedProductId,
+            quantity,
+            assignedToAll: extraAssignedTo === 'all',
+          })
         })
-      })
+        if (!res.ok && retries > 0) {
+          await new Promise(r => setTimeout(r, delayMs))
+          return postWithRetry(retries - 1, delayMs * 2)
+        }
+        return res
+      }
+      const res = await postWithRetry(2, 300)
       if (!res.ok) {
         // Fallback optimista si el backend falla
         const total = producto.precio * quantity
@@ -442,6 +486,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           cost: total,
           assignedTo: extraAssignedTo
         })
+        setExtrasOpen(prev => ({ ...prev, [selectedBookingId]: true }))
       } else {
         // Actualizar reserva con respuesta completa (incluye extras y pricing)
         const data = await res.json()
@@ -461,11 +506,19 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               }))
             return { ...b, extras: mappedExtras }
           }))
+          setExtrasOpen(prev => ({ ...prev, [booking.id]: true }))
         }
       }
     } catch (err) {
-      console.error('Error al agregar extra:', err)
+      // Fallback ya aplicado arriba; aquí solo registrar evento silencioso
+      fetch('/api/admin/test-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ type: 'extra_add_error', message: 'Fallo agregando extra' })
+      }).catch(() => {})
     } finally {
+      setAddingExtra(false)
       closeExtrasModal()
     }
   }
@@ -477,17 +530,31 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       try {
         const params = new URLSearchParams()
         params.set('limit', '50')
-        const res = await fetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' })
-        if (!res.ok) {
-          throw new Error(`Error obteniendo reservas (${res.status})`)
+        const fetchWithRetry = async (retries: number, delayMs: number) => {
+          try {
+            const res = await fetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' })
+            if (!res.ok) throw new Error(String(res.status))
+            return await res.json()
+          } catch (err) {
+            if (retries > 0) {
+              await new Promise(r => setTimeout(r, delayMs))
+              return fetchWithRetry(retries - 1, delayMs * 2)
+            }
+            throw err
+          }
         }
-        const payload = await res.json()
+        const payload = await fetchWithRetry(2, 300)
         const list = Array.isArray(payload?.data) ? payload.data : []
         const mapped: Booking[] = list.map(mapApiBookingToLocal)
         setBookings(mapped)
       } catch (error) {
-        console.error('Error loading bookings:', error)
-        setBookings([])
+        // Registrar evento silencioso y mantener estado actual
+        fetch('/api/admin/test-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ type: 'bookings_fetch_error', message: 'Fallo obteniendo reservas' })
+        }).catch(() => {})
       } finally {
         setLoading(false)
       }
@@ -511,37 +578,25 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       )
     }
 
-    // Filtrar por estado específico
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.status === statusFilter)
+      filtered = filtered.filter(booking => {
+        const cat = getCategoryAndRemaining(booking).category
+        if (statusFilter === 'confirmed') return cat === 'confirmed'
+        if (statusFilter === 'in_progress') return cat === 'in_progress'
+        if (statusFilter === 'completed') return cat === 'completed' || cat === 'closed'
+        return true
+      })
     }
 
-    // Filtrar por fecha
     if (dateFilter !== 'all') {
-      const today = new Date()
-      const filterDate = new Date(today)
-      
-      switch (dateFilter) {
-        case 'today':
-          filtered = filtered.filter(booking => {
-            const bookingDate = new Date(booking.date)
-            return bookingDate.toDateString() === today.toDateString()
-          })
-          break
-        case 'week':
-          filterDate.setDate(today.getDate() + 7)
-          filtered = filtered.filter(booking => {
-            const bookingDate = new Date(booking.date)
-            return bookingDate >= today && bookingDate <= filterDate
-          })
-          break
-        case 'month':
-          filterDate.setMonth(today.getMonth() + 1)
-          filtered = filtered.filter(booking => {
-            const bookingDate = new Date(booking.date)
-            return bookingDate >= today && bookingDate <= filterDate
-          })
-          break
+      const base = new Date()
+      const target = new Date(base)
+      if (dateFilter === 'today') {
+        filtered = filtered.filter(b => new Date(b.date).toDateString() === base.toDateString())
+      } else if (dateFilter.startsWith('plus')) {
+        const offset = Number(dateFilter.replace('plus', '')) || 0
+        target.setDate(base.getDate() + offset)
+        filtered = filtered.filter(b => new Date(b.date).toDateString() === target.toDateString())
       }
     }
 
@@ -594,56 +649,98 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         // Mantener estado si falla
         return
       }
-      // Actualizar estado local a completado
-      setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'completado' } : b)))
+      const data = await res.json()
+      const closedAt = new Date().toISOString()
+      // Actualizar estado local a completado y marcar closedAt
+      setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'completado', closedAt } : b)))
+      // Auditoría
+      await fetch('/api/admin/test-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          type: 'bookings_updated',
+          message: `Turno ${bookingId} cerrado definitivamente a las ${new Date(closedAt).toLocaleString('es-ES')}`
+        })
+      }).catch(() => {})
     } catch (err) {
       // Silencioso para no romper UI
       console.error('Error cerrando turno:', err)
     }
   }
 
-  const togglePlayerPayment = async (bookingId: string, playerKey: keyof Booking['individualPayments']) => {
-    // UI optimista: aplicar el cambio localmente primero
-    let previousState: Booking | null = null
-    setBookings(prevBookings => {
-      return prevBookings.map(booking => {
-        if (booking.id === bookingId) {
-          previousState = booking
-          const newPayments = {
-            ...booking.individualPayments,
-            [playerKey]: booking.individualPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
-          }
-
-          const paidCount = Object.values(newPayments).filter(status => status === 'pagado').length
-          const totalPlayers = 4
-
-          const paymentStatus: Booking['paymentStatus'] =
-            paidCount === 0 ? 'pendiente' : paidCount === totalPlayers ? 'pagado' : 'parcial'
-
-          return {
-            ...booking,
-            individualPayments: newPayments,
-            paymentStatus
-          }
+  const cancelBooking = async (bookingId: string) => {
+    try {
+      const postWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
+        const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin'
+        })
+        if (!res.ok && retries > 0) {
+          await new Promise(r => setTimeout(r, delayMs))
+          return postWithRetry(retries - 1, delayMs * 2)
         }
-        return booking
-      })
-    })
+        return res
+      }
+      const res = await postWithRetry(2, 300)
+      if (!res.ok) {
+        setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelado' } : b)))
+        return
+      }
+      setBookings(prev => prev.filter(b => b.id !== bookingId))
+      await fetch('/api/admin/test-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ type: 'bookings_updated', message: `Turno ${bookingId} cancelado por administrador` })
+      }).catch(() => {})
+    } catch (err) {
+      setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelado' } : b)))
+      fetch('/api/admin/test-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ type: 'booking_cancel_error', message: `Fallo cancelando turno ${bookingId}` })
+      }).catch(() => {})
+    }
+  }
+
+  const togglePlayerPayment = async (bookingId: string, playerKey: keyof Booking['individualPayments']) => {
+    // Encontrar estado previo de forma fiable antes de mutar
+    const previousState = bookings.find(b => b.id === bookingId) || null
+    if (!previousState) {
+      console.error('Reserva no encontrada para toggle', bookingId)
+      return
+    }
+    // UI optimista: aplicar el cambio localmente primero
+    setInFlightUpdates(prev => ({ ...prev, [bookingId]: true }))
+    setBookings(prevBookings => prevBookings.map(booking => {
+      if (booking.id !== bookingId) return booking
+      const newPayments = {
+        ...booking.individualPayments,
+        [playerKey]: booking.individualPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
+      }
+      const paidCount = Object.values(newPayments).filter(status => status === 'pagado').length
+      const totalPlayers = 4
+      const paymentStatus: Booking['paymentStatus'] = paidCount === 0 ? 'pendiente' : paidCount === totalPlayers ? 'pagado' : 'parcial'
+      return { ...booking, individualPayments: newPayments, paymentStatus }
+    }))
 
     try {
-      // Mapear `playerKey` a posición (player1 -> 1, etc.) y determinar nuevo estado
       const position = Number(String(playerKey).replace('player', ''))
-      const newPaidStatus = previousState?.individualPayments[playerKey] === 'pagado' ? false : true
+      if (!(position >= 1 && position <= 4)) throw new Error(`Posición inválida: ${position}`)
+      const newPaidStatus = previousState.individualPayments[playerKey] === 'pagado' ? false : true
 
       // Reconstruir estado de pagos tras el toggle para calcular paymentStatusBackend con 4 jugadores
-      const currentPayments = { ...(previousState?.individualPayments || {}) } as Booking['individualPayments']
+      const currentPayments = { ...(previousState.individualPayments || {}) } as Booking['individualPayments']
       const toggledPayments = { ...currentPayments, [playerKey]: newPaidStatus ? 'pagado' : 'pendiente' }
 
       // Construir payload de jugadores desde el estado previo, aplicando el toggle
       const playerKeys: Array<keyof Booking['players']> = ['player1', 'player2', 'player3', 'player4']
       const playersPayload = playerKeys
         .map((key, idx) => {
-          const name = (previousState?.players[key] || '').trim()
+          const name = (previousState.players[key] || '').trim()
           if (!name) return null
           const hasPaid = toggledPayments[key as keyof Booking['individualPayments']] === 'pagado'
           return {
@@ -663,21 +760,84 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           ? 'FULLY_PAID'
           : 'DEPOSIT_PAID'
 
-      // Enviar actualización vía PUT al endpoint principal
-      const putRes = await fetch(`/api/bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ players: playersPayload, paymentStatus: paymentStatusBackend })
-      })
+      const doPutWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
+        const res = await fetch(`/api/bookings/${bookingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ players: playersPayload, paymentStatus: paymentStatusBackend })
+        })
+        if (res.status === 429 && retries > 0) {
+          await new Promise(r => setTimeout(r, delayMs))
+          return doPutWithRetry(retries - 1, delayMs * 2)
+        }
+        return res
+      }
 
+      const putRes = await doPutWithRetry(2, 400)
       if (!putRes.ok) {
         let errorMessage = `Error actualizando reserva (HTTP ${putRes.status})`
+        let dataError: string | undefined
         try {
           const data = await putRes.json()
-          if (data?.error) errorMessage = `Error actualizando reserva: ${data.error}`
+          if (data?.error) {
+            dataError = String(data.error)
+            errorMessage = `Error actualizando reserva: ${data.error}`
+          }
         } catch (_) {}
-        throw new Error(errorMessage)
+        if (putRes.status === 429 || dataError === 'RATE_LIMIT_EXCEEDED') {
+          // Mantener estado optimista en rate limit y registrar evento, sin romper la UI
+          await fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              type: 'bookings_updated',
+              message: `RATE_LIMIT_EXCEEDED al actualizar pagos de ${bookingId}. Se mantuvo estado y se intentó reintentar.`
+            })
+          }).catch(() => {})
+        } else {
+          throw new Error(errorMessage)
+        }
+      }
+
+      // Registro de transacción: crear entrada de pago (silencioso si falla)
+      try {
+        const playerAmount = calculatePlayerAmount(previousState, playerKey as keyof Booking['players'])
+        const txRes = await fetch('/api/crud/transaction', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            operations: [
+              {
+                operation: 'create',
+                model: 'payment',
+                data: {
+                  bookingId,
+                  amount: playerAmount,
+                  paymentMethod: 'CASH',
+                  paymentType: newPaidStatus ? 'PAYMENT' : 'ADJUSTMENT',
+                  status: newPaidStatus ? 'completed' : 'reversed'
+                }
+              }
+            ]
+          })
+        })
+
+        if (!txRes.ok) {
+          await fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              type: 'bookings_updated',
+              message: `Pago ${newPaidStatus ? 'marcado' : 'revertido'} para booking ${bookingId} jugador ${position} por $${playerAmount}`
+            })
+          }).catch(() => {})
+        }
+      } catch (logErr) {
+        console.warn('Fallo registrando transacción de pago:', logErr)
       }
 
       // Éxito: no es necesario actualizar estado, la UI ya refleja el cambio
@@ -687,7 +847,148 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       if (previousState) {
         setBookings(prevBookings => prevBookings.map(b => (b.id === bookingId ? previousState! : b)))
       }
+    } finally {
+      setInFlightUpdates(prev => ({ ...prev, [bookingId]: false }))
     }
+  }
+
+  const renderExpandedContent = (booking: Booking, idx: number) => {
+    const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
+    const totalExtras = booking.extras.reduce((sum, extra) => sum + (extra.cost || 0), 0)
+    const totalOriginal = booking.totalPrice + totalExtras
+    const amountPaid = computeAmountPaid(booking)
+    const pendingBalance = Math.max(0, totalOriginal - amountPaid)
+
+    return (
+      <div className="border-t pt-4 space-y-4">
+        <div>
+          <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {(['player1','player2','player3','player4'] as Array<keyof Booking['players']>).map((playerKey) => {
+              const playerName = (booking.players[playerKey] || '').trim()
+              const displayName = playerName || (playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`)
+              const paymentStatus = booking.individualPayments[playerKey as keyof typeof booking.individualPayments]
+              const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
+              const isPaid = paymentStatus === 'pagado'
+    const isClosed = booking.status === 'completado' && !!booking.closedAt
+    const disableToggle = (isClosed && isPaid && pendingBalance === 0)
+              return (
+                <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">{displayName}</p>
+                    <p className="text-xs text-gray-600">{playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}</p>
+                    <p className="text-xs text-gray-500">${playerAmount.toLocaleString()}</p>
+                  </div>
+                  <Button
+                    variant={isPaid ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
+                    className={`text-xs ${isPaid ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-red-300 text-red-600 hover:bg-red-50'} ${(disableToggle || inFlightUpdates[booking.id]) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={disableToggle || !!inFlightUpdates[booking.id]}
+                    aria-disabled={disableToggle || !!inFlightUpdates[booking.id]}
+                    data-testid={`admin-player-payment-toggle-${idx + 1}-${playerKey}`}
+                  >
+                    {isPaid ? (<><CheckCircle className="w-3 h-3 mr-1" />Pagado</>) : (<><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>)}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <h4
+            className="font-medium text-gray-900 mb-3 flex items-center gap-2 cursor-pointer hover:text-purple-600 transition-colors"
+            data-testid={`admin-extras-toggle-${idx + 1}`}
+            onClick={() => setExtrasOpen(prev => ({ ...prev, [booking.id]: !prev[booking.id] }))}
+          >
+            {extrasOpen[booking.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            Extras Agregados ({booking.extras.length})
+          </h4>
+          {extrasOpen[booking.id] && booking.extras.length > 0 && (
+            <div className="space-y-2">
+              {booking.extras.map((extra) => (
+                <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm text-gray-900">{extra.name}</span>
+                    <span className="text-xs text-gray-500">({extra.assignedTo === 'all' ? 'Todos' : Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(extra.cost)}</span>
+                    <Button variant="ghost" size="sm" onClick={() => removeExtra(booking.id, extra.id)} className="text-red-500 hover:text-red-700 p-1 h-auto">
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-600 font-medium">Total original</p>
+            <p className="text-xl font-bold text-blue-700">${formatCurrency(totalOriginal)}</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <p className="text-sm text-green-600 font-medium">Pagado</p>
+            <p className="text-xl font-bold text-green-700">${formatCurrency(amountPaid)}</p>
+          </div>
+        <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50'}`}>
+          {pendingBalance === 0 ? (
+            <p className="text-sm text-green-600 font-medium"><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
+          ) : (
+            <p className="text-sm text-yellow-600 font-medium">Saldo pendiente</p>
+          )}
+          <p className={`text-xl font-bold ${pendingBalance === 0 ? 'text-green-700' : 'text-yellow-700'} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
+        </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => openExtrasModal(booking.id)} className="text-blue-600 border-blue-600 hover:bg-blue-50" data-testid={`admin-add-extra-btn-${idx + 1}`}>
+            <Plus className="w-4 h-4 mr-1" />
+            Agregar Extra
+          </Button>
+          {(() => {
+            const canClose = pendingBalance === 0 && (booking.status === 'confirmado' || (booking.status === 'completado' && !booking.closedAt))
+            const isClosed = booking.status === 'completado' && !!booking.closedAt
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmBookingId(booking.id)}
+                className={`text-green-600 border-green-600 hover:bg-green-50 ${(!canClose || isClosed) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                data-testid={`admin-complete-btn-${idx + 1}`}
+                disabled={!canClose || isClosed}
+                aria-disabled={!canClose || isClosed}
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                {isClosed ? 'Cerrado' : 'Completar'}
+              </Button>
+            )
+          })()}
+          {(() => {
+            const cat = getCategoryAndRemaining(booking).category
+            const disableCancel = cat === 'awaiting_completion' || cat === 'completed' || cat === 'closed'
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCancelBookingId(booking.id)}
+                className={`text-red-600 border-red-600 hover:bg-red-50 ${disableCancel ? 'opacity-60 cursor-not-allowed' : ''}`}
+                data-testid={`admin-cancel-btn-${idx + 1}`}
+                disabled={disableCancel}
+                aria-disabled={disableCancel}
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancelar
+              </Button>
+            )
+          })()}
+        </div>
+      </div>
+    )
   }
 
   // Calcular estadísticas
@@ -859,9 +1160,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             data-testid="status-filter"
           >
             <option value="all">Todos los estados</option>
-            <option value="confirmado">Confirmado</option>
-            <option value="cancelado">Cancelado</option>
-            <option value="completado">Completado</option>
+            <option value="confirmed">Confirmados</option>
+            <option value="in_progress">En curso</option>
+            <option value="completed">Completados</option>
           </select>
         </div>
 
@@ -876,8 +1177,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           >
             <option value="all">Todas las fechas</option>
             <option value="today">Hoy</option>
-            <option value="week">Esta semana</option>
-            <option value="month">Este mes</option>
+            <option value="plus1">Mañana</option>
+            <option value="plus2">Pasado mañana</option>
+            <option value="plus3">En 3 días</option>
+            <option value="plus4">En 4 días</option>
+            <option value="plus5">En 5 días</option>
+            <option value="plus6">En 6 días</option>
           </select>
         </div>
 
@@ -911,17 +1216,17 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           </Card>
         ) : (
           <>
-            {/* Sección: Turnos confirmados (no jugados) */}
+            {/* Sección: Turnos fijos (recurrencia) */}
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 border-t border-green-300"></div>
-                <span className="text-xs font-bold tracking-widest text-green-700 bg-green-50 px-3 py-1 rounded">TURNOS CONFIRMADOS</span>
-                <div className="flex-1 border-t border-green-300"></div>
+                <div className="flex-1 border-t border-purple-300"></div>
+                <span className="text-xs font-bold tracking-widest text-purple-700 bg-purple-50 px-3 py-1 rounded">TURNOS FIJOS</span>
+                <div className="flex-1 border-t border-purple-300"></div>
               </div>
               <div className="mt-4 space-y-4">
                 {filteredBookings
-                  .filter((b) => getCategoryAndRemaining(b).category === 'confirmed')
-                  .map((booking) => (
+                  .filter((b) => !!b.recurringId)
+                  .map((booking, idx) => (
                     <Card key={booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
@@ -937,6 +1242,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                   </span>
                                 )
                               })()}
+                              <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 text-purple-800 border-purple-200">Fijo</span>
                             </CardTitle>
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
@@ -954,7 +1260,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">Confirmada</span>
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
@@ -987,161 +1292,92 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
                       {expandedBooking === booking.id && (
                         <CardContent className="pt-0">
-                          <div className="border-t pt-4 space-y-4">
-                            {/* Información de jugadores y pagos */}
-                            <div>
-                              <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {Object.entries(booking.players).map(([playerKey, playerName]) => {
-                                  if (!playerName) return null
-                                  const paymentStatus = booking.individualPayments[playerKey as keyof typeof booking.individualPayments]
-                                  const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
-                                  return (
-                                    <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                      <div>
-                                        <p className="font-medium text-sm">{playerName}</p>
-                                        <p className="text-xs text-gray-600">
-                                          {playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          ${playerAmount.toLocaleString()}
-                                        </p>
-                                      </div>
-                                      <Button
-                                        variant={paymentStatus === 'pagado' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
-                                        className={`text-xs ${
-                                          paymentStatus === 'pagado' 
-                                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                                            : 'border-red-300 text-red-600 hover:bg-red-50'
-                                        }`}
-                                        disabled={false}
-                                        aria-disabled={false}
-                                        data-testid={`payment-${booking.id}-${playerKey}`}
-                                      >
-                                        {paymentStatus === 'pagado' ? (
-                                          <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                                        ) : (
-                                          <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )
-                                })}
-                              </div>
+                          {renderExpandedContent(booking, idx)}
+                        </CardContent>
+                      )}
+                    </Card>
+                  ))}
+              </div>
+            </div>
+            {/* Sección: Turnos confirmados (no jugados) */}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-green-300"></div>
+                <span className="text-xs font-bold tracking-widest text-green-700 bg-green-50 px-3 py-1 rounded">TURNOS CONFIRMADOS</span>
+                <div className="flex-1 border-t border-green-300"></div>
+              </div>
+              <div className="mt-4 space-y-4">
+                {filteredBookings
+                  .filter((b) => {
+                    const cat = getCategoryAndRemaining(b).category
+                    return cat === 'confirmed' || cat === 'awaiting_completion'
+                  })
+                  .map((booking, idx) => (
+                    <Card key={booking.id} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <MapPin className="w-5 h-5 text-blue-600" />
+                              {booking.courtName}
+                              {(() => {
+                                const statusKey = toBookingStatus(booking.status)
+                                return (
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
+                                    {BOOKING_STATUS_LABELS[statusKey]}
+                                  </span>
+                                )
+                              })()}
+                            </CardTitle>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {booking.timeRange}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <User className="w-4 h-4" />
+                                {booking.userName}
+                              </span>
                             </div>
-
-                            {/* Sección de extras */}
-                            {booking.extras.length > 0 && (
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                  <Plus className="w-4 h-4" />
-                                  Extras Agregados
-                                </h4>
-                                <div className="space-y-2">
-                                  {booking.extras.map((extra) => (
-                                    <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        <span className="text-sm text-gray-900">{extra.name}</span>
-                                        <span className="text-xs text-gray-500">
-                                          ({extra.assignedTo === 'all' ? 'Todos' : 
-                                            Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium text-gray-900">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(extra.cost)}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeExtra(booking.id, extra.id)}
-                                          className="text-red-500 hover:text-red-700 p-1 h-auto"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Resumen financiero de la reserva */}
+                          </div>
+                          <div className="flex items-center gap-2">
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
                               const totalOriginal = booking.totalPrice + totalExtras
                               const amountPaid = computeAmountPaid(booking)
                               const pendingBalance = Math.max(0, totalOriginal - amountPaid)
+                              const chipValue = pendingBalance
                               return (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-                                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                    <p className="text-sm text-blue-600 font-medium">Total original</p>
-                                    <p className="text-xl font-bold text-blue-700">${formatCurrency(totalOriginal)}</p>
-                                  </div>
-                                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-600 font-medium">Pagado</p>
-                                    <p className="text-xl font-bold text-green-700">${formatCurrency(amountPaid)}</p>
-                                  </div>
-                                  <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50'}`}>
-                                    {pendingBalance === 0 ? (
-                                      <p className="text-sm text-green-600 font-medium">
-                                        <span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span>
-                                      </p>
-                                    ) : (
-                                      <p className="text-sm text-yellow-600 font-medium">Saldo pendiente</p>
-                                    )}
-                                    <p className={`text-xl font-bold ${pendingBalance === 0 ? 'text-green-700' : 'text-yellow-700'} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
-                                  </div>
-                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
+                                  ${formatCurrency(chipValue)}
+                                </span>
                               )
                             })()}
-
-                            {/* Acciones de administración */}
-                            <div className="flex gap-2 pt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openExtrasModal(booking.id)}
-                                className="text-purple-600 border-purple-300 hover:bg-purple-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Agregar Extra
-                              </Button>
-                              {booking.status === 'confirmado' && (() => {
-                                const totalExtras = booking.extras.reduce((sum, extra) => sum + (extra.cost || 0), 0)
-                                const totalOriginal = booking.totalPrice + totalExtras
-                                const amountPaid = computeAmountPaid(booking)
-                                const canClose = Math.max(0, totalOriginal - amountPaid) === 0
-                                return (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setConfirmBookingId(booking.id)}
-                                    className={`border-blue-300 ${!canClose ? 'text-gray-400 hover:bg-transparent cursor-not-allowed opacity-60' : 'text-blue-600 hover:bg-blue-50'}`}
-                                    data-testid={`complete-booking-${booking.id}`}
-                                    disabled={!canClose}
-                                    aria-disabled={!canClose}
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Completar
-                                  </Button>
-                                )
-                              })()}
-                              {booking.status !== 'cancelado' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-300 border-red-200 cursor-not-allowed"
-                                  disabled
-                                >
-                                  <X className="w-4 h-4 mr-1" />
-                                  Cancelar
-                                </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleBookingExpansion(booking.id)}
+                              aria-expanded={expandedBooking === booking.id}
+                              data-testid={`expand-booking-${booking.id}`}
+                            >
+                              {expandedBooking === booking.id ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
                               )}
-                            </div>
+                            </Button>
                           </div>
+                        </div>
+                      </CardHeader>
+
+                      {expandedBooking === booking.id && (
+                        <CardContent className="pt-0">
+                          {renderExpandedContent(booking, idx)}
                         </CardContent>
                       )}
                     </Card>
@@ -1159,7 +1395,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <div className="mt-4 space-y-4">
                 {filteredBookings
                   .filter((b) => getCategoryAndRemaining(b).category === 'in_progress')
-                  .map((booking) => (
+                  .map((booking, idx) => (
                     <Card key={booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
@@ -1232,152 +1468,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
                       {expandedBooking === booking.id && (
                         <CardContent className="pt-0">
-                          <div className="border-t pt-4 space-y-4">
-                            {/* Información de jugadores y pagos */}
-                            <div>
-                              <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {Object.entries(booking.players).map(([playerKey, playerName]) => {
-                                  if (!playerName) return null
-                                  const paymentStatus = booking.individualPayments[playerKey as keyof typeof booking.individualPayments]
-                                  const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
-                                  return (
-                                    <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                      <div>
-                                        <p className="font-medium text-sm">{playerName}</p>
-                                        <p className="text-xs text-gray-600">
-                                          {playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          ${playerAmount.toLocaleString()}
-                                        </p>
-                                      </div>
-                                      <Button
-                                        variant={paymentStatus === 'pagado' ? 'default' : 'outline'}
-                                        size="sm"
-                                        onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
-                                        className={`text-xs ${
-                                          paymentStatus === 'pagado' 
-                                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                                            : 'border-red-300 text-red-600 hover:bg-red-50'
-                                        }`}
-                                        disabled={booking.status === 'completado'}
-                                        aria-disabled={booking.status === 'completado'}
-                                        data-testid={`payment-${booking.id}-${playerKey}`}
-                                      >
-                                        {paymentStatus === 'pagado' ? (
-                                          <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                                        ) : (
-                                          <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Sección de extras */}
-                            {booking.extras.length > 0 && (
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                  <Plus className="w-4 h-4" />
-                                  Extras Agregados
-                                </h4>
-                                <div className="space-y-2">
-                                  {booking.extras.map((extra) => (
-                                    <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        <span className="text-sm text-gray-900">{extra.name}</span>
-                                        <span className="text-xs text-gray-500">
-                                          ({extra.assignedTo === 'all' ? 'Todos' : 
-                                            Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium text-gray-900">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(extra.cost)}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-red-300 p-1 h-auto cursor-not-allowed"
-                                          disabled
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Resumen financiero de la reserva */}
-                            {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              return (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-                                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                    <p className="text-sm text-blue-600 font-medium">Total original</p>
-                                    <p className="text-xl font-bold text-blue-700">${formatCurrency(totalOriginal)}</p>
-                                  </div>
-                                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-600 font-medium">Pagado</p>
-                                    <p className="text-xl font-bold text-green-700">${formatCurrency(amountPaid)}</p>
-                                  </div>
-                                  <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50'}`}>
-                                    {pendingBalance === 0 ? (
-                                      <p className="text-sm text-green-600 font-medium">
-                                        <span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span>
-                                      </p>
-                                    ) : (
-                                      <p className="text-sm text-yellow-600 font-medium">Saldo pendiente</p>
-                                    )}
-                                    <p className={`text-xl font-bold ${pendingBalance === 0 ? 'text-green-700' : 'text-yellow-700'} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
-                                  </div>
-                                </div>
-                              )
-                            })()}
-
-                            {/* Acciones de administración */}
-                            <div className="flex gap-2 pt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-purple-300 border-purple-200 cursor-not-allowed"
-                                disabled
-                              >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Agregar Extra
-                              </Button>
-                              {booking.status === 'confirmado' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-blue-200 text-gray-400 cursor-not-allowed"
-                                  disabled
-                                >
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Completar
-                                </Button>
-                              )}
-                              {booking.status !== 'cancelado' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-300 border-red-200 cursor-not-allowed"
-                                  disabled
-                                >
-                                  <X className="w-4 h-4 mr-1" />
-                                  Cancelar
-                                </Button>
-                              )}
-                            </div>
-                          </div>
+                          {renderExpandedContent(booking, idx)}
                         </CardContent>
                       )}
                     </Card>
@@ -1394,11 +1485,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="mt-4 space-y-4">
                 {filteredBookings
-                  .filter((b) => {
-                    const c = getCategoryAndRemaining(b).category
-                    return c === 'completed' || c === 'awaiting_completion'
-                  })
-                  .map((booking) => (
+                  .filter((b) => getCategoryAndRemaining(b).category === 'completed')
+                  .map((booking, idx) => (
                     <Card key={booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
@@ -1433,7 +1521,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                           <div className="flex items-center gap-2">
                             {(() => {
                               const cat = getCategoryAndRemaining(booking).category
-                              if (cat === 'awaiting_completion') {
+                              if (cat === 'completed') {
                                 return (
                                   <span className="px-2 py-1 rounded-full text-xs font-medium border bg-yellow-100 text-yellow-800 border-yellow-200">Finalizada · confirmar cierre</span>
                                 )
@@ -1474,153 +1562,57 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
                       {expandedBooking === booking.id && (
                         <CardContent className="pt-0">
-                          <div className="border-t pt-4 space-y-4">
-                            {/* Información de jugadores y pagos */}
-                            <div>
-                              <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {Object.entries(booking.players).map(([playerKey, playerName]) => {
-                                  if (!playerName) return null
-                                  const paymentStatus = booking.individualPayments[playerKey as keyof typeof booking.individualPayments]
-                                  const playerAmount = calculatePlayerAmount(booking, playerKey as keyof Booking['players'])
-                                  return (
-                                    <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                      <div>
-                                        <p className="font-medium text-sm">{playerName}</p>
-                                        <p className="text-xs text-gray-600">
-                                          {playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          ${playerAmount.toLocaleString()}
-                                        </p>
-                                      </div>
-                                      <Button
-                                        variant={paymentStatus === 'pagado' ? 'default' : 'outline'}
-                                        size="sm"
-                                        className={`text-xs ${
-                                          paymentStatus === 'pagado' 
-                                            ? 'bg-green-600 text-white' 
-                                            : 'border-red-300 text-red-600'
-                                        } cursor-not-allowed`}
-                                        disabled
-                                        aria-disabled
-                                        data-testid={`payment-${booking.id}-${playerKey}`}
-                                      >
-                                        {paymentStatus === 'pagado' ? (
-                                          <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
-                                        ) : (
-                                          <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Sección de extras */}
-                            {booking.extras.length > 0 && (
-                              <div>
-                                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                                  <Plus className="w-4 h-4" />
-                                  Extras Agregados
-                                </h4>
-                                <div className="space-y-2">
-                                  {booking.extras.map((extra) => (
-                                    <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                        <span className="text-sm text-gray-900">{extra.name}</span>
-                                        <span className="text-xs text-gray-500">
-                                          ({extra.assignedTo === 'all' ? 'Todos' : 
-                                            Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-sm font-medium text-gray-900">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(extra.cost)}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-red-300 p-1 h-auto cursor-not-allowed"
-                                          disabled
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Resumen financiero de la reserva */}
-                            {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              return (
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-                                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                                    <p className="text-sm text-blue-600 font-medium">Total original</p>
-                                    <p className="text-xl font-bold text-blue-700">${formatCurrency(totalOriginal)}</p>
-                                  </div>
-                                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                                    <p className="text-sm text-green-600 font-medium">Pagado</p>
-                                    <p className="text-xl font-bold text-green-700">${formatCurrency(amountPaid)}</p>
-                                  </div>
-                                  <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50'}`}>
-                                    {pendingBalance === 0 ? (
-                                      <p className="text-sm text-green-600 font-medium">
-                                        <span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span>
-                                      </p>
-                                    ) : (
-                                      <p className="text-sm text-yellow-600 font-medium">Saldo pendiente</p>
-                                    )}
-                                    <p className={`text-xl font-bold ${pendingBalance === 0 ? 'text-green-700' : 'text-yellow-700'} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
-                                  </div>
-                                </div>
-                              )
-                            })()}
-
-                            {/* Acciones de administración */}
-                            <div className="flex gap-2 pt-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="text-purple-300 border-purple-200 cursor-not-allowed"
-                                disabled
-                              >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Agregar Extra
-                              </Button>
-                              {booking.status === 'confirmado' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-blue-200 text-gray-400 cursor-not-allowed"
-                                  disabled
-                                >
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Completar
-                                </Button>
-                              )}
-                              {booking.status !== 'cancelado' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-300 border-red-200 cursor-not-allowed"
-                                  disabled
-                                >
-                                  <X className="w-4 h-4 mr-1" />
-                                  Cancelar
-                                </Button>
-                              )}
-                            </div>
-                          </div>
+                          {renderExpandedContent(booking, idx)}
                         </CardContent>
                       )}
+                    </Card>
+                  ))}
+              </div>
+            </div>
+
+            {/* Sección: Turnos cerrados */}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 border-t border-gray-300"></div>
+                <span className="text-xs font-bold tracking-widest text-gray-700 bg-gray-50 px-3 py-1 rounded">TURNOS CERRADOS</span>
+                <div className="flex-1 border-t border-gray-300"></div>
+              </div>
+              <div className="mt-4 space-y-4">
+                {filteredBookings
+                  .filter((b) => getCategoryAndRemaining(b).category === 'closed')
+                  .map((booking) => (
+                    <Card key={booking.id} className="overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <MapPin className="w-5 h-5 text-blue-600" />
+                              {booking.courtName}
+                              <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">Cerrado</span>
+                            </CardTitle>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                {booking.timeRange}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                Cerrado {booking.closedAt ? new Date(booking.closedAt).toLocaleString('es-ES') : ''}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">Sin acciones</span>
+                            <Button variant="ghost" size="sm" aria-disabled className="cursor-not-allowed opacity-60">
+                              <ChevronDown className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardHeader>
                     </Card>
                   ))}
               </div>
@@ -1643,18 +1635,32 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Producto</label>
-                <select 
-                  className="w-full p-2 border rounded-md"
-                  value={selectedProductId ?? ''}
-                  onChange={(e) => setSelectedProductId(e.target.value ? Number(e.target.value) : null)}
+                <Select
+                  value={selectedProductId !== null ? String(selectedProductId) : ""}
+                  onValueChange={(value) => setSelectedProductId(value ? Number(value) : null)}
                 >
-                  <option value="">Seleccionar producto</option>
-                  {productos.map(p => (
-                    <option key={p.id} value={p.id} disabled={!p.activo || p.stock <= 0}>
-                      {p.nombre} (Stock: {p.stock})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Seleccionar producto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productos.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)} disabled={!p.activo || p.stock <= 0}>
+                        {p.nombre} (Stock: {p.stock}){!p.activo ? ' - INACTIVO' : ''}{p.stock <= 0 ? ' - SIN STOCK' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="mt-1 text-xs">
+                  {selectedProduct ? (
+                    selectedProduct.activo && selectedProduct.stock > 0 ? (
+                      <span className="text-green-600">Disponible · Stock: {selectedProduct.stock}</span>
+                    ) : (
+                      <span className="text-gray-500">No disponible · { !selectedProduct.activo ? 'Inactivo' : 'Sin stock' }</span>
+                    )
+                  ) : (
+                    <span className="text-gray-500">Seleccione un producto</span>
+                  )}
+                </div>
               </div>
               
               <div>
@@ -1662,8 +1668,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <Input
                   type="number"
                   min={1}
+                  max={selectedProduct?.stock ?? undefined}
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  disabled={!selectedProductId}
+                  onChange={(e) => {
+                    if (!selectedProductId) return
+                    const v = Number(e.target.value)
+                    const max = selectedProduct?.stock ?? Infinity
+                    setQuantity(Math.max(1, Math.min(v, max)))
+                  }}
                 />
               </div>
 
@@ -1678,17 +1691,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               
               <div>
                 <label className="block text-sm font-medium mb-2">Asignado a</label>
-                <select 
-                  className="w-full p-2 border rounded-md"
+                <Select
                   value={extraAssignedTo}
-                  onChange={(e) => setExtraAssignedTo(e.target.value as 'all' | 'player1' | 'player2' | 'player3' | 'player4')}
+                  onValueChange={(value) => setExtraAssignedTo(value as 'all' | 'player1' | 'player2' | 'player3' | 'player4')}
                 >
-                  <option value="all">Todos los jugadores</option>
-                  <option value="player1">Solo jugador 1</option>
-                  <option value="player2">Solo jugador 2</option>
-                  <option value="player3">Solo jugador 3</option>
-                  <option value="player4">Solo jugador 4</option>
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los jugadores</SelectItem>
+                    <SelectItem value="player1">Solo jugador 1</SelectItem>
+                    <SelectItem value="player2">Solo jugador 2</SelectItem>
+                    <SelectItem value="player3">Solo jugador 3</SelectItem>
+                    <SelectItem value="player4">Solo jugador 4</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
@@ -1699,9 +1716,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <Button 
                 onClick={handleAddExtra} 
                 className="flex-1"
-                disabled={!selectedProductId || quantity <= 0}
+                disabled={!selectedProductId || quantity <= 0 || addingExtra || !selectedProduct?.activo || (selectedProduct?.stock ?? 0) <= 0}
               >
-                Agregar Extra
+                {addingExtra ? (<><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Procesando...</>) : 'Agregar Extra'}
               </Button>
             </div>
           </div>
@@ -1739,6 +1756,25 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 aria-disabled={!confirmChecked}
               >
                 Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {cancelBookingId && (
+        <Dialog open={true} onOpenChange={(open) => { if (!open) { setCancelBookingId(null) } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancelar turno</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700">¿Estás seguro de cancelar el turno? Esta acción liberará el horario en el dashboard.</p>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setCancelBookingId(null)}>No</Button>
+              <Button onClick={() => { if (cancelBookingId) { cancelBooking(cancelBookingId); setCancelBookingId(null) } }}>
+                Sí, cancelar
               </Button>
             </DialogFooter>
           </DialogContent>

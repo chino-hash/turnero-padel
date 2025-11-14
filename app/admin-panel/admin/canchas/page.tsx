@@ -17,7 +17,7 @@ import { useAppState } from '../../../../components/providers/AppStateProvider'
 interface Court {
   id: string
   name: string
-  base_price: number
+  basePrice: number
   isActive: boolean
   description?: string
 }
@@ -31,7 +31,7 @@ export default function GestionCanchas() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    base_price: 0,
+    basePrice: 0,
     isActive: true,
     description: ''
   })
@@ -66,7 +66,7 @@ export default function GestionCanchas() {
       return
     }
     
-    if (formData.base_price <= 0) {
+    if (formData.basePrice <= 0) {
       toast.error('El precio base debe ser mayor a 0')
       return
     }
@@ -104,7 +104,7 @@ export default function GestionCanchas() {
     setEditingCourt(court)
     setFormData({
       name: court.name,
-      base_price: court.base_price,
+      basePrice: court.basePrice,
       isActive: court.isActive,
       description: court.description || ''
     })
@@ -161,7 +161,7 @@ export default function GestionCanchas() {
   const resetForm = () => {
     setFormData({
       name: '',
-      base_price: 0,
+      basePrice: 0,
       isActive: true,
       description: ''
     })
@@ -235,12 +235,12 @@ export default function GestionCanchas() {
                  <div className="bg-gray-50 p-3 rounded-md">
                    <div className="flex justify-between items-center mb-2">
                      <Label className="text-sm font-medium text-gray-700">Precio Base</Label>
-                     <p className="font-bold text-lg">${court.base_price.toLocaleString('es-AR')}</p>
+                     <p className="font-bold text-lg">${court.basePrice.toLocaleString('es-AR')}</p>
                    </div>
                    <div className="flex justify-between items-center">
                      <Label className="text-sm font-medium text-gray-700">Precio por Persona</Label>
                      <p className="font-bold text-lg text-green-600">
-                       ${parseFloat(calculatePricePerPerson(court.base_price)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                       ${parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                      </p>
                    </div>
                  </div>
@@ -298,14 +298,14 @@ export default function GestionCanchas() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="base_price" className="text-sm font-medium text-gray-700">Precio Base</Label>
+                <Label htmlFor="basePrice" className="text-sm font-medium text-gray-700">Precio Base</Label>
                 <Input
-                  id="base_price"
+                  id="basePrice"
                   type="number"
-                  value={formData.base_price === 0 ? '' : formData.base_price}
+                  value={formData.basePrice === 0 ? '' : formData.basePrice}
                   onChange={(e) => {
                     const value = e.target.value === '' ? 0 : Number(e.target.value)
-                    setFormData({ ...formData, base_price: value })
+                    setFormData({ ...formData, basePrice: value })
                   }}
                   onFocus={(e) => {
                     if (e.target.value === '0') {
@@ -338,11 +338,11 @@ export default function GestionCanchas() {
                 <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">Cancha Activa</Label>
               </div>
               
-              {formData.base_price > 0 && (
+              {formData.basePrice > 0 && (
                 <div className="bg-gray-50 p-4 rounded-md border space-y-2">
                   <Label className="text-sm font-medium text-gray-700">Precio por Persona</Label>
                   <p className="text-xl font-bold text-green-600">
-                     ${parseFloat(calculatePricePerPerson(formData.base_price)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                     ${parseFloat(calculatePricePerPerson(formData.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                    </p>
                   <p className="text-xs text-gray-500">
                     Calculado para 4 personas

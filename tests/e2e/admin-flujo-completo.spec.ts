@@ -48,18 +48,13 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(5000);
       
-      // Buscar elementos típicos del panel admin
-      const adminElements = page.locator(
-        'h1:has-text("Admin"), h1:has-text("Administr"), ' +
-        '.admin-panel, [data-testid="admin-panel"], ' +
-        'nav:has-text("Cancha"), nav:has-text("Turno")'
-      );
+      // Buscar elementos del panel admin mediante data-testid
+      const adminNav = page.getByTestId('admin-navigation');
+      const adminNavCount = await adminNav.count();
       
-      const adminElementsCount = await adminElements.count();
-      
-      if (adminElementsCount > 0) {
-        await expect(adminElements.first()).toBeVisible();
-        console.log('Panel de administración cargado correctamente');
+      if (adminNavCount > 0) {
+        await expect(adminNav.first()).toBeVisible();
+        console.log('Panel de administración cargado correctamente (admin-navigation visible)');
       } else {
         console.log('Panel admin no visible - posible redirección a login');
       }
@@ -71,14 +66,10 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
       
-      // Buscar navegación a canchas
-      const canchasNav = page.locator(
-        'a:has-text("Cancha"), button:has-text("Cancha"), ' +
-        '[href*="cancha"], [data-testid="canchas-nav"]'
-      );
-      
-      if (await canchasNav.count() > 0) {
-        await canchasNav.first().click();
+      // Navegar usando data-testid del layout admin
+      const adminNav = page.getByTestId('admin-navigation');
+      if (await adminNav.count() > 0) {
+        await page.getByTestId('admin-courts-link').click();
         await page.waitForTimeout(2000);
         
         // Verificar que llegó a la sección de canchas
@@ -92,7 +83,7 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
           console.log('Sección de gestión de canchas accesible');
         }
       } else {
-        console.log('Navegación a canchas no encontrada');
+        console.log('Navegación a canchas no encontrada (admin-navigation ausente)');
       }
     });
 
@@ -151,30 +142,30 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
       
-      // Buscar sección de turnos
-      const turnosNav = page.locator(
-        'a:has-text("Turno"), button:has-text("Turno"), ' +
-        'a:has-text("Reserva"), [href*="turno"]'
-      );
-      
-      if (await turnosNav.count() > 0) {
-        await turnosNav.first().click();
+      // Navegar a turnos usando data-testid
+      const adminNav = page.getByTestId('admin-navigation');
+      if (await adminNav.count() > 0) {
+        await page.getByTestId('admin-bookings-link').click();
         await page.waitForTimeout(3000);
       }
       
-      // Buscar lista de turnos
-      const turnosList = page.locator(
-        '.booking-item, .turno-item, [data-testid="booking-item"], ' +
-        'tr:has-text("Cancha"), .reservation-card'
-      );
-      
-      const turnosCount = await turnosList.count();
-      
-      if (turnosCount > 0) {
-        console.log(`Encontrados ${turnosCount} turnos en la lista`);
-        await expect(turnosList.first()).toBeVisible();
+      // Verificar estado vacío o lista de turnos
+      const emptyState = page.getByTestId('admin-bookings-empty');
+      if (await emptyState.count() > 0) {
+        await expect(emptyState.first()).toBeVisible();
+        console.log('No hay turnos, estado vacío visible');
       } else {
-        console.log('No se encontraron turnos o sección no cargada');
+        const turnosList = page.locator(
+          '[data-testid="booking-item"], .booking-item, .turno-item, ' +
+          'tr:has-text("Cancha"), .reservation-card'
+        );
+        const turnosCount = await turnosList.count();
+        if (turnosCount > 0) {
+          console.log(`Encontrados ${turnosCount} turnos en la lista`);
+          await expect(turnosList.first()).toBeVisible();
+        } else {
+          console.log('No se encontraron turnos o sección no cargada');
+        }
       }
     });
 
@@ -182,10 +173,16 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
       
-      // Buscar filtros
+      // Abrir panel de filtros con data-testid
+      const openFiltersBtn = page.getByTestId('admin-filters-open-btn');
+      if (await openFiltersBtn.count() > 0) {
+        await openFiltersBtn.click();
+        await page.waitForTimeout(500);
+      }
+      
+      // Buscar filtros de estado
       const statusFilter = page.locator(
-        'select[name*="status"], select[name*="estado"], ' +
-        '.filter-select, [data-testid="status-filter"]'
+        '[data-testid="status-filter"], select[name*="status"], select[name*="estado"], .filter-select'
       );
       
       if (await statusFilter.count() > 0) {
@@ -210,10 +207,17 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
       
+      // Abrir panel de filtros y usar data-testid de búsqueda
+      const openFiltersBtn = page.getByTestId('admin-filters-open-btn');
+      if (await openFiltersBtn.count() > 0) {
+        await openFiltersBtn.click();
+        await page.waitForTimeout(500);
+      }
+      
       // Buscar campo de búsqueda
       const searchInput = page.locator(
-        'input[type="search"], input[placeholder*="buscar"], ' +
-        'input[placeholder*="usuario"], [data-testid="search-input"]'
+        '[data-testid="search-input"], input[type="search"], input[placeholder*="buscar"], ' +
+        'input[placeholder*="usuario"]'
       );
       
       if (await searchInput.count() > 0) {
@@ -235,20 +239,14 @@ test.describe('Flujo de Administrador Completo - Diagnóstico Integral', () => {
       await page.goto('/admin');
       await page.waitForTimeout(3000);
       
-      // Buscar elementos de navegación
-      const navElements = page.locator(
-        'nav a, .nav-link, [role="navigation"] a, ' +
-        '.sidebar a, .menu a'
-      );
+      // Buscar elementos de navegación mediante data-testid
+      const navElements = page.getByTestId('admin-navigation');
       
       const navCount = await navElements.count();
       
       if (navCount > 0) {
-        console.log(`Encontrados ${navCount} elementos de navegación`);
-        
-        // Verificar que al menos algunos son visibles
-        const visibleNav = navElements.first();
-        await expect(visibleNav).toBeVisible();
+        console.log(`Navegación admin visible`);
+        await expect(navElements.first()).toBeVisible();
       } else {
         console.log('Elementos de navegación no encontrados');
       }

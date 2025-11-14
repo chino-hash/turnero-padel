@@ -113,18 +113,18 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               {/* Toggle de modo oscuro */}
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`p-2 rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
+                    : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
                 aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
                 title={isDarkMode ? "Modo claro" : "Modo oscuro"}
               >
                 {isDarkMode ? (
-                  <Sun className="w-5 h-5" />
+                  <Sun className="w-4 h-4" />
                 ) : (
-                  <Moon className="w-5 h-5" />
+                  <Moon className="w-4 h-4" />
                 )}
               </button>
               

@@ -1,22 +1,40 @@
-'use client'
-
-import { useState, useEffect, useCallback } from 'react'
-import { 
-  Booking, 
-  BookingFilters, 
-  BookingStats, 
-  PaginationInfo, 
+import { useState, useCallback, useEffect } from 'react'
+import {
+  Booking,
+  BookingFilters,
+  BookingStats,
   CreateBookingRequest,
   UpdateBookingRequest,
   BookingAvailabilityRequest,
   BookingAvailabilityResponse,
-  DEFAULT_PAGINATION
+  PaginationInfo
 } from '../types/booking'
 
 interface UseBookingsOptions {
   initialFilters?: BookingFilters
-  initialPagination?: Partial<PaginationInfo>
+  pageSize?: number
   autoFetch?: boolean
+  onUpdated?: () => void
+}
+
+interface UseBookingsReturn {
+  bookings: Booking[]
+  loading: boolean
+  error: string | null
+  filters: BookingFilters
+  stats: BookingStats | null
+  pagination: PaginationInfo
+  setFilters: (filters: BookingFilters) => void
+  clearFilters: () => void
+  setPage: (page: number) => void
+  setLimit: (limit: number) => void
+  fetchBookings: () => Promise<void>
+  refreshBookings: () => Promise<void>
+  createBooking: (data: CreateBookingRequest) => Promise<Booking | null>
+  updateBooking: (id: string, data: UpdateBookingRequest) => Promise<Booking | null>
+  deleteBooking: (id: string) => Promise<boolean>
+  checkAvailability: (request: BookingAvailabilityRequest) => Promise<BookingAvailabilityResponse | null>
+  getAvailabilitySlots: (courtId: string, date: string, duration?: number) => Promise<Array<{ startTime: string, endTime: string, available: boolean }> | null>
 }
 
 interface UseBookingsReturn {
@@ -47,306 +65,271 @@ interface UseBookingsReturn {
   checkAvailability: (request: BookingAvailabilityRequest) => Promise<BookingAvailabilityResponse | null>
 }
 
+// Helpers for filters and pagination state mutations
 export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn {
   const {
     initialFilters = {},
-    initialPagination = {},
-    autoFetch = true
+    pageSize = 10,
+    autoFetch = false,
+    onUpdated
   } = options
 
-  // Estado principal
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
-  const [stats, setStats] = useState<BookingStats | null>(null)
-  
-  // Estado de filtros y paginación
-  const [filters, setFilters] = useState<BookingFilters>(initialFilters)
-  const [pagination, setPagination] = useState<PaginationInfo>({
-    ...DEFAULT_PAGINATION,
-    ...initialPagination
+  const [filters, setFilters] = useState<BookingFilters>({
+    page: 1,
+    limit: pageSize,
+    ...initialFilters
   })
+  const [stats, setStats] = useState<any>(null)
+  const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: pageSize, total: 0, totalPages: 0 })
 
-  // Función para construir query params
-  const buildQueryParams = useCallback((customFilters?: BookingFilters, customPagination?: Partial<PaginationInfo>) => {
+  const buildQueryParams = useCallback((filters: BookingFilters) => {
     const params = new URLSearchParams()
-    const currentFilters = customFilters || filters
-    const currentPagination = { ...pagination, ...customPagination }
-
-    // Paginación
-    params.append('page', currentPagination.page.toString())
-    params.append('limit', currentPagination.limit.toString())
-
-    // Filtros
-    if (currentFilters.search) params.append('search', currentFilters.search)
-    if (currentFilters.courtId) params.append('courtId', currentFilters.courtId)
-    if (currentFilters.userId) params.append('userId', currentFilters.userId)
-    if (currentFilters.status) params.append('status', currentFilters.status)
-    if (currentFilters.dateFrom) params.append('dateFrom', currentFilters.dateFrom.toISOString().split('T')[0])
-    if (currentFilters.dateTo) params.append('dateTo', currentFilters.dateTo.toISOString().split('T')[0])
-    if (currentFilters.timeFrom) params.append('timeFrom', currentFilters.timeFrom)
-    if (currentFilters.timeTo) params.append('timeTo', currentFilters.timeTo)
-
+    if (filters.page) params.set('page', String(filters.page))
+    if (filters.limit) params.set('limit', String(filters.limit))
+    if (filters.status) params.set('status', String(filters.status))
+    if (filters.courtId) params.set('courtId', String(filters.courtId))
+    if (filters.dateFrom) params.set('dateFrom', String(filters.dateFrom))
+    if (filters.dateTo) params.set('dateTo', String(filters.dateTo))
+    if (filters.search) params.set('search', String(filters.search))
+    if (filters.sortBy) params.set('sortBy', String(filters.sortBy))
+    if (filters.sortOrder) params.set('sortOrder', String(filters.sortOrder))
     return params.toString()
-  }, [filters, pagination])
+  }, [])
 
-  // Fetch bookings
-  const fetchBookings = useCallback(async (customFilters?: BookingFilters, customPagination?: Partial<PaginationInfo>) => {
+  const fetchBookings = useCallback(async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-
-      const queryParams = buildQueryParams(customFilters, customPagination)
-      const response = await fetch(`/api/bookings?${queryParams}`)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+      const query = buildQueryParams(filters)
+      const response = await fetch(`/api/bookings?${query}`)
+      if (!response.ok) throw new Error(`Error al obtener reservas (${response.status})`)
+      const result = await response.json()
+      const list: Booking[] = result?.data ?? []
+      setBookings(list)
+      if (result?.meta) {
+        setPagination({
+          page: Number(result.meta.page ?? filters.page ?? 1),
+          limit: Number(result.meta.limit ?? pageSize),
+          total: Number(result.meta.total ?? list.length ?? 0),
+          totalPages: Number(result.meta.totalPages ?? 0)
+        })
+      } else {
+        setPagination({ page: filters.page ?? 1, limit: pageSize, total: list.length ?? 0, totalPages: 0 })
       }
-
-      const data = await response.json()
-      
-      setBookings(data.bookings || [])
-      setPagination(data.pagination || DEFAULT_PAGINATION)
-      if (data.stats) setStats(data.stats)
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al cargar reservas'
-      setError(errorMessage)
-      console.error('Error fetching bookings:', err)
+      if (result?.message || result?.success === false) {
+        // optional error message from API; keep UX minimal
+      }
+    } catch (err: any) {
+      console.error('fetchBookings error:', err)
+      setError(err.message || 'Error al obtener reservas')
     } finally {
       setLoading(false)
     }
-  }, [buildQueryParams])
+  }, [filters, buildQueryParams, pageSize])
 
-  // Crear reserva
-  const createBooking = useCallback(async (data: CreateBookingRequest): Promise<Booking | null> => {
+  const createBooking = useCallback(async (bookingData: CreateBookingRequest): Promise<Booking | null> => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-
       const response = await fetch('/api/bookings', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingData)
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
+      if (!response.ok) throw new Error(`Error al crear reserva (${response.status})`)
+      const result = await response.json()
+      const newBooking: Booking | null = result?.data ?? null
+      if (newBooking) {
+        setBookings(prev => [newBooking, ...prev])
+        onUpdated?.()
       }
-
-      const newBooking = await response.json()
-      
-      // Actualizar la lista local
-      setBookings(prev => [newBooking, ...prev])
-      
       return newBooking
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al crear la reserva'
-      setError(errorMessage)
-      console.error('Error creating booking:', err)
+    } catch (err: any) {
+      console.error('createBooking error:', err)
+      setError(err.message || 'Error al crear reserva')
       return null
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onUpdated])
 
-  // Actualizar reserva
-  const updateBooking = useCallback(async (id: string, data: UpdateBookingRequest): Promise<Booking | null> => {
+  const updateBooking = useCallback(async (bookingId: string, bookingData: UpdateBookingRequest): Promise<Booking | null> => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/bookings/${id}`, {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingData)
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
+      if (!response.ok) throw new Error(`Error al actualizar reserva (${response.status})`)
+      const result = await response.json()
+      const updated: Booking | null = result?.data ?? null
+      if (updated) {
+        setBookings(prev => prev.map(b => (b.id === bookingId ? updated : b)))
+        onUpdated?.()
       }
-
-      const updatedBooking = await response.json()
-      
-      // Actualizar la lista local
-      setBookings(prev => prev.map(booking => 
-        booking.id === id ? updatedBooking : booking
-      ))
-      
-      return updatedBooking
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar la reserva'
-      setError(errorMessage)
-      console.error('Error updating booking:', err)
+      return updated
+    } catch (err: any) {
+      console.error('updateBooking error:', err)
+      setError(err.message || 'Error al actualizar reserva')
       return null
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onUpdated])
 
-  // Eliminar reserva
-  const deleteBooking = useCallback(async (id: string): Promise<boolean> => {
+  const deleteBooking = useCallback(async (bookingId: string): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/bookings/${id}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
-      }
-
-      // Remover de la lista local
-      setBookings(prev => prev.filter(booking => booking.id !== id))
-      
+      const response = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error(`Error al cancelar reserva (${response.status})`)
+      // server may return booking data; we optimistically remove from list
+      setBookings(prev => prev.filter(b => b.id !== bookingId))
+      onUpdated?.()
       return true
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al eliminar la reserva'
-      setError(errorMessage)
-      console.error('Error deleting booking:', err)
+    } catch (err: any) {
+      console.error('deleteBooking error:', err)
+      setError(err.message || 'Error al cancelar reserva')
       return false
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onUpdated])
 
-  // Verificar disponibilidad
   const checkAvailability = useCallback(async (request: BookingAvailabilityRequest): Promise<BookingAvailabilityResponse | null> => {
+    setError(null)
     try {
-      const params = new URLSearchParams({
-        courtId: request.courtId,
-        date: request.date,
-        ...(request.startTime && { startTime: request.startTime }),
-        ...(request.endTime && { endTime: request.endTime })
-      })
-
-      const response = await fetch(`/api/bookings/availability?${params}`)
-      
+      const params = new URLSearchParams()
+      params.set('courtId', String(request.courtId))
+      if (request.date) params.set('date', String(request.date))
+      if (request.startTime) params.set('startTime', String(request.startTime))
+      if (request.endTime) params.set('endTime', String(request.endTime))
+      const response = await fetch(`/api/bookings/availability?${params.toString()}`)
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
+        try {
+          const payload = await response.json()
+          const msg = payload?.error || `Error al verificar disponibilidad (${response.status})`
+          setError(msg)
+        } catch (_) {
+          setError(`Error al verificar disponibilidad (${response.status})`)
+        }
+        return { available: false, availableSlots: [] }
       }
-
-      return await response.json()
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al verificar disponibilidad'
-      setError(errorMessage)
-      console.error('Error checking availability:', err)
+      const result = await response.json()
+      const available = Boolean(result?.data)
+      return { available, availableSlots: [] }
+    } catch (err: any) {
+      console.error('checkAvailability error:', err)
+      setError(err.message || 'Error al verificar disponibilidad')
       return null
     }
   }, [])
 
-  // Funciones de utilidad
-  const refreshBookings = useCallback(() => fetchBookings(), [fetchBookings])
-  
-  const clearFilters = useCallback(() => {
-    setFilters({})
+  const getAvailabilitySlots = useCallback(async (courtId: string, date: string, duration: number = 90): Promise<Array<{ startTime: string, endTime: string, available: boolean }> | null> => {
+    setError(null)
+    try {
+      const response = await fetch('/api/bookings/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courtId, date, duration })
+      })
+      if (!response.ok) {
+        try {
+          const payload = await response.json()
+          const msg = payload?.error || `Error al obtener horarios disponibles (${response.status})`
+          setError(msg)
+        } catch (_) {
+          setError(`Error al obtener horarios disponibles (${response.status})`)
+        }
+        return null
+      }
+      const result = await response.json()
+      const slots = result?.data?.slots ?? null
+      return slots
+    } catch (err: any) {
+      console.error('getAvailabilitySlots error:', err)
+      setError(err.message || 'Error al obtener horarios disponibles')
+      return null
+    }
   }, [])
 
+  useEffect(() => {
+    if (autoFetch) {
+      fetchBookings()
+    }
+  }, [autoFetch, fetchBookings])
+
+  const clearFilters = useCallback(() => {
+    setFilters({ page: 1, limit: pageSize })
+  }, [pageSize])
+
   const setPage = useCallback((page: number) => {
-    setPagination(prev => ({ ...prev, page }))
+    setFilters(prev => ({ ...prev, page }))
   }, [])
 
   const setLimit = useCallback((limit: number) => {
-    setPagination(prev => ({ ...prev, limit, page: 1 }))
+    setFilters(prev => ({ ...prev, limit, page: 1 }))
   }, [])
 
-  // Actualizar filtros y refetch
-  const handleSetFilters = useCallback((newFilters: BookingFilters) => {
-    setFilters(newFilters)
-    setPagination(prev => ({ ...prev, page: 1 })) // Reset page when filters change
-  }, [])
+  const fetchBookingsWrapper = useCallback(async () => {
+    await fetchBookings()
+  }, [fetchBookings])
 
-  // Auto-fetch cuando cambian filtros o paginación
-  useEffect(() => {
-    if (autoFetch) {
-      fetchBookings()
-    }
-  }, [filters, pagination.page, pagination.limit, autoFetch, fetchBookings])
-
-  // Initial fetch
-  useEffect(() => {
-    if (autoFetch) {
-      fetchBookings()
-    }
-  }, []) // Solo en el mount inicial
+  const refreshBookings = useCallback(async () => {
+    await fetchBookings()
+  }, [fetchBookings])
 
   return {
-    // Estado
     bookings,
     loading,
     error,
-    pagination,
-    stats,
-    
-    // Filtros
     filters,
-    setFilters: handleSetFilters,
+    stats,
+    pagination,
+    setFilters,
     clearFilters,
-    
-    // Paginación
     setPage,
     setLimit,
-    
-    // Acciones CRUD
-    fetchBookings,
+    fetchBookings: fetchBookingsWrapper,
+    refreshBookings,
     createBooking,
     updateBooking,
     deleteBooking,
-    
-    // Utilidades
-    refreshBookings,
     checkAvailability,
+    getAvailabilitySlots
   }
 }
 
-// Hook específico para una reserva individual
-export function useBooking(id: string) {
+export function useBooking(bookingId: string | null) {
   const [booking, setBooking] = useState<Booking | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchBooking = useCallback(async () => {
-    if (!id) return
-
+    if (!bookingId) return
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
-      setError(null)
-
-      const response = await fetch(`/api/bookings/${id}`)
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      setBooking(data)
-      
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al cargar la reserva'
-      setError(errorMessage)
-      console.error('Error fetching booking:', err)
+      const response = await fetch(`/api/bookings/${bookingId}`)
+      if (!response.ok) throw new Error(`Error al obtener reserva (${response.status})`)
+      const result = await response.json()
+      setBooking(result?.data ?? null)
+    } catch (err: any) {
+      console.error('fetchBooking error:', err)
+      setError(err.message || 'Error al obtener la reserva')
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [bookingId])
 
   useEffect(() => {
     fetchBooking()
   }, [fetchBooking])
 
-  return {
-    booking,
-    loading,
-    error,
-    refetch: fetchBooking
-  }
+  return { booking, loading, error, refresh: fetchBooking }
 }
