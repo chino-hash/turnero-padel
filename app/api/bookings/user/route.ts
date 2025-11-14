@@ -7,16 +7,12 @@ export async function GET() {
     const session = await auth()
     
     if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json([])
     }
 
     const bookings = await getUserBookings(session.user.id)
-    return NextResponse.json(bookings)
-  } catch (error) {
-    console.error('Error en GET /api/bookings/user:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    return NextResponse.json(bookings ?? [])
+  } catch (_) {
+    return NextResponse.json([])
   }
 }
