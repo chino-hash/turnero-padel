@@ -437,9 +437,48 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   
   // Estados derivados
-  const currentBookings = mockBookings.filter(booking => booking.type === "current")
-  const pastBookings = mockBookings.filter(booking => booking.type === "past")
-  const adminBookings: CourtBooking[] = [] // Se puede llenar con datos reales
+  const [currentBookings, setCurrentBookings] = useState<any[]>([])
+  const [pastBookings, setPastBookings] = useState<any[]>([])
+  const adminBookings: CourtBooking[] = []
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const loadUserBookings = async () => {
+      try {
+        const res = await fetch('/api/bookings/user', { credentials: 'include', signal: controller.signal })
+        if (!res.ok) {
+          setCurrentBookings([])
+          setPastBookings([])
+          return
+        }
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.bookings) ? data.bookings : (Array.isArray(data?.data) ? data.data : []))
+        const now = new Date()
+        const current = list.filter((b: any) => {
+          const bd = new Date(b.bookingDate)
+          const [sh, sm] = String(b.startTime || '00:00').split(':').map(Number)
+          const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
+          const start = new Date(bd); start.setHours(sh || 0, sm || 0, 0, 0)
+          const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
+          return now <= end
+        })
+        const past = list.filter((b: any) => {
+          const bd = new Date(b.bookingDate)
+          const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
+          const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
+          return now > end
+        })
+        setCurrentBookings(current)
+        setPastBookings(past)
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
+        setCurrentBookings([])
+        setPastBookings([])
+      }
+    }
+    loadUserBookings()
+    return () => controller.abort()
+  }, [])
   
   // Filtrar slots segÃºn configuraciÃ³n - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
