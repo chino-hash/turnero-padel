@@ -199,9 +199,7 @@ export const bookingReportSchema = z.object({
 
 // Schema para actualizar pago individual de un jugador
 export const updateBookingPlayerPaymentSchema = z.object({
-  hasPaid: z.boolean({
-    required_error: 'Debe indicar si el jugador pagó'
-  }),
+  hasPaid: z.boolean(),
   paidAmount: z.number().int().min(0, {
     message: 'El monto pagado debe ser 0 o mayor'
   }).optional()

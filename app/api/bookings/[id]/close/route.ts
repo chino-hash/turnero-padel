@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { bookingService } from '../../../../lib/services/BookingService'
-import { withRateLimit, bookingUpdateRateLimit } from '../../../../lib/rate-limit'
-import { eventEmitters } from '../../../../lib/sse-events'
+import { bookingService } from '../../../../../lib/services/BookingService'
+import { withRateLimit, bookingUpdateRateLimit } from '../../../../../lib/rate-limit'
+import { eventEmitters } from '../../../../../lib/sse-events'
 
 export const runtime = 'nodejs'
 
@@ -28,7 +28,7 @@ export async function POST(
     }
 
     // Solo admins pueden cerrar definitivamente
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'admin'
+    const isAdmin = String(session.user.role).toUpperCase() === 'ADMIN'
     if (!isAdmin) {
       return NextResponse.json(
         { success: false, error: 'Permisos insuficientes para cerrar reservas' },

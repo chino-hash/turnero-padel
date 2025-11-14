@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { eventEmitters } from '../../../lib/sse-events'
+import { eventEmitters } from '../../../../lib/sse-events'
 
 // POST /api/dev/test-event - Emitir eventos SSE en desarrollo (sin auth)
 export async function POST(request: NextRequest) {

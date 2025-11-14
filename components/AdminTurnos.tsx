@@ -211,7 +211,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         cost: Number(e.totalPrice || 0),
         assignedTo: e.assignedToAll
           ? 'all'
-          : (e?.player?.position ? (`player${e.player.position}` as const) : 'player1')
+          : (e?.player?.position === 1
+              ? 'player1'
+              : e?.player?.position === 2
+              ? 'player2'
+              : e?.player?.position === 3
+              ? 'player3'
+              : e?.player?.position === 4
+              ? 'player4'
+              : 'player1')
       }))
 
     const dateStr = String(apiBooking?.bookingDate || '').split('T')[0] || String(apiBooking?.bookingDate || '')
@@ -502,7 +510,17 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 type: 'otro',
                 name: e.producto?.nombre || 'Extra',
                 cost: e.totalPrice,
-                assignedTo: e.assignedToAll ? 'all' : (e.player?.position ? `player${e.player.position}` : 'player1')
+                assignedTo: e.assignedToAll ? 'all' : (
+                  e.player?.position === 1
+                    ? 'player1'
+                    : e.player?.position === 2
+                    ? 'player2'
+                    : e.player?.position === 3
+                    ? 'player3'
+                    : e.player?.position === 4
+                    ? 'player4'
+                    : 'player1'
+                )
               }))
             return { ...b, extras: mappedExtras }
           }))

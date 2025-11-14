@@ -78,6 +78,10 @@ export interface BookingFilters {
   dateTo?: Date
   timeFrom?: string
   timeTo?: string
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 export interface BookingStats {

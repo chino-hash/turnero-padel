@@ -39,8 +39,9 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn } from '../../../../lib/utils'
-import type { Court, User } from '../../../../types/booking'
+import type { Court, User, BookingStatus } from '../../../../types/booking'
 import { useSlots } from '../../../../hooks/useSlots'
+import { STATUS_KEYS, BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS } from '../../../../lib/booking-status-map'
 
 export interface BookingFilters {
   search?: string

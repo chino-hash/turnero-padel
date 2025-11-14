@@ -46,7 +46,7 @@ export const clearAdminCache = (): void => {
 // Administradores principales desde variable de entorno (siempre activos)
 const getEnvAdmins = (): string[] => {
   const envAdmins = adminConfig.emails || []
-  const filteredEmails = envAdmins.filter(email => email.length > 0)
+  const filteredEmails = envAdmins.filter((email: string) => email.length > 0)
   // Eliminar duplicados manteniendo el orden original
   return removeDuplicates(filteredEmails)
 }

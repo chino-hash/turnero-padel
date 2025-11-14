@@ -58,6 +58,7 @@ model User {
   deletedAt         DateTime?
   accounts          Account[]
   bookings          Booking[]
+  recurringBookings RecurringBooking[]
   paymentsProcessed Payment[] @relation("ProcessedBy")
   closedBookings    Booking[] @relation("ClosedBy")
   sessions          Session[]
@@ -90,6 +91,7 @@ model Court {
   operatingHours  String    @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
   deletedAt       DateTime?
   bookings        Booking[]
+  recurringBookings RecurringBooking[]
 
   @@index([isActive])
   @@index([name])

@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 // Crear extra para una reserva
 export const createBookingExtraSchema = z.object({
-  productoId: z.number({ required_error: 'Producto requerido' }).int().positive(),
-  quantity: z.number({ required_error: 'Cantidad requerida' }).int().min(1, 'Cantidad mínima 1'),
+  productoId: z.number().int().positive(),
+  quantity: z.number().int().min(1, 'Cantidad mínima 1'),
   assignedToAll: z.boolean().default(false),
   playerId: z.string().cuid().optional(),
   notes: z.string().max(500).optional(),
@@ -11,7 +11,7 @@ export const createBookingExtraSchema = z.object({
 
 // Eliminación (soft delete) de extra
 export const deleteBookingExtraSchema = z.object({
-  extraId: z.string({ required_error: 'ID de extra requerido' }).cuid(),
+  extraId: z.string().cuid(),
 })
 
 export type CreateBookingExtraInput = z.infer<typeof createBookingExtraSchema>

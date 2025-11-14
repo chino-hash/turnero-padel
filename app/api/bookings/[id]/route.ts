@@ -54,7 +54,7 @@ export async function GET(
     }
 
     // Verificar permisos: admin (mayúsculas/minúsculas) o propietario pueden ver la reserva
-    const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'admin'
+    const isAdmin = String(session.user.role).toUpperCase() === 'ADMIN'
     if (!isAdmin && result.data?.userId !== session.user.id) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para ver esta reserva' },

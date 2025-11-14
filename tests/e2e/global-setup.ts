@@ -21,7 +21,7 @@ async function globalSetup(config: FullConfig) {
   });
   
   // Configurar variables de entorno para E2E
-  process.env.NODE_ENV = 'test';
+  (process.env as any).NODE_ENV = 'test';
   process.env.NEXTAUTH_SECRET = 'test-secret-key-for-e2e-testing';
   process.env.NEXTAUTH_URL = config.projects[0].use.baseURL || 'http://localhost:3000';
   

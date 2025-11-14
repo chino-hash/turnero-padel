@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { updateCourt } from '../../../../lib/services/courts'
-import { eventEmitters } from '../../../../lib/sse-events'
+import { updateCourt } from '../../../../../lib/services/courts'
+import { eventEmitters } from '../../../../../lib/sse-events'
 
 // POST /api/dev/courts/update - Actualiza una cancha y emite courts_updated (solo dev)
 export async function POST(request: NextRequest) {

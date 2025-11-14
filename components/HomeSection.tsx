@@ -6,19 +6,9 @@ import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import SlotModal from './SlotModal'
 
-import { TimeSlot } from '../types/types'
+import { TimeSlot, Court } from '../types/types'
 import { useAppState } from './providers/AppStateProvider'
 
-interface Court {
-  id: string
-  name: string
-  description: string
-  features: string[]
-  priceMultiplier: number
-  color: string
-  bgColor: string
-  textColor: string
-}
 
 interface HomeSectionProps {
   isVisible: boolean
@@ -111,9 +101,12 @@ export default function HomeSection({
   const defaultCourt: Court = {
     id: 'unknown',
     name: 'Cancha',
-    description: '',
-    features: [],
+    description: null,
+    basePrice: 24000,
     priceMultiplier: 1,
+    isActive: true,
+    operatingHours: { start: '00:00', end: '23:00', slot_duration: 90 },
+    features: { color: '#4b5563', bgColor: 'bg-white', textColor: 'text-gray-900' },
     color: 'from-green-400 to-green-600',
     bgColor: 'bg-white',
     textColor: 'text-gray-900',
