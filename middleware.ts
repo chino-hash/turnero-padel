@@ -14,7 +14,7 @@ export default auth((req) => {
   const isAdmin = req.auth?.user?.isAdmin || false
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots']
+  const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots', '/dashboard']
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
 
   // Rutas de API de autenticación
@@ -53,7 +53,7 @@ export default auth((req) => {
   }
 
   // Rutas de administrador
-  const adminRoutes = ['/admin', '/dashboard', '/admin-panel']
+  const adminRoutes = ['/admin', '/admin-panel']
   const isAdminRoute = adminRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Si trata de acceder a ruta de admin sin ser admin, redirigir con error
