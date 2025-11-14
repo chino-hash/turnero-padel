@@ -45,6 +45,19 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
 
   // Función principal para obtener slots
   const fetchSlots = useCallback(async (isManualRefresh = false) => {
+    // No intentar cargar si no hay cancha seleccionada todavía
+    if (!courtId || courtId.length === 0) {
+      if (isManualRefresh) {
+        setIsRefreshing(false)
+      } else {
+        setLoading(false)
+      }
+      setError(null)
+      setSlots([])
+      setRate(0)
+      setCourtName(undefined)
+      return
+    }
     // Cancelar petición anterior si existe
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -237,6 +250,18 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
 
   // Función para obtener todos los slots
   const fetchAllSlots = useCallback(async (isManualRefresh = false) => {
+    if (!courts || courts.length === 0) {
+      if (isManualRefresh) {
+        setIsRefreshing(true)
+        setIsRefreshing(false)
+      } else {
+        setLoading(false)
+      }
+      setError(null)
+      setSlotsByCourt({})
+      setRatesByCourt({})
+      return
+    }
     if (fetchTimeoutRef.current) {
       clearTimeout(fetchTimeoutRef.current)
     }
