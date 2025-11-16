@@ -100,7 +100,7 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
         const dateStr = ymd(currentDate)
         console.log('🔍 Fetching slots:', { courtId, date: dateStr, currentDate })
         const res = await fetch(
-          `/api/slots?courtId=${courtId}&date=${dateStr}`,
+          `/api/slots?courtId=${courtId}&date=${dateStr}&force=true`,
           { signal }
         )
         
@@ -224,7 +224,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
 
     try {
       const res = await fetch(
-        `/api/slots?courtId=${court.id}&date=${ymd(currentDate)}`,
+        `/api/slots?courtId=${court.id}&date=${ymd(currentDate)}&force=true`,
         { signal: controller.signal }
       )
       

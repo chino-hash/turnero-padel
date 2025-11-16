@@ -301,7 +301,8 @@ export async function checkCourtAvailability(
             ]
           }
         ]
-      }
+      },
+      select: { id: true }
     })
 
     return !conflictingBooking

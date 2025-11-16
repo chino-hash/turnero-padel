@@ -567,8 +567,8 @@ export default function HomeSection({
             <div className="flex flex-col space-y-2 lg:max-w-xs">
               {/* Mobile: Horizontal scroll for dates */}
               <div className="lg:hidden w-full overflow-x-auto pb-2" data-testid="date-selection-mobile">
-                <div className="flex items-center gap-4 px-2 snap-x snap-mandatory">
-                {availableDays.map((date, index) => {
+                <div className="flex items-center justify-center gap-4 px-2 snap-x snap-mandatory">
+                  {availableDays.map((date, index) => {
                   const isSelected = selectedDate.toDateString() === date.toDateString()
                   const isToday = new Date().toDateString() === date.toDateString()
                   const dayName = date.toLocaleDateString('es-ES', { weekday: 'short' })

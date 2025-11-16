@@ -61,8 +61,9 @@ export async function GET(req: NextRequest) {
 
     // Verificar cache
     const cacheKey = `${courtId}-${dateStr}`
+    const force = (searchParams.get('force') === 'true')
     const cached = slotsCache.get(cacheKey)
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (!force && cached && Date.now() - cached.timestamp < CACHE_TTL) {
       console.log('Cache hit para', cacheKey)
       return NextResponse.json({
         ...cached.data,
@@ -72,11 +73,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Validar que la fecha no sea en el pasado
-    const requestedDate = new Date(`${dateStr}T00:00:00`)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
-    if (requestedDate < today) {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`
+    if (dateStr < todayStr) {
       return NextResponse.json({ 
         error: 'No se pueden consultar slots de fechas pasadas' 
       }, { status: 400 })
@@ -85,8 +86,8 @@ export async function GET(req: NextRequest) {
     // Validar que la fecha no sea más de 30 días en el futuro
     const maxDate = new Date(today)
     maxDate.setDate(maxDate.getDate() + 30)
-    
-    if (requestedDate > maxDate) {
+    const maxStr = `${maxDate.getFullYear()}-${pad(maxDate.getMonth()+1)}-${pad(maxDate.getDate())}`
+    if (dateStr > maxStr) {
       return NextResponse.json({ 
         error: 'No se pueden consultar slots con más de 30 días de anticipación' 
       }, { status: 400 })
@@ -107,10 +108,20 @@ export async function GET(req: NextRequest) {
       console.warn('OperatingHours inválido, usando fallback:', parsedHours.error)
     }
 
-    const hours = parsedHours.data
-    const startHour = hhmmToHour(hours.start)
-    const endHour = hhmmToHour(hours.end)
-    const slotDuration = (hours.slot_duration || 90) / 60 // minutos → horas
+    const requestedDate = new Date(`${dateStr}T00:00:00`)
+    let hours = parsedHours.data
+    let startHour = hhmmToHour(hours.start)
+    let endHour = hhmmToHour(hours.end)
+    const slotDuration = Math.max( (hours.slot_duration || 90) / 60, 0.25 )
+    if (endHour <= startHour) {
+      if (hours.end === '00:00' || hours.end === '24:00') {
+        endHour = 24
+      } else {
+        hours = defaultOperatingHours
+        startHour = hhmmToHour(hours.start)
+        endHour = hhmmToHour(hours.end)
+      }
+    }
     const basePrice = (court as any).basePrice ?? (court as any).base_price ?? 6000
     const priceMultiplier = court.priceMultiplier || 1
     const finalPrice = Math.round(basePrice * priceMultiplier)
