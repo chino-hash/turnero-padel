@@ -6,17 +6,16 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useEffect, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card'
+import AdminAvailabilityGrid from '../../../../components/admin/AdminAvailabilityGrid'
 import { Button } from '../../../../components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../components/ui/dialog'
 import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
-import { Textarea } from '../../../../components/ui/textarea'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
-import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText, RefreshCw, Wifi, WifiOff } from 'lucide-react'
-import { useRealTimeUpdates } from '../../../../hooks/useRealTimeUpdates'
+import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText } from 'lucide-react'
 import { useAuth } from '../../../../hooks/useAuth'
 import { useBookings } from '../../../../hooks/useBookings'
 import { useCourtPrices } from '../../../../hooks/useCourtPrices'
@@ -41,14 +40,7 @@ export default function TurnosPage() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isTimeAvailable, setIsTimeAvailable] = useState<boolean | null>(null)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [isRealTimeConnected, setIsRealTimeConnected] = useState(false)
-  const [availabilityData, setAvailabilityData] = useState({
-    'Cancha 1': [true, false, true, false, true],
-    'Cancha 2': [false, true, false, true, false],
-    'Cancha 3': [true, true, false, false, true]
-  })
+  
   const formatDateYMD = (date: Date) => {
     const y = date.getFullYear()
     const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -181,25 +173,25 @@ export default function TurnosPage() {
     '21:30 - 23:00'
   ]
 
-  // Métricas reales para la cabecera
   const todayKey = new Date().toISOString().split('T')[0]
   const turnosHoy = stats?.byDay?.[todayKey] ?? 0
-  const proximosTurnos = (bookings || []).filter((b) => {
-    try {
-      const dt = new Date(`${(b as any).bookingDate}T${(b as any).startTime}:00`)
-      const now = new Date()
-      const diff = dt.getTime() - now.getTime()
-      return diff > 0 && diff <= 2 * 60 * 60 * 1000
-    } catch {
-      return false
-    }
-  }).length
+  const proximosTurnos = useMemo(() => {
+    return (bookings || []).filter((b) => {
+      try {
+        const dt = new Date(`${(b as any).bookingDate}T${(b as any).startTime}:00`)
+        const now = new Date()
+        const diff = dt.getTime() - now.getTime()
+        return diff > 0 && diff <= 2 * 60 * 60 * 1000
+      } catch {
+        return false
+      }
+    }).length
+  }, [bookings])
   const ocupacionRate = Math.round(((stats?.occupancyRate ?? 0) as number) * 100)
 
   // Función auxiliar para obtener courtId por nombre
   const findCourtIdByName = (name: string) => courts.find(c => c.name === name)?.id
 
-  // Función para obtener horarios disponibles (validación real)
   const getAvailableTimeSlots = async (courtName: string, date: string) => {
     try {
       const courtId = findCourtIdByName(courtName)
@@ -215,7 +207,6 @@ export default function TurnosPage() {
         setAvailableTimeSlots(allTimeSlots)
       }
     } catch (error) {
-      console.error('Error al obtener horarios disponibles:', error)
       setAvailableTimeSlots(allTimeSlots)
     }
   }
@@ -290,82 +281,49 @@ export default function TurnosPage() {
     }
   }
 
-  // Actualizar disponibilidad (simulado para panel visual)
-  const updateAvailability = async () => {
-    setIsUpdating(true)
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      const newAvailability = {
-        'Cancha 1': Array.from({length: 5}, () => Math.random() > 0.4),
-        'Cancha 2': Array.from({length: 5}, () => Math.random() > 0.4),
-        'Cancha 3': Array.from({length: 5}, () => Math.random() > 0.4)
-      }
-      setAvailabilityData(newAvailability)
-      setLastUpdated(new Date())
-      console.log('Disponibilidad actualizada exitosamente')
-    } catch (error) {
-      console.error('Error al actualizar disponibilidad:', error)
-    } finally {
-      setIsUpdating(false)
-    }
-  }
+  
 
-  // Configurar actualizaciones en tiempo real
-  useRealTimeUpdates({
-    onSlotsUpdated: (data) => {
-      console.log('Slots actualizados en tiempo real:', data)
-      if (data && data.availability) {
-        setAvailabilityData(data.availability)
-        setLastUpdated(new Date())
-      }
-    },
-    onConnect: () => {
-      setIsRealTimeConnected(true)
-      console.log('Conexión en tiempo real establecida')
-    },
-    onDisconnect: () => {
-      setIsRealTimeConnected(false)
-      console.log('Conexión en tiempo real perdida')
-    },
-    onError: (error) => {
-      setIsRealTimeConnected(false)
-      console.error('Error en conexión en tiempo real:', error)
-    }
-  })
-
-  // Confirmar disponibilidad para el horario seleccionado
   useEffect(() => {
+    let cancelled = false
     const run = async () => {
       const targetDate = isRecurring ? computeNextDateForWeekday(recurringWeekday, recurringStartsAt) : formData.date
       if (!formData.courtName || !formData.timeRange || (!isRecurring && !formData.date)) {
-        setIsTimeAvailable(null)
+        if (!cancelled) setIsTimeAvailable(null)
         return
       }
       const courtId = findCourtIdByName(formData.courtName)
       if (!courtId) {
-        setIsTimeAvailable(null)
+        if (!cancelled) setIsTimeAvailable(null)
         return
       }
       const [start, end] = formData.timeRange.split(' - ')
       try {
         const resp = await checkAvailability({ courtId, date: targetDate, startTime: start, endTime: end })
-        setIsTimeAvailable(!!resp?.available)
+        if (!cancelled) setIsTimeAvailable(!!resp?.available)
       } catch (e) {
-        setIsTimeAvailable(false)
+        if (!cancelled) setIsTimeAvailable(false)
       }
     }
     run()
+    return () => { cancelled = true }
   }, [formData.courtName, formData.date, formData.timeRange, courts, isRecurring, recurringWeekday, recurringStartsAt])
 
-  // Efecto para actualizar horarios disponibles cuando cambia cancha o fecha
   useEffect(() => {
+    let cancelled = false
     const targetDate = isRecurring ? computeNextDateForWeekday(recurringWeekday, recurringStartsAt) : formData.date
-    if (formData.courtName && (isRecurring || formData.date)) {
-      getAvailableTimeSlots(formData.courtName, targetDate)
-    } else {
-      setAvailableTimeSlots([])
-      setIsTimeAvailable(null)
+    const run = async () => {
+      if (formData.courtName && (isRecurring || formData.date)) {
+        await getAvailableTimeSlots(formData.courtName, targetDate)
+        if (cancelled) return
+      } else {
+        if (!cancelled) {
+          setAvailableTimeSlots([])
+          setIsTimeAvailable(null)
+        }
+      }
     }
+    run()
+    return () => { cancelled = true }
   }, [formData.courtName, formData.date, isRecurring, recurringWeekday, recurringStartsAt])
 
   const handleInputChange = (field: string, value: string) => {
@@ -477,6 +435,21 @@ export default function TurnosPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Disponibilidad de canchas (semana)</CardTitle>
+          <CardDescription>
+            🗓️ Por día verás 3 círculos; cada uno representa una cancha: 1° cancha 1, 2° cancha 2, 3° cancha 3.<br />
+            Estado: <span className="text-green-600">🟢 Libre</span>, <span className="text-red-600">🔴 Ocupado</span>, <span className="text-yellow-600">🟡 Pendiente</span>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminAvailabilityGrid />
+        </CardContent>
+      </Card>
+
+      
 
       {/* Componente principal de gestión de turnos */}
       <Card>

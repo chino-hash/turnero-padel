@@ -105,7 +105,18 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     try {
       const query = buildQueryParams(filters)
       const response = await fetch(`/api/bookings?${query}`)
-      if (!response.ok) throw new Error(`Error al obtener reservas (${response.status})`)
+      if (!response.ok) {
+        try {
+          const payload = await response.json()
+          const msg = payload?.error || `Error al obtener reservas (${response.status})`
+          setError(msg)
+        } catch (_) {
+          setError(`Error al obtener reservas (${response.status})`)
+        }
+        setBookings([])
+        setPagination({ page: filters.page ?? 1, limit: pageSize, total: 0, totalPages: 0 })
+        return
+      }
       const result = await response.json()
       const list: Booking[] = result?.data ?? []
       setBookings(list)

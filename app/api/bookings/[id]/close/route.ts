@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { bookingService } from '../../../../../lib/services/BookingService'
-import { withRateLimit, bookingUpdateRateLimit } from '../../../../../lib/rate-limit'
-import { eventEmitters } from '../../../../../lib/sse-events'
+import { bookingService } from '@/lib/services/BookingService'
+import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
+import { eventEmitters } from '@/lib/sse-events'
 
 export const runtime = 'nodejs'
 

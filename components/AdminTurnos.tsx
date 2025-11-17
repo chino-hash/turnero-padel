@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
@@ -88,7 +88,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   // Tiempo en vivo para cálculo de estado EN CURSO y temporizador
   const [now, setNow] = useState<Date>(new Date())
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 3000)
+    const t = setInterval(() => setNow(new Date()), 10000)
     return () => clearInterval(t)
   }, [])
 
@@ -275,7 +275,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   // ya que se están importando desde useAppState()
   
   // Convertir reservas al formato de eventos del calendario
-  const convertBookingsToCalendarEvents = () => {
+  const convertBookingsToCalendarEvents = useMemo(() => {
     return filteredBookings.map(booking => ({
       id: booking.id,
       title: `${booking.userName} - ${booking.courtName}`,
@@ -286,7 +286,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       players: Object.values(booking.players).filter(Boolean).length,
       price: booking.totalPrice
     }))
-  }
+  }, [filteredBookings])
   
   // Función para calcular monto individual de cada jugador (siempre dividir por 4)
   const calculatePlayerAmount = (booking: Booking, playerKey: keyof Booking['players']): number => {
@@ -581,21 +581,22 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   }, [])
 
   // Filtrar reservas con exclusión automática de turnos pendientes
+  const [searchTermDebounced, setSearchTermDebounced] = useState(searchTerm)
+  useEffect(() => {
+    const t = setTimeout(() => setSearchTermDebounced(searchTerm), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm])
   useEffect(() => {
     let filtered = [...bookings]
-
-    // Filtro automático: excluir turnos pendientes SIEMPRE
     filtered = filtered.filter(booking => booking.status !== 'pendiente')
-
-    // Filtrar por término de búsqueda
-    if (searchTerm) {
+    if (searchTermDebounced) {
+      const term = searchTermDebounced.toLowerCase()
       filtered = filtered.filter(booking => 
-        booking.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.courtName.toLowerCase().includes(searchTerm.toLowerCase())
+        booking.userName.toLowerCase().includes(term) ||
+        booking.userEmail.toLowerCase().includes(term) ||
+        booking.courtName.toLowerCase().includes(term)
       )
     }
-
     if (statusFilter !== 'all') {
       filtered = filtered.filter(booking => {
         const cat = getCategoryAndRemaining(booking).category
@@ -605,7 +606,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         return true
       })
     }
-
     if (dateFilter !== 'all') {
       const base = new Date()
       const target = new Date(base)
@@ -617,9 +617,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         filtered = filtered.filter(b => new Date(b.date).toDateString() === target.toDateString())
       }
     }
-
     setFilteredBookings(filtered)
-  }, [bookings, searchTerm, statusFilter, dateFilter])
+  }, [bookings, searchTermDebounced, statusFilter, dateFilter])
 
   const toggleBookingExpansion = (bookingId: string) => {
     setExpandedBooking(expandedBooking === bookingId ? null : bookingId)
@@ -988,7 +987,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           })()}
           {(() => {
             const cat = getCategoryAndRemaining(booking).category
-            const disableCancel = cat === 'awaiting_completion' || cat === 'completed' || cat === 'closed'
+            const disableCancel = !(cat === 'confirmed' || cat === 'in_progress')
             return (
               <Button
                 variant="outline"
@@ -1010,14 +1009,13 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   }
 
   // Calcular estadísticas
-  const totalBookings = filteredBookings.length
-  const confirmedBookings = filteredBookings.filter(b => b.status === 'confirmado').length
-  const totalRevenue = filteredBookings.reduce((sum, booking) => {
+  const totalBookings = useMemo(() => filteredBookings.length, [filteredBookings])
+  const confirmedBookings = useMemo(() => filteredBookings.filter(b => b.status === 'confirmado').length, [filteredBookings])
+  const totalRevenue = useMemo(() => filteredBookings.reduce((sum, booking) => {
     const totalAmount = booking.totalPrice + booking.extras.reduce((extraSum, extra) => extraSum + extra.cost, 0)
     return sum + totalAmount
-  }, 0)
-  
-  const totalCollected = filteredBookings.reduce((sum, booking) => {
+  }, 0), [filteredBookings])
+  const totalCollected = useMemo(() => filteredBookings.reduce((sum, booking) => {
     if (booking.paymentStatus === 'pagado') {
       return sum + booking.totalPrice + booking.extras.reduce((extraSum, extra) => extraSum + extra.cost, 0)
     } else if (booking.paymentStatus === 'parcial') {
@@ -1028,10 +1026,32 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       return sum + paidAmount
     }
     return sum
-  }, 0)
-  
-  const pendingBalance = totalRevenue - totalCollected
-  const reserveTotal = filteredBookings.reduce((sum, booking) => sum + booking.totalPrice, 0)
+  }, 0), [filteredBookings])
+  const pendingBalance = useMemo(() => totalRevenue - totalCollected, [totalRevenue, totalCollected])
+  const reserveTotal = useMemo(() => filteredBookings.reduce((sum, booking) => sum + booking.totalPrice, 0), [filteredBookings])
+
+  const derivedBookings = useMemo(() => {
+    return filteredBookings.map((b) => {
+      const totalExtras = b.extras.reduce((sum, extra) => sum + (extra.cost || 0), 0)
+      const totalOriginal = b.totalPrice + totalExtras
+      const amountPaid = computeAmountPaid(b)
+      const pending = Math.max(0, totalOriginal - amountPaid)
+      const { category, remainingMs } = getCategoryAndRemaining(b)
+      return { booking: b, category, remainingMs, chipValue: pending }
+    })
+  }, [filteredBookings, now])
+
+  const fixedDerived = useMemo(() => derivedBookings.filter(d => !!d.booking.recurringId), [derivedBookings])
+  const confirmedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'confirmed' || d.category === 'awaiting_completion'), [derivedBookings])
+  const inProgressDerived = useMemo(() => derivedBookings.filter(d => d.category === 'in_progress'), [derivedBookings])
+  const completedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'completed'), [derivedBookings])
+  const closedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'closed'), [derivedBookings])
+
+  const [visibleFixed, setVisibleFixed] = useState(30)
+  const [visibleConfirmed, setVisibleConfirmed] = useState(30)
+  const [visibleInProgress, setVisibleInProgress] = useState(30)
+  const [visibleCompleted, setVisibleCompleted] = useState(30)
+  const [visibleClosed, setVisibleClosed] = useState(30)
 
   if (loading) {
     return (
@@ -1242,18 +1262,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-purple-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {filteredBookings
-                  .filter((b) => !!b.recurringId)
-                  .map((booking, idx) => (
-                    <Card key={booking.id} className="overflow-hidden">
+                {fixedDerived.slice(0, visibleFixed).map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <MapPin className="w-5 h-5 text-blue-600" />
-                              {booking.courtName}
+                              {d.booking.courtName}
                               {(() => {
-                                const statusKey = toBookingStatus(booking.status)
+                                const statusKey = toBookingStatus(d.booking.status)
                                 return (
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
                                     {BOOKING_STATUS_LABELS[statusKey]}
@@ -1265,28 +1283,24 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {booking.timeRange}
+                                {d.booking.timeRange}
                               </span>
                               <span className="flex items-center gap-1">
                                 <User className="w-4 h-4" />
-                                {booking.userName}
+                                {d.booking.userName}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              const chipValue = pendingBalance
+                              const chipValue = d.chipValue
                               return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
                                   ${formatCurrency(chipValue)}
                                 </span>
                               )
@@ -1294,11 +1308,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toggleBookingExpansion(booking.id)}
-                              aria-expanded={expandedBooking === booking.id}
-                              data-testid={`expand-booking-${booking.id}`}
+                              onClick={() => toggleBookingExpansion(d.booking.id)}
+                              aria-expanded={expandedBooking === d.booking.id}
+                              data-testid={`expand-booking-${d.booking.id}`}
                             >
-                              {expandedBooking === booking.id ? (
+                              {expandedBooking === d.booking.id ? (
                                 <ChevronUp className="w-4 h-4" />
                               ) : (
                                 <ChevronDown className="w-4 h-4" />
@@ -1308,13 +1322,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                         </div>
                       </CardHeader>
 
-                      {expandedBooking === booking.id && (
+                      {expandedBooking === d.booking.id && (
                         <CardContent className="pt-0">
-                          {renderExpandedContent(booking, idx)}
+                          {renderExpandedContent(d.booking, idx)}
                         </CardContent>
                       )}
                     </Card>
                   ))}
+              {(fixedDerived.length > visibleFixed || visibleFixed > 30) && (
+                <div className="flex justify-center gap-2 mt-2">
+                  {fixedDerived.length > visibleFixed && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleFixed(v => v + 30)}>Mostrar más</Button>
+                  )}
+                  {visibleFixed > 30 && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleFixed(30)}>Mostrar menos</Button>
+                  )}
+                </div>
+              )}
               </div>
             </div>
             {/* Sección: Turnos confirmados (no jugados) */}
@@ -1325,21 +1349,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-green-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {filteredBookings
-                  .filter((b) => {
-                    const cat = getCategoryAndRemaining(b).category
-                    return cat === 'confirmed' || cat === 'awaiting_completion'
-                  })
-                  .map((booking, idx) => (
-                    <Card key={booking.id} className="overflow-hidden">
+                {confirmedDerived.slice(0, visibleConfirmed).map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <MapPin className="w-5 h-5 text-blue-600" />
-                              {booking.courtName}
+                              {d.booking.courtName}
                               {(() => {
-                                const statusKey = toBookingStatus(booking.status)
+                                const statusKey = toBookingStatus(d.booking.status)
                                 return (
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
                                     {BOOKING_STATUS_LABELS[statusKey]}
@@ -1350,28 +1369,24 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {booking.timeRange}
+                                {d.booking.timeRange}
                               </span>
                               <span className="flex items-center gap-1">
                                 <User className="w-4 h-4" />
-                                {booking.userName}
+                                {d.booking.userName}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              const chipValue = pendingBalance
+                              const chipValue = d.chipValue
                               return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
                                   ${formatCurrency(chipValue)}
                                 </span>
                               )
@@ -1379,11 +1394,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toggleBookingExpansion(booking.id)}
-                              aria-expanded={expandedBooking === booking.id}
-                              data-testid={`expand-booking-${booking.id}`}
+                              onClick={() => toggleBookingExpansion(d.booking.id)}
+                              aria-expanded={expandedBooking === d.booking.id}
+                              data-testid={`expand-booking-${d.booking.id}`}
                             >
-                              {expandedBooking === booking.id ? (
+                              {expandedBooking === d.booking.id ? (
                                 <ChevronUp className="w-4 h-4" />
                               ) : (
                                 <ChevronDown className="w-4 h-4" />
@@ -1393,13 +1408,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                         </div>
                       </CardHeader>
 
-                      {expandedBooking === booking.id && (
+                      {expandedBooking === d.booking.id && (
                         <CardContent className="pt-0">
-                          {renderExpandedContent(booking, idx)}
+                          {renderExpandedContent(d.booking, idx)}
                         </CardContent>
                       )}
                     </Card>
                   ))}
+              {(confirmedDerived.length > visibleConfirmed || visibleConfirmed > 30) && (
+                <div className="flex justify-center gap-2 mt-2">
+                  {confirmedDerived.length > visibleConfirmed && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(v => v + 30)}>Mostrar más</Button>
+                  )}
+                  {visibleConfirmed > 30 && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(30)}>Mostrar menos</Button>
+                  )}
+                </div>
+              )}
               </div>
             </div>
 
@@ -1411,18 +1436,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-blue-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {filteredBookings
-                  .filter((b) => getCategoryAndRemaining(b).category === 'in_progress')
-                  .map((booking, idx) => (
-                    <Card key={booking.id} className="overflow-hidden">
+                {inProgressDerived.slice(0, visibleInProgress).map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <MapPin className="w-5 h-5 text-blue-600" />
-                              {booking.courtName}
+                              {d.booking.courtName}
                               {(() => {
-                                const statusKey = toBookingStatus(booking.status)
+                                const statusKey = toBookingStatus(d.booking.status)
                                 return (
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
                                     {BOOKING_STATUS_LABELS[statusKey]}
@@ -1433,21 +1456,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {booking.timeRange}
+                                {d.booking.timeRange}
                               </span>
                               <span className="flex items-center gap-1">
                                 <User className="w-4 h-4" />
-                                {booking.userName}
+                                {d.booking.userName}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
-                              const { remainingMs } = getCategoryAndRemaining(booking)
+                              const remainingMs = d.remainingMs
                               return (
                                 <span className="px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">
                                   EN CURSO · {formatRemaining(remainingMs)}
@@ -1456,13 +1479,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             })()}
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              const chipValue = pendingBalance
+                              const chipValue = d.chipValue
                               return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
                                   ${formatCurrency(chipValue)}
                                 </span>
                               )
@@ -1470,11 +1489,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toggleBookingExpansion(booking.id)}
-                              aria-expanded={expandedBooking === booking.id}
-                              data-testid={`expand-booking-${booking.id}`}
+                              onClick={() => toggleBookingExpansion(d.booking.id)}
+                              aria-expanded={expandedBooking === d.booking.id}
+                              data-testid={`expand-booking-${d.booking.id}`}
                             >
-                              {expandedBooking === booking.id ? (
+                              {expandedBooking === d.booking.id ? (
                                 <ChevronUp className="w-4 h-4" />
                               ) : (
                                 <ChevronDown className="w-4 h-4" />
@@ -1484,13 +1503,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                         </div>
                       </CardHeader>
 
-                      {expandedBooking === booking.id && (
+                      {expandedBooking === d.booking.id && (
                         <CardContent className="pt-0">
-                          {renderExpandedContent(booking, idx)}
+                          {renderExpandedContent(d.booking, idx)}
                         </CardContent>
                       )}
                     </Card>
                   ))}
+              {(inProgressDerived.length > visibleInProgress || visibleInProgress > 30) && (
+                <div className="flex justify-center gap-2 mt-2">
+                  {inProgressDerived.length > visibleInProgress && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleInProgress(v => v + 30)}>Mostrar más</Button>
+                  )}
+                  {visibleInProgress > 30 && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleInProgress(30)}>Mostrar menos</Button>
+                  )}
+                </div>
+              )}
               </div>
             </div>
 
@@ -1502,18 +1531,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-gray-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {filteredBookings
-                  .filter((b) => getCategoryAndRemaining(b).category === 'completed')
-                  .map((booking, idx) => (
-                    <Card key={booking.id} className="overflow-hidden">
+                {completedDerived.slice(0, visibleCompleted).map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <MapPin className="w-5 h-5 text-blue-600" />
-                              {booking.courtName}
+                              {d.booking.courtName}
                               {(() => {
-                                const statusKey = toBookingStatus(booking.status)
+                                const statusKey = toBookingStatus(d.booking.status)
                                 return (
                                   <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
                                     {BOOKING_STATUS_LABELS[statusKey]}
@@ -1524,21 +1551,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {booking.timeRange}
+                                {d.booking.timeRange}
                               </span>
                               <span className="flex items-center gap-1">
                                 <User className="w-4 h-4" />
-                                {booking.userName}
+                                {d.booking.userName}
                               </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
-                              const cat = getCategoryAndRemaining(booking).category
+                              const cat = d.category
                               if (cat === 'completed') {
                                 return (
                                   <span className="px-2 py-1 rounded-full text-xs font-medium border bg-yellow-100 text-yellow-800 border-yellow-200">Finalizada · confirmar cierre</span>
@@ -1550,13 +1577,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             })()}
                             {(() => {
                               const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const totalExtras = booking.extras.reduce((sum, extra) => sum + extra.cost, 0)
-                              const totalOriginal = booking.totalPrice + totalExtras
-                              const amountPaid = computeAmountPaid(booking)
-                              const pendingBalance = Math.max(0, totalOriginal - amountPaid)
-                              const chipValue = pendingBalance
+                              const chipValue = d.chipValue
                               return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
                                   ${formatCurrency(chipValue)}
                                 </span>
                               )
@@ -1564,11 +1587,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => toggleBookingExpansion(booking.id)}
-                              aria-expanded={expandedBooking === booking.id}
-                              data-testid={`expand-booking-${booking.id}`}
+                              onClick={() => toggleBookingExpansion(d.booking.id)}
+                              aria-expanded={expandedBooking === d.booking.id}
+                              data-testid={`expand-booking-${d.booking.id}`}
                             >
-                              {expandedBooking === booking.id ? (
+                              {expandedBooking === d.booking.id ? (
                                 <ChevronUp className="w-4 h-4" />
                               ) : (
                                 <ChevronDown className="w-4 h-4" />
@@ -1578,13 +1601,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                         </div>
                       </CardHeader>
 
-                      {expandedBooking === booking.id && (
+                      {expandedBooking === d.booking.id && (
                         <CardContent className="pt-0">
-                          {renderExpandedContent(booking, idx)}
+                          {renderExpandedContent(d.booking, idx)}
                         </CardContent>
                       )}
                     </Card>
                   ))}
+              {(completedDerived.length > visibleCompleted || visibleCompleted > 30) && (
+                <div className="flex justify-center gap-2 mt-2">
+                  {completedDerived.length > visibleCompleted && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleCompleted(v => v + 30)}>Mostrar más</Button>
+                  )}
+                  {visibleCompleted > 30 && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleCompleted(30)}>Mostrar menos</Button>
+                  )}
+                </div>
+              )}
               </div>
             </div>
 
@@ -1596,30 +1629,28 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-gray-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {filteredBookings
-                  .filter((b) => getCategoryAndRemaining(b).category === 'closed')
-                  .map((booking) => (
-                    <Card key={booking.id} className="overflow-hidden">
+                {closedDerived.slice(0, visibleClosed).map((d) => (
+                    <Card key={d.booking.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
                               <MapPin className="w-5 h-5 text-blue-600" />
-                              {booking.courtName}
+                              {d.booking.courtName}
                               <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">Cerrado</span>
                             </CardTitle>
                             <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
-                                {new Date(booking.date).toLocaleDateString('es-ES')}
+                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
-                                {booking.timeRange}
+                                {d.booking.timeRange}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Users className="w-4 h-4" />
-                                Cerrado {booking.closedAt ? new Date(booking.closedAt).toLocaleString('es-ES') : ''}
+                                Cerrado {d.booking.closedAt ? new Date(d.booking.closedAt).toLocaleString('es-ES') : ''}
                               </span>
                             </div>
                           </div>
@@ -1633,6 +1664,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                       </CardHeader>
                     </Card>
                   ))}
+              {(closedDerived.length > visibleClosed || visibleClosed > 30) && (
+                <div className="flex justify-center gap-2 mt-2">
+                  {closedDerived.length > visibleClosed && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleClosed(v => v + 30)}>Mostrar más</Button>
+                  )}
+                  {visibleClosed > 30 && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleClosed(30)}>Mostrar menos</Button>
+                  )}
+                </div>
+              )}
               </div>
             </div>
           </>
@@ -1747,7 +1788,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
        <CalendarModal
          isOpen={showCalendarModal}
          onOpenChange={setShowCalendarModal}
-         events={convertBookingsToCalendarEvents()}
+         events={convertBookingsToCalendarEvents}
          selectedDate={selectedDate}
          onDateSelect={setSelectedDate}
        />

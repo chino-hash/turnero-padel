@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '../../../../../lib/auth'
-import { prisma } from '../../../../../lib/database/neon-config'
-import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '../../../../../lib/rate-limit'
-import { eventEmitters } from '../../../../../lib/sse-events'
-import { createBookingExtraSchema } from '../../../../../lib/validations/extras'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/database/neon-config'
+import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
+import { eventEmitters } from '@/lib/sse-events'
+import { createBookingExtraSchema } from '@/lib/validations/extras'
 import { ZodError } from 'zod'
-import { BookingService } from '../../../../../lib/services/BookingService'
+import { BookingService } from '@/lib/services/BookingService'
 
 export const runtime = 'nodejs'
 

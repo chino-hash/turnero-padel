@@ -1,11 +1,11 @@
 {
   "config": {
-    "configFile": "C:\\Users\\Chinoo\\OneDrive\\Documentos\\augment-projects\\turnero de padel\\turnero-padel\\playwright.config.ts",
-    "rootDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+    "configFile": "C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\turnero-padel\\playwright.config.ts",
+    "rootDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
-    "globalSetup": "C:\\Users\\Chinoo\\OneDrive\\Documentos\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-setup.ts",
-    "globalTeardown": "C:\\Users\\Chinoo\\OneDrive\\Documentos\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-teardown.ts",
+    "globalSetup": "C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-teardown.ts",
     "globalTimeout": 0,
     "grep": {},
     "grepInvert": null,
@@ -43,13 +43,13 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "chromium",
         "name": "chromium",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -57,13 +57,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "firefox",
         "name": "firefox",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -71,13 +71,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "webkit",
         "name": "webkit",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -85,13 +85,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "Mobile Chrome",
         "name": "Mobile Chrome",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -99,13 +99,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "Mobile Safari",
         "name": "Mobile Safari",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -113,13 +113,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "Microsoft Edge",
         "name": "Microsoft Edge",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -127,13 +127,13 @@
         "timeout": 30000
       },
       {
-        "outputDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
+        "outputDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/test-results/playwright",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {},
         "id": "Google Chrome",
         "name": "Google Chrome",
-        "testDir": "C:/Users/Chinoo/OneDrive/Documentos/augment-projects/turnero de padel/turnero-padel/tests/e2e",
+        "testDir": "C:/Users/Chinoo/Documents/augment-projects/turnero de padel/turnero-padel/tests/e2e",
         "testIgnore": [],
         "testMatch": [
           "**/*.@(spec|test).?(c|m)[jt]s?(x)"
@@ -146,23 +146,24 @@
     "updateSourceMethod": "patch",
     "version": "1.54.2",
     "workers": 6,
-    "webServer": {
-      "command": "npm run dev",
-      "url": "http://localhost:3000",
-      "reuseExistingServer": true,
-      "timeout": 120000
-    }
+    "webServer": null
   },
   "suites": [],
   "errors": [
     {
-      "message": "Error: Process from config.webServer exited early.",
-      "stack": "Error: Process from config.webServer exited early."
+      "message": "Error: No se pudo conectar al servidor en http://localhost:3000. Asegúrate de que esté ejecutándose.",
+      "stack": "Error: No se pudo conectar al servidor en http://localhost:3000. Asegúrate de que esté ejecutándose.\n    at globalSetup (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-setup.ts:48:11)",
+      "location": {
+        "file": "C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\turnero-padel\\tests\\e2e\\global-setup.ts",
+        "column": 11,
+        "line": 48
+      },
+      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.ts:48\n\n\u001b[0m \u001b[90m 46 |\u001b[39m   } \u001b[36mcatch\u001b[39m (error) {\n \u001b[90m 47 |\u001b[39m     console\u001b[33m.\u001b[39merror(\u001b[32m'❌ Error al verificar el servidor:'\u001b[39m\u001b[33m,\u001b[39m error \u001b[36minstanceof\u001b[39m \u001b[33mError\u001b[39m \u001b[33m?\u001b[39m error\u001b[33m.\u001b[39mmessage \u001b[33m:\u001b[39m \u001b[33mString\u001b[39m(error))\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 48 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m`No se pudo conectar al servidor en ${baseURL}. Asegúrate de que esté ejecutándose.`\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 49 |\u001b[39m   }\n \u001b[90m 50 |\u001b[39m   \n \u001b[90m 51 |\u001b[39m   \u001b[90m// Crear archivo de estado para tracking\u001b[39m\u001b[0m"
     }
   ],
   "stats": {
-    "startTime": "2025-10-17T18:09:40.075Z",
-    "duration": 6229.593999999999,
+    "startTime": "2025-11-16T15:07:15.032Z",
+    "duration": 30363.923,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,

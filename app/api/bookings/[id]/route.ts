@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { bookingService } from '../../../../lib/services/BookingService'
-import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '../../../../lib/rate-limit'
-import { updateBookingSchema } from '../../../../lib/validations/booking'
-import { formatZodErrors } from '../../../../lib/validations/common'
+import { bookingService } from '@/lib/services/BookingService'
+import { withRateLimit, bookingReadRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
+import { updateBookingSchema } from '@/lib/validations/booking'
+import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
-import { eventEmitters } from '../../../../lib/sse-events'
+import { eventEmitters } from '@/lib/sse-events'
 
 export const runtime = 'nodejs'
 

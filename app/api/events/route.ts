@@ -1,17 +1,23 @@
 import { NextRequest } from 'next/server'
 import { addConnection, removeConnection, type SSEEvent } from '../../../lib/sse-events'
+import { auth } from '../../../lib/auth'
+import { getAuthConfig } from '../../../lib/config/env'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 // Endpoint GET para establecer conexión SSE
 export async function GET(request: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 })
+  }
   // Configurar headers para SSE con mejores prácticas
   const responseHeaders = new Headers({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': getAuthConfig().url,
     'Access-Control-Allow-Headers': 'Cache-Control, Last-Event-ID',
     'Access-Control-Allow-Methods': 'GET',
     'X-Accel-Buffering': 'no', // Nginx: deshabilitar buffering

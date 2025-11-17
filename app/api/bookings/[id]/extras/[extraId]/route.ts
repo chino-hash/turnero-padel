@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '../../../../../../lib/auth'
-import { prisma } from '../../../../../../lib/database/neon-config'
-import { withRateLimit, bookingUpdateRateLimit } from '../../../../../../lib/rate-limit'
-import { eventEmitters } from '../../../../../../lib/sse-events'
-import { BookingService } from '../../../../../../lib/services/BookingService'
+import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/database/neon-config'
+import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
+import { eventEmitters } from '@/lib/sse-events'
+import { BookingService } from '@/lib/services/BookingService'
 
 export const runtime = 'nodejs'
 
