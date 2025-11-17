@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react"
 import Link from "next/link"
-import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon } from "lucide-react"
+import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
 
@@ -106,6 +106,19 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                 <Package className="w-5 h-5" />
                 <div>Productos</div>
               </Link>
+
+              <Link 
+                href="/admin-panel/admin/torneos" 
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  isDarkMode 
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                }`}
+                data-testid="admin-tournaments-link"
+              >
+                <Trophy className="w-5 h-5" />
+                <div>Torneo</div>
+              </Link>
             </nav>
             
             {/* Información del usuario y toggle de modo oscuro */}
@@ -127,10 +140,6 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                   <Moon className="w-4 h-4" />
                 )}
               </button>
-              
-              <div className={`hidden sm:block text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                Administrador
-              </div>
             </div>
           </div>
         </div>

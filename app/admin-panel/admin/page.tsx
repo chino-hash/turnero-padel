@@ -22,6 +22,7 @@ import {
   Plus, 
   BarChart3,
   Settings,
+  RefreshCcw,
   X,
   Home,
   Package,
@@ -101,7 +102,7 @@ interface Extra {
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const { courts, slotsForRender, isUnifiedView } = useAppState()
+  const { courts, slotsForRender, isUnifiedView, selectedDate, setSelectedDate, refreshMultipleSlots, refreshSlots } = useAppState()
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
@@ -141,7 +142,7 @@ export default function AdminDashboard() {
   const bookingsApi = useBookings({ initialFilters: { limit: 50 }, autoFetch: true })
 
   useDashboardRealTimeUpdates({
-    enabled: true,
+    enabled: false,
     onDataUpdate: () => {
       bookingsApi.refreshBookings()
     }
@@ -535,6 +536,81 @@ export default function AdminDashboard() {
     setFilteredBookings(filtered)
   }, [bookings, searchTerm, statusFilter, dateFilter])
 
+  const buildDemoBookingsForDay = (dateStr: string): Booking[] => {
+    const d = dateStr
+    return [
+      { id: 'd1', courtName: 'Cancha 1', date: d, timeRange: '08:00 - 09:30', userName: 'Demo 1', userEmail: '', status: 'confirmado', paymentStatus: 'parcial', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
+      { id: 'd2', courtName: 'Cancha 1', date: d, timeRange: '11:00 - 12:30', userName: 'Demo 2', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
+      { id: 'd3', courtName: 'Cancha 2', date: d, timeRange: '09:30 - 11:00', userName: 'Demo 3', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
+      { id: 'd4', courtName: 'Cancha 2', date: d, timeRange: '14:00 - 15:30', userName: 'Demo 4', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
+      { id: 'd5', courtName: 'Cancha 3', date: d, timeRange: '16:30 - 18:00', userName: 'Demo 5', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
+      { id: 'd6', courtName: 'Cancha 3', date: d, timeRange: '19:30 - 21:00', userName: 'Demo 6', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] }
+    ] as any
+  }
+
+  const chartData = useMemo(() => {
+    const normalize = (n: string) => {
+      const m = String(n).match(/^Cancha\s*\d+/i)
+      return m ? m[0].replace(/\s+/g, ' ').trim() : String(n)
+    }
+    const bases = ['Cancha 1', 'Cancha 2', 'Cancha 3']
+    const bookingsSource = Array.isArray(bookings) && bookings.length > 0 ? bookings : mockBookings
+    const isSameDay = (dateStr: string, d: Date) => {
+      const bd = new Date(dateStr)
+      const dd = new Date(d)
+      bd.setHours(0,0,0,0)
+      dd.setHours(0,0,0,0)
+      return bd.getTime() === dd.getTime()
+    }
+    const selectedDateStr = new Date(selectedDate).toISOString().split('T')[0]
+    const dayBookings = (bookingsSource as any[]).filter(b => isSameDay(String(b?.date || ''), selectedDate))
+    const effectiveBookings = dayBookings.length > 0 ? dayBookings : buildDemoBookingsForDay(selectedDateStr)
+    const totalByCourt = new Map<string, number>(bases.map(b => [b, 0]))
+    const parseHM = (hm: string) => {
+      const [h, m] = String(hm || '00:00').split(':').map(Number)
+      return (h || 0) * 60 + (m || 0)
+    }
+    for (const c of courts as any[]) {
+      const base = normalize(c?.name || '')
+      if (!bases.includes(base)) continue
+      const startMin = parseHM(String(c?.operatingHours?.start || '08:00'))
+      const endMin = parseHM(String(c?.operatingHours?.end || '22:30'))
+      const minutes = Math.max(0, endMin - startMin)
+      totalByCourt.set(base, (totalByCourt.get(base) || 0) + (minutes || 0))
+    }
+    const reservedByCourt = new Map<string, number>(bases.map(b => [b, 0]))
+    for (const b of effectiveBookings as any[]) {
+      const base = normalize(b?.courtName || '')
+      if (!bases.includes(base)) continue
+      const { startStr, endStr } = parseTimeRange(String(b?.timeRange || ''))
+      const [sh, sm] = (startStr || '00:00').split(':').map(Number)
+      const [eh, em] = (endStr || '00:00').split(':').map(Number)
+      const minutes = Math.max(0, (eh * 60 + em) - (sh * 60 + sm))
+      reservedByCourt.set(base, (reservedByCourt.get(base) || 0) + minutes)
+    }
+    const entries = bases.map(label => {
+      const total = Math.max(1, totalByCourt.get(label) || 0)
+      const reserved = Math.min(total, reservedByCourt.get(label) || 0)
+      const ratio = reserved / total
+      return { key: label, label, total, reserved, pct: Math.round(ratio * 100) }
+    })
+    return entries
+  }, [courts, bookings, selectedDate])
+
+  const isToday = useMemo(() => {
+    const t = new Date(); t.setHours(0,0,0,0)
+    const d = new Date(selectedDate); d.setHours(0,0,0,0)
+    return d.getTime() === t.getTime()
+  }, [selectedDate])
+
+  const toggleDay = () => {
+    const base = new Date(selectedDate)
+    const next = new Date(base)
+    next.setDate(base.getDate() + (isToday ? 1 : -1))
+    next.setHours(0,0,0,0)
+    setSelectedDate(next)
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="mb-8 flex items-center justify-between">
@@ -590,22 +666,36 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Card className="xl:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" />Ocupación de hoy</CardTitle>
+            <div className="flex items-center justify-between w-full">
+              <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" />Ocupación por cancha</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  bookingsApi.refreshBookings()
+                  if (isUnifiedView) { refreshMultipleSlots() } else { refreshSlots() }
+                }} className="flex items-center gap-2">
+                  <RefreshCcw className="w-4 h-4" />
+                  Recargar
+                </Button>
+                <Button variant="outline" size="sm" onClick={toggleDay}>{isToday ? 'Ver mañana' : 'Volver a hoy'}</Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {slotsForRender.slice(0, 12).map((s, idx) => {
-                const pct = s.isAvailable ? 0 : 100
-                return (
-                  <div key={s.id || idx} className="flex items-center gap-3">
-                    <div className="w-20 text-xs text-gray-600">{s.timeRange}</div>
-                    <div className="flex-1 h-2 bg-gray-200 rounded">
-                      <div className={`h-2 rounded ${s.isAvailable ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${Math.max(10, pct)}%` }}></div>
+            <div className="mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-white border rounded">
+                {chartData.map((d) => {
+                  const color = d.pct >= 66 ? 'bg-red-500' : d.pct >= 33 ? 'bg-orange-400' : 'bg-green-500'
+                  return (
+                    <div key={d.key} className="flex flex-col items-center">
+                      <div className="text-sm font-medium mb-2 text-gray-800">{d.label}</div>
+                      <div className="w-full h-36 bg-gray-100 rounded-xl relative overflow-hidden">
+                        <div className={`${color} absolute bottom-0 left-0 right-0 rounded-t-xl transition-all`} style={{ height: `${Math.max(4, d.pct)}%` }}></div>
+                        <div className="absolute top-2 right-2 text-xs font-semibold text-gray-700 bg-white/70 px-2 py-1 rounded">{d.pct}%</div>
+                      </div>
                     </div>
-                    <div className="w-16 text-right text-xs">{s.isAvailable ? 'Libre' : 'Ocupado'}</div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -181,19 +181,20 @@ export const config = {
       console.log('🔓 Usuario cerró sesión')
     },
    },
-   logger: {
-     error(error) {
-       console.error('❌ NextAuth Error:', error)
-     },
-     warn(code) {
-       console.warn('⚠️ NextAuth Warning:', code)
-     },
-     debug(code, metadata) {
-       if (isDevelopment) {
-         console.log('🐛 NextAuth Debug:', code, metadata)
-       }
-     }
-   },
+  logger: {
+    error(error) {
+      console.error('❌ NextAuth Error:', error)
+    },
+    warn(code) {
+      if (code === 'debug-enabled') return
+      console.warn('⚠️ NextAuth Warning:', code)
+    },
+    debug(code, metadata) {
+      if (isDevelopment) {
+        console.log('🐛 NextAuth Debug:', code, metadata)
+      }
+    }
+  },
   debug: isDevelopment,
 } satisfies NextAuthConfig
 
