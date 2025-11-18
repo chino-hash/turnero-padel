@@ -534,13 +534,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Slots para renderizar (unificado o individual) - memoizado para evitar re-renderizados
   const slotsForRender = useMemo(() => {
     if (isUnifiedView) {
-      // Vista unificada: mostrar todos los slots de todas las canchas
-      return unifiedTimeSlots
+      const list = unifiedTimeSlots || []
+      return showOnlyOpen ? list.filter(s => s.isAvailable || s.available) : list
     } else {
-      // Vista por cancha: mostrar solo los slots de la cancha seleccionada
       return filteredTimeSlots || []
     }
-  }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots])
+  }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots, showOnlyOpen])
   
   // Persistir modo oscuro en localStorage
   useEffect(() => {
@@ -578,9 +577,39 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   }, [selectedDate])
   
   // Funciones auxiliares
-  const scrollToNextAvailable = () => {
-    // Implementar lÃ³gica de scroll al siguiente slot disponible
-    console.log('Scrolling to next available slot')
+const scrollToNextAvailable = () => {
+    try {
+      const today = new Date().toDateString() === selectedDate.toDateString()
+      const list = Array.isArray(slotsForRender) ? slotsForRender : []
+      const candidates = (showOnlyOpen ? list.filter(s => s.isAvailable || s.available) : list)
+      let target = null as any
+      if (today) {
+        const now = new Date()
+        const nowMinutes = now.getHours() * 60 + now.getMinutes()
+        target = candidates.find(s => {
+          const start = s.startTime || s.time
+          if (!start) return false
+          const [h, m] = String(start).split(':').map(Number)
+          const startM = (h || 0) * 60 + (m || 0)
+          return startM >= nowMinutes && (s.isAvailable || s.available)
+        }) || candidates.find(s => s.isAvailable || s.available) || candidates[0]
+      } else {
+        target = candidates.find(s => s.isAvailable || s.available) || candidates[0]
+      }
+      if (!target) return
+      const el = typeof document !== 'undefined' ? document.getElementById(`slot-${target.id}`) : null
+      if (el && 'scrollIntoView' in el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      setExpandedSlot(target.id)
+      setSelectedSlot(target)
+      ;(el as HTMLElement | null)?.focus?.()
+      setTimeout(() => {
+        setSelectedSlot((curr) => (curr && curr.id === target.id) ? null : curr)
+      }, 1500)
+    } catch (err) {
+      // noop
+    }
   }
   
   const getAvailableDays = () => {

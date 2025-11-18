@@ -210,11 +210,15 @@ export default function Page() {
               <div className="mt-3 overflow-x-auto">
                 <div className="flex items-center space-x-2">
                           {generateSlots().map((s) => {
-                            const disabledByStart = !!r.start && !r.end && timeToMinutes(s) >= timeToMinutes(r.start)
-                            const invalidRange = r.start && r.end && timeToMinutes(r.end) <= timeToMinutes(r.start)
-                            const disabled = disabledByStart || invalidRange
+                            const disabledByStart = !!r.start && !r.end && (timeToMinutes(s) >= timeToMinutes(r.start))
+                            const invalidRange = !!r.start && !!r.end && (timeToMinutes(r.end) <= timeToMinutes(r.start))
+                            const disabled: boolean = disabledByStart || invalidRange
+                            const baseBtn = 'px-2 py-1 text-xs rounded-md border'
+                            const enabledBtn = 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'
+                            const disabledBtn = 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed'
+                            const className = `${baseBtn} ${disabled ? disabledBtn : enabledBtn}`
                             return (
-                              <button key={s} disabled={disabled} className={`px-2 py-1 text-xs rounded-md border ${disabled ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}>{s}</button>
+                              <button key={s} disabled={disabled} className={className}>{s}</button>
                             )
                           })}
                         </div>

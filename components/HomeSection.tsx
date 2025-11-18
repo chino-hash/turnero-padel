@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
@@ -75,6 +75,7 @@ export default function HomeSection({
 }: HomeSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlotForModal, setSelectedSlotForModal] = useState(null)
+  const nextAvailableBtnRef = useRef<HTMLButtonElement | null>(null)
   
   // Obtener funciones del contexto
   const { refreshSlots, refreshMultipleSlots } = useAppState()
@@ -140,6 +141,7 @@ export default function HomeSection({
   const closeModal = () => {
     setIsModalOpen(false)
     setSelectedSlotForModal(null)
+    setSelectedSlot(null)
   }
 
   return (
@@ -152,34 +154,14 @@ export default function HomeSection({
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
 
-        {/* Header with Logo */}
-        <div className="flex justify-center items-center mb-4 sm:mb-6">
-          <div className="flex items-center space-x-3">
-            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden flex items-center justify-center shadow-md ${
-              isDarkMode ? 'bg-gray-800' : 'bg-white'
-            }`}>
-              <img 
-                src="/logo/padellisto.png" 
-                alt="Padel Listo Logo" 
-                className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-              />
-            </div>
-            <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}>
-              Padel Listo
-            </h1>
-          </div>
-        </div>
-
         {/* Header - Removed duplicate title */}
         <div className="text-center mb-6">
-          {/* Main Title - Optimized spacing */}
-          <h1 className={`text-2xl sm:text-3xl font-bold mb-1 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-            Reserva tu Cancha de Padel
+          <h1 className={`text-2xl sm:text-3xl mb-1 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+            <span className="font-bold">Reserva tu Cancha de</span>{" "}
+            <span className="font-extrabold" style={{ color: 'var(--color-neon-lime)' }}>Pádel</span>
           </h1>
           <p className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Reserva tu horario preferido para una experiencia increíble de padel
+            Reserva tu horario preferido para una experiencia <span className="font-semibold">increíble</span> de <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>pádel</span>
           </p>
         </div>
 
@@ -200,8 +182,9 @@ export default function HomeSection({
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className={`text-xl font-semibold mb-1`}>
-                    Disponibilidad de hoy
+                  <h2 className={`text-xl mb-1`}>
+                    <span className="font-semibold">Disponibilidad de</span>{" "}
+                    <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
                   </h2>
                   <p className="text-sm text-muted-foreground mb-3">Reserva tu horario preferido</p>
 
@@ -327,6 +310,18 @@ export default function HomeSection({
               nameLower.includes('cancha 3') ||
               nameLower.includes(' c') || nameLower.startsWith('c')
             ) ? '#008000' : '#4b5563'
+            const lightenHex = (hex: string, factor = 0.85) => {
+              const clean = hex.replace('#', '')
+              const r = parseInt(clean.substring(0, 2), 16)
+              const g = parseInt(clean.substring(2, 4), 16)
+              const b = parseInt(clean.substring(4, 6), 16)
+              const lr = Math.round(r + (255 - r) * factor)
+              const lg = Math.round(g + (255 - g) * factor)
+              const lb = Math.round(b + (255 - b) * factor)
+              const toHex = (n: number) => n.toString(16).padStart(2, '0')
+              return `#${toHex(lr)}${toHex(lg)}${toHex(lb)}`
+            }
+            const selectedBg = lightenHex(courtHex)
             return (
               <button
                 key={court.id}
@@ -341,9 +336,10 @@ export default function HomeSection({
                   selectedCourt === court.id
                     ? isDarkMode
                       ? 'bg-gray-700 border-border shadow-xl'
-                      : `${court.bgColor} border-border shadow-xl`
+                      : `border-border shadow-xl`
                     : `${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'} shadow-md`
                 }`}
+                style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
                 {/* Availability Badge */}
                 <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${
@@ -414,9 +410,9 @@ export default function HomeSection({
                 }}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
                   !isUnifiedView
-                    ? 'bg-green-500 text-white shadow-md'
+                    ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
               >
                 Por cancha
               </button>
@@ -429,9 +425,9 @@ export default function HomeSection({
                 }}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
                   isUnifiedView
-                    ? 'bg-green-500 text-white shadow-md'
+                    ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
               >
                 Vista unificada
               </button>
@@ -448,9 +444,9 @@ export default function HomeSection({
                 }}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
                   !showOnlyOpen
-                    ? 'bg-blue-500 text-white shadow-md'
+                    ? 'text-[color:var(--electric-teal)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
               >
                 Todos los horarios
               </button>
@@ -463,9 +459,9 @@ export default function HomeSection({
                 }}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
                   showOnlyOpen
-                    ? 'bg-blue-500 text-white shadow-md'
+                    ? 'text-[color:var(--electric-teal)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
               >
                 Solo disponibles
               </button>
@@ -487,7 +483,7 @@ export default function HomeSection({
                   !isUnifiedView
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={!isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-by-court"
               >
@@ -504,7 +500,7 @@ export default function HomeSection({
                   isUnifiedView
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-unified"
               >
@@ -525,7 +521,7 @@ export default function HomeSection({
                   !showOnlyOpen
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={!showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-all"
               >
@@ -542,7 +538,7 @@ export default function HomeSection({
                   showOnlyOpen
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                }`}
+                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-open"
               >
@@ -563,7 +559,7 @@ export default function HomeSection({
             <div className="flex flex-col space-y-2 lg:max-w-xs">
               {/* Mobile: Horizontal scroll for dates */}
               <div className="lg:hidden w-full overflow-x-auto pb-2" data-testid="date-selection-mobile">
-                <div className="flex items-center justify-center gap-4 px-2 snap-x snap-mandatory">
+              <div className="flex items-center justify-center gap-4 pl-4 pr-2 snap-x snap-mandatory">
                   {availableDays.map((date, index) => {
                   const isSelected = selectedDate.toDateString() === date.toDateString()
                   const isToday = new Date().toDateString() === date.toDateString()
@@ -589,7 +585,7 @@ export default function HomeSection({
                           : isDarkMode
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
-                      }`}
+                      } ${index === 0 ? 'ml-4' : ''}`}
                       style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                       data-testid={`date-btn-mobile-${index}`}
                     >
@@ -670,12 +666,21 @@ export default function HomeSection({
             {/* Quick Action Button */}
             <div className="mt-6">
               <Button
-                onClick={scrollToNextAvailable}
-                className="w-full text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
-                style={{ backgroundColor: 'var(--accent-green-dark)' }}
+                onClick={() => {
+                  scrollToNextAvailable()
+                  const btn = nextAvailableBtnRef.current
+                  if (btn) {
+                    setTimeout(() => {
+                      btn.blur()
+                    }, 1500)
+                  }
+                }}
+                variant="ghost"
+                className="w-full px-6 py-3 rounded-xl transition-all duration-200 transform hover:scale-105 bg-transparent text-[color:var(--color-neon-lime)]"
                 data-testid="next-available-btn"
+                ref={nextAvailableBtnRef}
               >
-                <Calendar className="w-5 h-5 mr-2" />
+                <Calendar className="w-5 h-5 mr-2 text-[color:var(--color-neon-lime)]" />
                 Ir al próximo disponible
               </Button>
             </div>
@@ -723,7 +728,7 @@ export default function HomeSection({
               <div className="flex items-center gap-3">
                 <span className={`text-sm ${isDarkMode ? "text-white" : "text-gray-600"}`}>Estados:</span>
                 <span className="badge-disponible">Disponible</span>
-                <span className="badge-reservado">Reservado</span>
+                <span className="badge-reservado">No disponible</span>
               </div>
             </div>
 
@@ -813,12 +818,12 @@ export default function HomeSection({
                     disabled={!isClickable}
                     aria-disabled={!isClickable}
                     data-testid="time-slot"
-                    className={`p-2 md:p-2 rounded-lg border transition-all duration-200 text-center min-h-[78px] md:min-h-[80px] flex flex-col justify-center ${
+                    className={`p-2 md:p-2 rounded-lg border-[1.5px] transition-all duration-200 text-center min-h-[78px] md:min-h-[80px] flex flex-col justify-center disabled:opacity-60 disabled:grayscale ${
                       !isClickable
-                        ? "bg-card border-border cursor-not-allowed"
+                        ? "bg-card border-border/80 border-[2px] cursor-not-allowed"
                         : isSelected
-                          ? "bg-card border-[color:var(--electric-teal)] shadow-md"
-                          : "bg-card border-border hover:shadow-sm"
+                          ? "bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
+                          : "bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
                     }`}
                   >
                     {/* Court Name - Top with specific color */}
@@ -845,7 +850,7 @@ export default function HomeSection({
                         data-testid="slot-status-badge"
                         className={isClickable ? "badge-disponible" : "badge-reservado"}
                       >
-                        {isPast ? "No disponible" : (isAvailable ? "Disponible" : "Reservado")}
+                        {!isClickable ? "No disponible" : "Disponible"}
                       </span>
                     </div>
                     

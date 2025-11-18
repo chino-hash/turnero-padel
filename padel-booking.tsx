@@ -325,8 +325,8 @@ function PadelBookingPage() {
       id: "turnos",
       label: "Mis Turnos",
       icon: BookOpen,
-      color: "text-blue-500",
-      activeColor: "text-blue-600",
+      color: "text-[color:var(--electric-teal)]",
+      activeColor: "text-[color:var(--electric-teal)]",
     },
   ]
 
@@ -679,7 +679,7 @@ function PadelBookingPage() {
           `} style={{ backgroundColor: 'var(--navbar-bg)' }}>
             {/* Información del usuario */}
             <div className="text-xs sm:text-sm min-w-0">
-              <div className="font-medium truncate max-w-[100px] sm:max-w-[150px]">
+              <div className="font-semibold sm:font-bold truncate max-w-[100px] sm:max-w-[150px]">
                 {profile?.full_name || user?.email}
               </div>
               {isAdmin && (
@@ -745,6 +745,14 @@ function PadelBookingPage() {
             transition-all duration-300 hover:shadow-xl
             ${isDarkMode ? "bg-gray-800 text-white shadow-gray-900/20" : "bg-white text-gray-900 shadow-gray-900/10"}
           `}>
+            <div className="flex items-center gap-1 sm:gap-1.5 mr-1 sm:mr-2">
+              <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden flex items-center justify-center shadow-sm ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+              }`}>
+                <img src="/logo/padellisto.png" alt="PadelListo Logo" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
+              </div>
+              <span className="text-sm sm:text-base font-bold sm:font-extrabold tracking-tight">PadelListo</span>
+            </div>
             {/* Div modo oscuro con dimensiones exactas del botón */}
             <div
               onClick={() => setIsDarkMode(!isDarkMode)}
@@ -865,7 +873,7 @@ function PadelBookingPage() {
                 className={`flex flex-col items-center justify-center gap-0.5 sm:gap-1 ${dynamicWidth} py-1.5 sm:py-2 rounded-full transition-all duration-200 ${
                   isActive
                     ? `${item.activeColor} bg-opacity-20 shadow-md`
-                    : `${item.color} hover:bg-gray-100 hover:bg-opacity-50`
+                    : `${item.color} ${isDarkMode ? 'hover:bg-gray-700/40' : 'hover:bg-gray-100 hover:bg-opacity-50'}`
                 }`}
                 data-testid={`nav-${item.id}-btn`}
               >

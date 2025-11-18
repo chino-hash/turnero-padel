@@ -80,6 +80,8 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --electric-teal: #0EA5E9;
+  --color-neon-lime: #065f46;
 }
 
 .dark {
@@ -114,6 +116,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --color-neon-lime: #BEF264;
 }
 
 .dashboard-theme {
@@ -151,6 +154,7 @@
   --sidebar-accent-foreground: oklch(0.145 0 0);
   --sidebar-border: oklch(0 0 0 / 0.08);
   --sidebar-ring: oklch(0.43 0.042 272);
+  --electric-teal: #0EA5E9;
   --accent-green-dark: #008000;
 }
 
@@ -216,15 +220,15 @@
 
 /* Badge Components */
 .badge-reservado {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
   border-radius: 20px;
   padding: 4px 12px;
   font-weight: bold;
   font-size: 14px;
   display: inline-block;
   text-align: center;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--border);
 }
 
 .badge-disponible {
@@ -241,9 +245,9 @@
 
 /* Dark mode badge variants */
 .dark .badge-reservado {
-  background-color: #7f1d1d;
-  color: #fecaca;
-  border: 1px solid #991b1b;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
 }
 
 .dark .badge-disponible {
@@ -269,7 +273,9 @@
 
 /* Nuevo diseño del modal */
 .modal-content-new {
-  background: white;
+  background: var(--navbar-bg, var(--card));
+  color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 24px;
   max-width: 500px;
@@ -278,7 +284,8 @@
   overflow-y: auto;
   position: relative;
   animation: slideIn 0.3s ease-out;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  font-family: var(--font-sans);
 }
 
 .modal-header-new {
@@ -290,13 +297,13 @@
 
 .modal-title-new {
   font-size: 1.25rem;
-  font-weight: 600;
-  color: #000000;
+  font-weight: 700;
+  color: var(--foreground);
   margin: 0;
 }
 
 .modal-subtitle {
-  color: #6b7280;
+  color: var(--muted-foreground);
   font-size: 0.9rem;
   margin-bottom: 24px;
 }
@@ -306,15 +313,15 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--muted-foreground);
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
 .modal-close-btn:hover {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: oklch(0 0 0 / 0.1);
+  color: var(--foreground);
 }
 
 .modal-body-new {
@@ -337,24 +344,56 @@
 
 .detail-label {
   font-size: 1rem;
-  color: #000000;
-  font-weight: 400;
+  color: var(--muted-foreground);
+  font-weight: 500;
   text-align: left;
   flex: 0 0 auto;
 }
 
 .detail-value {
   font-size: 1rem;
-  color: #000000;
-  font-weight: 600;
+  color: var(--foreground);
+  font-weight: 700;
   text-align: right;
   flex: 1;
+}
+
+/* Scrollbar estilo sutil para selector de fechas móvil */
+[data-testid="date-selection-mobile"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--input) transparent;
+}
+[data-testid="date-selection-mobile"]::-webkit-scrollbar {
+  height: 6px;
+}
+[data-testid="date-selection-mobile"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-testid="date-selection-mobile"]::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 9999px;
+}
+
+/* Gutter de snap para que el primer botón no se corte al inicio */
+[data-testid="date-selection-mobile"] {
+  scroll-padding-left: 20px;
+  scroll-padding-right: 16px;
+}
+
+/* Mantener color del botón "Ir al próximo disponible" en hover/focus */
+[data-testid="next-available-btn"],
+[data-testid="next-available-btn"]:hover,
+[data-testid="next-available-btn"]:focus {
+  color: var(--color-neon-lime);
+}
+[data-testid="next-available-btn"] svg {
+  color: var(--color-neon-lime);
 }
 
 .total-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--border);
 }
 
 .total-row {
@@ -367,8 +406,8 @@
 
 .total-row .detail-value {
   font-size: 1.2rem;
-  font-weight: 700;
-  color: #000000;
+  font-weight: 800;
+  color: var(--electric-teal);
 }
 
 /* Estilos antiguos mantenidos para compatibilidad */
@@ -555,7 +594,41 @@
   gap: 12px;
   justify-content: flex-end;
   padding-top: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border);
+}
+
+/* Botones del modal con acentos (sin fondo sólido) */
+.modal-footer .btn-primary {
+  background-color: transparent;
+  color: var(--electric-teal);
+  border: 1.5px solid var(--electric-teal);
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+.modal-footer .btn-primary:hover {
+  background-color: oklch(0 0 0 / 0.06);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--electric-teal), transparent 75%);
+  transform: translateY(-1px) scale(1.01);
+}
+.modal-footer .btn-secondary {
+  background-color: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+.modal-footer .btn-secondary:hover {
+  background-color: oklch(0 0 0 / 0.06);
+  border-color: color-mix(in oklab, var(--border), var(--foreground));
+  transform: translateY(-1px) scale(1.01);
 }
 
 .btn-primary {
@@ -700,9 +773,9 @@
 }
 
 .badge-reservado {
-  background-color: #fee2e2;
-  color: #991b1b;
-  border: 1px solid #fecaca;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
 }
 
 /* Dark mode variants for badges */
@@ -713,9 +786,9 @@
 }
 
 .dark .badge-reservado {
-  background-color: #7f1d1d !important;
-  color: #fecaca !important;
-  border: 1px solid #991b1b !important;
+  background-color: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  border: 1px solid var(--border) !important;
 }
 
 .modal-footer {
