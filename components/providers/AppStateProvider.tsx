@@ -344,7 +344,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setSelectedDateState(newDate)
   }
   const [isUnifiedView, setIsUnifiedView] = useState(true)
-  const [showOnlyOpen, setShowOnlyOpen] = useState(false)
+  const [showOnlyOpen, setShowOnlyOpen] = useState(true)
   const [expandedSlot, setExpandedSlot] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [loading] = useState(false)
@@ -482,10 +482,21 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   
   // Filtrar slots segÃºn configuraciÃ³n - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
-    return showOnlyOpen 
-      ? (timeSlots?.filter(slot => slot.available) || [])
-      : (timeSlots || [])
-  }, [showOnlyOpen, timeSlots])
+    const list = timeSlots || []
+    if (!showOnlyOpen) return list
+    const isToday = new Date().toDateString() === selectedDate.toDateString()
+    return list.filter(slot => {
+      const available = slot.isAvailable || slot.available
+      if (!available) return false
+      const start = slot.startTime || slot.time
+      if (!isToday) return true
+      if (!start) return false
+      const [h, m] = String(start).split(':').map(Number)
+      const slotDate = new Date(selectedDate)
+      slotDate.setHours(h || 0, m || 0, 0, 0)
+      return slotDate >= new Date()
+    })
+  }, [showOnlyOpen, timeSlots, selectedDate])
   
   // Las tarifas por cancha ahora vienen del hook useOptimizedMultipleSlots
   // Si no hay datos de tarifas del hook, usar valores por defecto
@@ -535,11 +546,23 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const slotsForRender = useMemo(() => {
     if (isUnifiedView) {
       const list = unifiedTimeSlots || []
-      return showOnlyOpen ? list.filter(s => s.isAvailable || s.available) : list
+      if (!showOnlyOpen) return list
+      const isToday = new Date().toDateString() === selectedDate.toDateString()
+      return list.filter(s => {
+        const available = s.isAvailable || s.available
+        if (!available) return false
+        const start = s.startTime || s.time
+        if (!isToday) return true
+        if (!start) return false
+        const [h, m] = String(start).split(':').map(Number)
+        const slotDate = new Date(selectedDate)
+        slotDate.setHours(h || 0, m || 0, 0, 0)
+        return slotDate >= new Date()
+      })
     } else {
       return filteredTimeSlots || []
     }
-  }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots, showOnlyOpen])
+  }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots, showOnlyOpen, selectedDate])
   
   // Persistir modo oscuro en localStorage
   useEffect(() => {
@@ -564,6 +587,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     const savedShowOnlyOpen = sessionStorage.getItem('showOnlyOpen')
     if (savedShowOnlyOpen) {
       setShowOnlyOpen(JSON.parse(savedShowOnlyOpen))
+    } else {
+      setShowOnlyOpen(true)
     }
   }, [])
   

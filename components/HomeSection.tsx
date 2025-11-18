@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
@@ -138,6 +138,37 @@ export default function HomeSection({
     handleSlotClick(slot) // Mantener la funcionalidad original
   }
   
+  // Verificación de disponibilidad actual (excluye horarios pasados si es hoy)
+  const hasAvailableSlots = useMemo(() => {
+    try {
+      const isToday = new Date().toDateString() === selectedDate.toDateString()
+      return (Array.isArray(slotsForRender) ? slotsForRender : []).some((s: any) => {
+        const available = s.status === 'available' || s.isAvailable || s.available
+        if (!available) return false
+        const start = s.startTime || s.time
+        if (!start) return false
+        if (!isToday) return true
+        const [h, m] = String(start).split(':').map(Number)
+        const slotDate = new Date(selectedDate)
+        slotDate.setHours(h || 0, m || 0, 0, 0)
+        return slotDate >= new Date()
+      })
+    } catch {
+      return false
+    }
+  }, [slotsForRender, selectedDate])
+
+  // Preseleccionar "Solo disponibles" al cargar y mantenerlo si hay disponibilidad
+  useEffect(() => {
+    setShowOnlyOpen(true)
+  }, [])
+
+  useEffect(() => {
+    if (hasAvailableSlots) {
+      setShowOnlyOpen(true)
+    }
+  }, [hasAvailableSlots, setShowOnlyOpen])
+  
   const closeModal = () => {
     setIsModalOpen(false)
     setSelectedSlotForModal(null)
@@ -271,8 +302,8 @@ export default function HomeSection({
             </div>
 
             {/* Sección Derecha - Información de Precio al lado derecho */}
-            <div className="lg:text-right lg:flex-shrink-0 lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-end lg:justify-center">
-              <div className="p-0">
+            <div className="text-center lg:text-center lg:flex-shrink-0 lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-center lg:justify-center">
+              <div className="p-0 text-center">
                 <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: selectedCourtHex }}>
                   ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
                 </div>
@@ -289,7 +320,7 @@ export default function HomeSection({
         </Card>
 
         {/* Court Selection Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 p-2 -m-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 mb-3 p-1 -m-1">
           {courts.map((court) => {
             const rate = ratesByCourt[court.id] ?? 0
             // Calcular precio final de cancha y precio por persona desde datos de la cancha
@@ -332,7 +363,7 @@ export default function HomeSection({
                   setSelectedCourt(court.id)
                 }}
                 data-testid="court-card"
-                className={`relative p-6 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
+                className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
                   selectedCourt === court.id
                     ? isDarkMode
                       ? 'bg-gray-700 border-border shadow-xl'
@@ -359,7 +390,7 @@ export default function HomeSection({
 
                 {/* Court Illustration */}
                 <div
-                  className={"mx-auto mb-4 w-24 h-32 rounded-lg border-2 border-white/30 relative"}
+                  className={"mx-auto mb-3 w-20 h-28 rounded-lg border-2 border-white/30 relative"}
                   style={{ backgroundColor: courtHex }}
                 >
                   {/* Court lines */}
@@ -368,7 +399,7 @@ export default function HomeSection({
                     <div className="absolute top-1/2 left-1/2 w-px h-full bg-white/50 transform -translate-x-1/2 -translate-y-1/2"></div>
                   </div>
                   {/* Net */}
-                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-white/70 rounded"></div>
+                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-14 h-1 bg-white/70 rounded"></div>
                 </div>
 
                 {/* Court Name */}
@@ -382,7 +413,7 @@ export default function HomeSection({
                 </div>
 
                 {/* Price */}
-                <div className={"text-2xl font-bold transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? courtHex : '#000000' }}>
+                <div className={"text-xl font-bold transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? courtHex : '#000000' }}>
                   ${pricePerPerson.toLocaleString()} por persona
                 </div>
                 <div className={`text-xs transition-colors duration-300 ease-in-out ${
@@ -447,7 +478,8 @@ export default function HomeSection({
                     ? 'text-[color:var(--electric-teal)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
-              >
+                aria-pressed={!showOnlyOpen}
+                >
                 Todos los horarios
               </button>
               <button
@@ -457,15 +489,34 @@ export default function HomeSection({
                   e.stopPropagation()
                   setShowOnlyOpen(true)
                 }}
+                disabled={!hasAvailableSlots}
+                aria-disabled={!hasAvailableSlots}
+                aria-pressed={showOnlyOpen}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${
-                  showOnlyOpen
-                    ? 'text-[color:var(--electric-teal)] font-bold'
-                    : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
-              >
+                  !hasAvailableSlots
+                    ? 'text-gray-400 line-through cursor-not-allowed'
+                    : showOnlyOpen
+                      ? 'text-[color:var(--electric-teal)] font-bold'
+                      : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white')}`}
+                >
                 Solo disponibles
               </button>
             </div>
+            {/* Mensaje de indisponibilidad - Mobile */}
+            {!hasAvailableSlots && (
+              <div
+                role="status"
+                aria-live="polite"
+                data-testid="no-slots-message"
+                className={`mt-2 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2 ${
+                  isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <span>Se acabaron los turnos de hoy</span>
+                <span aria-hidden="true">😞</span>
+              </div>
+            )}
           </div>
 
           {/* Desktop: Horizontal Layout */}
@@ -524,6 +575,7 @@ export default function HomeSection({
                 } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={!showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-all"
+                aria-pressed={!showOnlyOpen}
               >
                 Todos los horarios
               </button>
@@ -534,17 +586,36 @@ export default function HomeSection({
                   e.stopPropagation()
                   setShowOnlyOpen(true)
                 }}
+                disabled={!hasAvailableSlots}
+                aria-disabled={!hasAvailableSlots}
+                aria-pressed={showOnlyOpen}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  showOnlyOpen
-                    ? 'text-white shadow-md'
-                    : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
+                  !hasAvailableSlots
+                    ? 'text-gray-400 line-through cursor-not-allowed'
+                    : showOnlyOpen
+                      ? 'text-white shadow-md'
+                      : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white')} hover:ring-1 hover:ring-emerald-500/30`}
                 style={showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-open"
               >
                 Solo disponibles
               </button>
             </div>
+            {/* Mensaje de indisponibilidad - Desktop */}
+            {!hasAvailableSlots && (
+              <div
+                role="status"
+                aria-live="polite"
+                data-testid="no-slots-message-desktop"
+                className={`mt-2 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2 ${
+                  isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
+                }`}
+              >
+                <span>Se acabaron los turnos de hoy</span>
+                <span aria-hidden="true">😞</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -818,18 +889,18 @@ export default function HomeSection({
                     disabled={!isClickable}
                     aria-disabled={!isClickable}
                     data-testid="time-slot"
-                    className={`p-2 md:p-2 rounded-lg border-[1.5px] transition-all duration-200 text-center min-h-[78px] md:min-h-[80px] flex flex-col justify-center disabled:opacity-60 disabled:grayscale ${
+                    className={`rounded-lg border-[1.5px] transition-all duration-200 text-center flex flex-col justify-center disabled:opacity-60 disabled:grayscale ${
                       !isClickable
-                        ? "bg-card border-border/80 border-[2px] cursor-not-allowed"
+                        ? "p-1 md:p-1 min-h-[64px] md:min-h-[68px] text-sm bg-card border-border/80 border-[2px] cursor-not-allowed"
                         : isSelected
-                          ? "bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
-                          : "bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
+                          ? "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
+                          : "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
                     }`}
                   >
                     {/* Court Name - Top with specific color */}
                     <div 
                       data-testid="slot-court-name"
-                      className={`text-sm font-medium mb-0.5 px-2 py-0.5 rounded bg-transparent`}
+                      className={`${isClickable ? 'text-sm font-medium' : 'text-xs font-medium'} mb-0.5 px-2 py-0.5 rounded bg-transparent`}
                       style={{ 
                         color: !isClickable 
                           ? (isDarkMode ? '#6b7280' : '#9ca3af')
@@ -840,7 +911,7 @@ export default function HomeSection({
                     </div>
                     
                     {/* Time Range - Second */}
-                    <div className={`text-xl font-bold mb-0.5 text-card-foreground`}>
+                    <div className={`${isClickable ? 'text-xl font-bold' : 'text-lg font-semibold'} mb-0.5 text-card-foreground`}>
                       {timeRange}
                     </div>
                     
@@ -855,7 +926,7 @@ export default function HomeSection({
                     </div>
                     
                     {/* Price - Bottom */}
-                    <div className={`text-sm font-medium transition-colors duration-300 ease-in-out text-muted-foreground`}>
+                    <div className={`transition-colors duration-300 ease-in-out text-muted-foreground ${isClickable ? 'text-sm font-medium' : 'text-xs font-medium'}`}>
                       ${pricePerPerson.toLocaleString()} por persona
                     </div>
                   </button>
