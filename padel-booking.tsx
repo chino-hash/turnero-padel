@@ -318,8 +318,8 @@ function PadelBookingPage() {
       id: "inicio",
       label: "Inicio",
       icon: Home,
-      color: "text-emerald-500",
-      activeColor: "text-emerald-600",
+      color: "text-[color:var(--color-neon-lime)]",
+      activeColor: "text-[color:var(--color-neon-lime)]",
     },
     {
       id: "turnos",
@@ -665,7 +665,7 @@ function PadelBookingPage() {
   }
 
   return (
-    <>
+    <div className="dashboard-theme font-sans">
       {/* Navbar con diseño de notch invertido */}
       <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
         {/* Contenedor principal con flexbox */}
@@ -675,9 +675,8 @@ function PadelBookingPage() {
           <div className={`
             flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5
             rounded-b-2xl shadow-lg
-            transition-all duration-300 hover:shadow-xl
-            ${isDarkMode ? "bg-gray-800 text-white shadow-gray-900/20" : "bg-white text-gray-900 shadow-gray-900/10"}
-          `}>
+            transition-all duration-300 hover:shadow-xl backdrop-blur-xl border border-border text-card-foreground
+          `} style={{ backgroundColor: 'var(--navbar-bg)' }}>
             {/* Información del usuario */}
             <div className="text-xs sm:text-sm min-w-0">
               <div className="font-medium truncate max-w-[100px] sm:max-w-[150px]">
@@ -719,8 +718,8 @@ function PadelBookingPage() {
                 <div
                   className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 border rounded-md flex items-center justify-center cursor-pointer hover:opacity-80 ${
                     isDarkMode 
-                      ? "bg-emerald-700 text-white border-emerald-600 hover:bg-emerald-600" 
-                      : "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                      ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
+                      : "bg-gray-50 text-gray-900 border-gray-300 hover:bg-gray-100"
                   }`}
                   aria-label="Acceder al panel de administración"
                   title="Panel de Administración"
@@ -730,7 +729,7 @@ function PadelBookingPage() {
                     }
                   }}
                 >
-                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4" style={{ color: 'var(--color-neon-lime)' }} />
                 </div>
               )}
             </div>
@@ -849,9 +848,7 @@ function PadelBookingPage() {
 
       {/* Navigation */}
       <div className="fixed bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-sm px-4">
-        <div className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-full shadow-2xl backdrop-blur-md ${
-          isDarkMode ? "bg-gray-800/90 border border-gray-700" : "bg-white/90 border border-gray-200"
-        }`}>
+        <div className={`flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-full shadow-2xl backdrop-blur-xl border border-border`} style={{ backgroundColor: 'var(--navbar-bg)' }}>
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeNavItem === item.id
@@ -1099,7 +1096,7 @@ function PadelBookingPage() {
         </AlertDialogContent>
       </AlertDialog>
       </div>
-    </>
+    </div>
   )
 }
 

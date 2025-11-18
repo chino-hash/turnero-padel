@@ -164,7 +164,7 @@ export default function HomeSection({
                 className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
               />
             </div>
-            <h1 className={`text-xl sm:text-2xl font-bold ${
+            <h1 className={`text-3xl sm:text-4xl font-extrabold tracking-tight ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}>
               Padel Listo
@@ -187,7 +187,7 @@ export default function HomeSection({
 
         {/* Court Info Card */}
         <Card
-          className={`mb-6 border-0 shadow-lg transition-colors duration-300 ${isDarkMode ? "bg-gray-800" : "bg-white"} rounded-xl`}
+          className={`mb-6 rounded-2xl shadow-lg border border-border bg-card text-card-foreground transition-colors duration-300 backdrop-blur-sm`}
         >
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -200,9 +200,10 @@ export default function HomeSection({
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className={`text-xl font-semibold mb-3 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                  <h2 className={`text-xl font-semibold mb-1`}>
                     Disponibilidad de hoy
                   </h2>
+                  <p className="text-sm text-muted-foreground mb-3">Reserva tu horario preferido</p>
 
                   {/* Barra de disponibilidad combinada / individual */}
                   <div className="mb-3">
@@ -244,24 +245,19 @@ export default function HomeSection({
                         return (
                           <div>
                             <div className="flex items-center justify-between mb-1">
-                              <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{label}</span>
-                              <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>{showLoadingRate ? '—%' : `${safeRate}%`}</span>
+                              <span className={`text-sm font-medium text-muted-foreground`}>{label}</span>
                             </div>
-                            <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden relative">
-                              <div
-                                className={`h-full bg-gradient-to-r ${getBarClass(safeRate)} rounded-full transition-[width,background-color] duration-500 ease-out`}
-                                style={{ width: showLoadingRate ? '0%' : `${safeRate}%` }}
-                              />
-                              {/* Indicador numérico dentro de la barra cuando hay espacio */}
-                              {!showLoadingRate && safeRate > 15 && (
-                                <div className="absolute inset-y-0 left-2 flex items-center">
-                                  <span className="text-xs font-semibold text-white drop-shadow-sm">{safeRate}%</span>
-                                </div>
-                              )}
+                            <div className="flex items-center gap-4 mb-1">
+                              <span className="text-3xl font-bold" style={{ color: 'var(--color-neon-lime)' }}>{showLoadingRate ? '—%' : `${safeRate}%`}</span>
+                              <div className="h-2 w-full bg-muted rounded-full overflow-hidden relative">
+                                <div
+                                  className={`h-full rounded-full transition-[width] duration-500 ease-out`}
+                                  style={{ width: showLoadingRate ? '0%' : `${safeRate}%`, backgroundColor: 'var(--color-neon-lime)' }}
+                                />
+                              </div>
                             </div>
-                            {/* Detalle de conteo para precisión */}
                             {totalSlots > 0 && (
-                              <div className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <div className={`mt-1 text-xs text-muted-foreground`}>
                                 {availableSlots} de {totalSlots} horarios disponibles
                               </div>
                             )}
@@ -275,40 +271,36 @@ export default function HomeSection({
 
                   {/* Información Adicional (sin cambios) */}
                   <div className="space-y-2">
-                    <div className={`flex items-center gap-2 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-                      <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      <span>Downtown Sports Center</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-                      <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                      <span>1:30 hour sessions</span>
-                    </div>
+                  <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
+                    <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <span>Downtown Sports Center</span>
                   </div>
+                  <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
+                    <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                    <span>1:30 hour sessions</span>
+                  </div>
+                </div>
 
-                  <p className={`text-sm mt-3 leading-relaxed ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                    Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.
-                  </p>
+                <p className={`text-sm mt-3 leading-relaxed text-muted-foreground`}>
+                  Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.
+                </p>
+              </div>
+            </div>
+
+            {/* Sección Derecha - Información de Precio al lado derecho */}
+            <div className="lg:text-right lg:flex-shrink-0 lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-end lg:justify-center">
+              <div className="p-0">
+                <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: selectedCourtHex }}>
+                  ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
+                </div>
+                <div className={`text-sm font-medium mb-2 text-muted-foreground`}>
+                  por persona
+                </div>
+                <div className={`text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground inline-block`}> 
+                  Total: ${Math.round(((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
                 </div>
               </div>
-              
-              {/* Sección Derecha - Información de Precio */}
-              <div className="lg:text-right lg:flex-shrink-0">
-                <div className={`rounded-lg p-4 border ${
-                  isDarkMode 
-                    ? 'bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600' 
-                    : 'bg-gradient-to-br from-white to-gray-100 border-gray-200'
-                }`}>
-                  <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? selectedCourtHex : '#000000' }}>
-                    ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
-                  </div>
-                  <div className={`text-sm font-medium mb-2 ${isDarkMode ? "text-gray-200" : "text-gray-600"}`}>
-                    por persona
-                  </div>
-                  <div className={`text-xs px-2 py-1 rounded-md ${isDarkMode ? "bg-gray-600 text-gray-200" : "bg-gray-200/50 text-gray-600"}`}>
-                    Total: ${Math.round(((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)).toLocaleString()}
-                  </div>
-                </div>
-              </div>
+            </div>
             </div>
           </CardContent>
         </Card>
@@ -345,12 +337,12 @@ export default function HomeSection({
                   setSelectedCourt(court.id)
                 }}
                 data-testid="court-card"
-                className={`relative p-6 rounded-2xl border-4 transition-all duration-300 transform hover:scale-105 ${
+                className={`relative p-6 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${
                   selectedCourt === court.id
                     ? isDarkMode
-                      ? 'bg-gray-700 border-gray-500 shadow-xl'
-                      : `${court.bgColor} border-current shadow-xl`
-                    : `${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} hover:border-gray-300 shadow-md`
+                      ? 'bg-gray-700 border-border shadow-xl'
+                      : `${court.bgColor} border-border shadow-xl`
+                    : `${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'} shadow-md`
                 }`}
               >
                 {/* Availability Badge */}
@@ -493,9 +485,10 @@ export default function HomeSection({
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   !isUnifiedView
-                    ? 'bg-green-500 text-white shadow-md'
+                    ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                style={!isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-by-court"
               >
                 Por cancha
@@ -509,9 +502,10 @@ export default function HomeSection({
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   isUnifiedView
-                    ? 'bg-green-500 text-white shadow-md'
+                    ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                style={isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-unified"
               >
                 Vista unificada
@@ -529,9 +523,10 @@ export default function HomeSection({
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   !showOnlyOpen
-                    ? 'bg-blue-500 text-white shadow-md'
+                    ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                style={!showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-all"
               >
                 Todos los horarios
@@ -545,9 +540,10 @@ export default function HomeSection({
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                   showOnlyOpen
-                    ? 'bg-blue-500 text-white shadow-md'
+                    ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                 }`}
+                style={showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-open"
               >
                 Solo disponibles
@@ -589,11 +585,12 @@ export default function HomeSection({
                       title={`${isToday ? 'Hoy - ' : ''}${dayName} ${dayNumber} ${monthName}`}
                       className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center snap-center ${
                         isSelected
-                          ? "bg-blue-500 text-white shadow-lg"
+                          ? "text-white shadow-lg"
                           : isDarkMode
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                       }`}
+                      style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                       data-testid={`date-btn-mobile-${index}`}
                     >
                       <div className="flex flex-col">
@@ -608,12 +605,12 @@ export default function HomeSection({
                           {dayNumber}
                         </div>
                         <div className={`text-xs ${
-                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-600"
+                          isSelected ? "text-white/80" : isDarkMode ? "text-gray-400" : "text-gray-600"
                         }`}>
                           {monthName}
                         </div>
                         {isToday && (
-                          <div className="text-[10px] font-medium text-blue-300">
+                          <div className="text-[10px] font-medium text-white/70">
                             Hoy
                           </div>
                         )}
@@ -644,11 +641,12 @@ export default function HomeSection({
                       }}
                       className={`w-full p-4 rounded-lg transition-all duration-200 text-left ${
                         isSelected
-                          ? "bg-blue-500 text-white shadow-lg"
+                          ? "text-white shadow-lg"
                           : isDarkMode
                             ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                       }`}
+                      style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                       data-testid={`date-btn-desktop-${index}`}
                     >
                       <div className="flex flex-col">
@@ -673,7 +671,8 @@ export default function HomeSection({
             <div className="mt-6">
               <Button
                 onClick={scrollToNextAvailable}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                className="w-full text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                style={{ backgroundColor: 'var(--accent-green-dark)' }}
                 data-testid="next-available-btn"
               >
                 <Calendar className="w-5 h-5 mr-2" />
@@ -757,7 +756,7 @@ export default function HomeSection({
 
             {/* Slots Grid - 5 Columns Layout */}
             {!loading && !error && (
-              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 p-4 border rounded-lg ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 p-4 border rounded-lg bg-card border-border`}>
                 {slotsForRender.map((slot) => {
                   const isSelected = selectedSlot?.id === slot.id
                   const isAvailable = slot.status === 'available' || slot.isAvailable || slot.available
@@ -814,24 +813,18 @@ export default function HomeSection({
                     disabled={!isClickable}
                     aria-disabled={!isClickable}
                     data-testid="time-slot"
-                    className={`p-3 md:p-2 rounded-lg border-2 transition-all duration-200 text-center min-h-[85px] md:min-h-[80px] flex flex-col justify-center ${
+                    className={`p-2 md:p-2 rounded-lg border transition-all duration-200 text-center min-h-[78px] md:min-h-[80px] flex flex-col justify-center ${
                       !isClickable
-                        ? isDarkMode
-                          ? "bg-gray-800 border-gray-600 cursor-not-allowed"
-                          : "bg-gray-100 border-gray-300 cursor-not-allowed"
+                        ? "bg-card border-border cursor-not-allowed"
                         : isSelected
-                          ? isDarkMode
-                            ? "bg-blue-900/50 border-blue-400 shadow-md"
-                            : "bg-blue-50 border-blue-300 shadow-md"
-                          : isDarkMode
-                            ? "bg-gray-800 border-gray-600 hover:border-gray-500 hover:shadow-sm"
-                            : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                          ? "bg-card border-[color:var(--electric-teal)] shadow-md"
+                          : "bg-card border-border hover:shadow-sm"
                     }`}
                   >
                     {/* Court Name - Top with specific color */}
                     <div 
                       data-testid="slot-court-name"
-                      className={`text-sm font-medium mb-0.5 px-2 py-0.5 rounded ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'}`}
+                      className={`text-sm font-medium mb-0.5 px-2 py-0.5 rounded bg-transparent`}
                       style={{ 
                         color: !isClickable 
                           ? (isDarkMode ? '#6b7280' : '#9ca3af')
@@ -842,13 +835,7 @@ export default function HomeSection({
                     </div>
                     
                     {/* Time Range - Second */}
-                    <div className={`text-sm font-medium mb-0.5 ${
-                      !isClickable
-                        ? "text-gray-400"
-                        : isDarkMode
-                          ? "text-white"
-                          : "text-black"
-                    }`}>
+                    <div className={`text-xl font-bold mb-0.5 text-card-foreground`}>
                       {timeRange}
                     </div>
                     
@@ -863,13 +850,7 @@ export default function HomeSection({
                     </div>
                     
                     {/* Price - Bottom */}
-                    <div className={`text-xs font-medium transition-colors duration-300 ease-in-out ${
-                      !isClickable
-                        ? "text-gray-400"
-                        : isDarkMode
-                          ? "text-gray-200"
-                          : "text-black"
-                    }`}>
+                    <div className={`text-sm font-medium transition-colors duration-300 ease-in-out text-muted-foreground`}>
                       ${pricePerPerson.toLocaleString()} por persona
                     </div>
                   </button>

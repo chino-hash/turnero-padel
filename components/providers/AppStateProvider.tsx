@@ -323,7 +323,7 @@ interface AppStateProviderProps {
 export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) => {
   // Estados bÃ¡sicos
   const [activeNavItem, setActiveNavItem] = useState("inicio")
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(true)
   const [selectedCourt, setSelectedCourt] = useState("")
   const [selectedDateState, setSelectedDateState] = useState(() => {
     const today = new Date()
@@ -549,9 +549,15 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       setIsDarkMode(JSON.parse(savedDarkMode))
     }
   }, [])
-  
+
   useEffect(() => {
     localStorage.setItem('darkMode', JSON.stringify(isDarkMode))
+  }, [isDarkMode])
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', isDarkMode)
+    }
   }, [isDarkMode])
   
   // Persistir preferencias de filtro en sessionStorage
