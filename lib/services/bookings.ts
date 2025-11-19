@@ -26,6 +26,7 @@ function transformToBookingWithDetails(booking: any): BookingWithDetails {
     updatedAt: booking.updatedAt.toISOString(),
     cancelledAt: booking.cancelledAt?.toISOString() || null,
     closedAt: booking.closedAt?.toISOString() || null,
+    recurringId: booking.recurringId || null,
     court: {
       id: booking.court.id,
       name: booking.court.name,
