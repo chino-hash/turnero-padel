@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import useSWR from 'swr'
 import { cn } from '@/lib/utils'
 import CourtStatusIndicator from '@/components/admin/CourtStatusIndicator'
@@ -24,11 +25,22 @@ const fetcher = async (url: string): Promise<IAvailabilityResponse> => {
 }
 
 export default function AdminAvailabilityGrid() {
-  const { data, error, isLoading, isValidating, mutate } = useSWR<IAvailabilityResponse>('/api/admin/availability', fetcher, {
-    refreshInterval: 20000,
-    revalidateOnFocus: true,
+  const [abierta, setAbierta] = useState(false)
+  const swrKey = abierta ? '/api/admin/availability' : null
+  const { data, error, isLoading, isValidating, mutate } = useSWR<IAvailabilityResponse>(swrKey, fetcher, {
+    refreshInterval: abierta ? 20000 : 0,
+    revalidateOnFocus: abierta,
   })
 
+  if (!abierta) {
+    return (
+      <div className={cn('flex items-center justify-end mb-2')}>
+        <Button type="button" onClick={() => setAbierta(true)} variant="outline" className={cn('h-9 px-3')}>
+          Mostrar grilla
+        </Button>
+      </div>
+    )
+  }
   if (isLoading) return <div className={cn('text-sm text-gray-600')}>Cargando...</div>
   if (error) return <div className={cn('text-sm text-red-600')}>Error al cargar</div>
   if (!data || !data.timeSlots?.length) return <div className={cn('text-sm text-gray-600')}>Sin datos</div>
@@ -37,13 +49,16 @@ export default function AdminAvailabilityGrid() {
 
   return (
     <div>
-      <div className={cn('mb-2 flex justify-end')}>
+      <div className={cn('mb-2 flex justify-between')}>
+        <Button type="button" onClick={() => setAbierta(false)} variant="outline" className={cn('h-9 px-3')}>
+          Ocultar grilla
+        </Button>
         <Button type="button" onClick={() => mutate()} disabled={isValidating} variant="outline" className={cn('h-9 px-3')}>
           <RefreshCcw className={cn('w-4 h-4 mr-2', isValidating ? 'animate-spin' : '')} />
           {isValidating ? 'Actualizando...' : 'Actualizar'}
         </Button>
       </div>
-      <div className={cn('w-full overflow-x-auto rounded-lg border')}> 
+      <div className={cn('w-full overflow-x-auto rounded-lg border')} data-testid="admin-availability-grid"> 
       <table className={cn('min-w-[800px] w-full text-sm')}> 
         <thead>
           <tr className={cn('bg-muted/50')}> 

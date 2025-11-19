@@ -25,6 +25,7 @@ export type BookingWithDetails = {
   updatedAt: string; // ISO string
   cancelledAt: string | null; // ISO string
   closedAt: string | null; // ISO string
+  recurringId: string | null;
   court: {
     id: string;
     name: string;
@@ -171,6 +172,7 @@ export class BookingService {
       updatedAt: booking.updatedAt.toISOString(),
       cancelledAt: booking.cancelledAt?.toISOString() || null,
       closedAt: (booking as any).closedAt ? (booking as any).closedAt.toISOString() : null,
+      recurringId: (booking as any).recurringId || null,
       court: {
         id: booking.court.id,
         name: booking.court.name,

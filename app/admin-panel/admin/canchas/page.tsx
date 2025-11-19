@@ -196,17 +196,17 @@ export default function GestionCanchas() {
             Volver
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Canchas</h1>
-            <p className="text-gray-600">Administra las canchas y sus precios</p>
+            <h1 className="text-2xl font-bold text-foreground">Gestión de Canchas</h1>
+            <p className="text-muted-foreground">Administra las canchas y sus precios</p>
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+            className="flex items-center gap-2 border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-muted"
           >
             <span>Ir a</span>
-            <Home className="w-4 h-4 text-blue-600" />
+            <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </Button>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
@@ -226,28 +226,28 @@ export default function GestionCanchas() {
                   onCheckedChange={() => handleToggleActive(court)}
                 />
               </CardTitle>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 {court.isActive ? 'Activa' : 'Inactiva'}
               </div>
             </CardHeader>
             <CardContent className="p-4 flex-1 flex flex-col justify-between">
               <div className="space-y-4 flex-1">
-                 <div className="bg-gray-50 p-3 rounded-md">
+                 <div className="bg-muted p-3 rounded-md">
                    <div className="flex justify-between items-center mb-2">
-                     <Label className="text-sm font-medium text-gray-700">Precio Base</Label>
-                     <p className="font-bold text-lg">${court.basePrice.toLocaleString('es-AR')}</p>
+                     <Label className="text-sm font-medium text-muted-foreground">Precio Base</Label>
+                     <p className="font-bold text-lg text-foreground">${court.basePrice.toLocaleString('es-AR')}</p>
                    </div>
                    <div className="flex justify-between items-center">
-                     <Label className="text-sm font-medium text-gray-700">Precio por Persona</Label>
-                     <p className="font-bold text-lg text-green-600">
+                     <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
+                     <p className="font-bold text-lg text-green-600 dark:text-green-400">
                        ${parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                      </p>
                    </div>
                  </div>
                  {court.description && (
                    <div className="border-t pt-3">
-                     <Label className="text-sm font-medium text-gray-700 block mb-2">Descripción</Label>
-                     <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{court.description}</p>
+                     <Label className="text-sm font-medium text-muted-foreground block mb-2">Descripción</Label>
+                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{court.description}</p>
                    </div>
                  )}
                </div>
@@ -271,8 +271,8 @@ export default function GestionCanchas() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className={`rounded-lg p-6 w-full max-w-md ${
             isDarkMode 
-              ? 'bg-gray-800 border border-gray-600 text-white' 
-              : 'bg-white border border-gray-200 text-gray-900'
+              ? 'bg-card border border-gray-600 text-foreground' 
+              : 'bg-card border border-gray-200 text-foreground'
           }`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
@@ -285,7 +285,7 @@ export default function GestionCanchas() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nombre de la Cancha</Label>
+                <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">Nombre de la Cancha</Label>
                 <Input
                   id="name"
                   type="text"
@@ -298,7 +298,7 @@ export default function GestionCanchas() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="basePrice" className="text-sm font-medium text-gray-700">Precio Base</Label>
+                <Label htmlFor="basePrice" className="text-sm font-medium text-muted-foreground">Precio Base</Label>
                 <Input
                   id="basePrice"
                   type="number"
@@ -319,7 +319,7 @@ export default function GestionCanchas() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700">Descripción (Opcional)</Label>
+                <Label htmlFor="description" className="text-sm font-medium text-muted-foreground">Descripción (Opcional)</Label>
                 <Input
                   id="description"
                   type="text"
@@ -335,16 +335,16 @@ export default function GestionCanchas() {
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                 />
-                <Label htmlFor="isActive" className="text-sm font-medium text-gray-700">Cancha Activa</Label>
+                <Label htmlFor="isActive" className="text-sm font-medium text-muted-foreground">Cancha Activa</Label>
               </div>
               
               {formData.basePrice > 0 && (
-                <div className="bg-gray-50 p-4 rounded-md border space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Precio por Persona</Label>
-                  <p className="text-xl font-bold text-green-600">
+                <div className="bg-muted p-4 rounded-md border space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
                      ${parseFloat(calculatePricePerPerson(formData.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                    </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Calculado para 4 personas
                   </p>
                 </div>

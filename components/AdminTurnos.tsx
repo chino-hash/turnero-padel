@@ -879,7 +879,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     return (
       <div className="border-t pt-4 space-y-4">
         <div>
-          <h4 className="font-medium text-gray-900 mb-3">Jugadores y Pagos Individuales</h4>
+          <h4 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Jugadores y Pagos Individuales</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(['player1','player2','player3','player4'] as Array<keyof Booking['players']>).map((playerKey) => {
               const playerName = (booking.players[playerKey] || '').trim()
@@ -890,17 +890,23 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     const isClosed = booking.status === 'completado' && !!booking.closedAt
     const disableToggle = (isClosed && isPaid && pendingBalance === 0)
               return (
-                <div key={playerKey} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={playerKey} className={`flex items-center justify-between p-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}>
                   <div>
                     <p className="font-medium text-sm">{displayName}</p>
-                    <p className="text-xs text-gray-600">{playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}</p>
-                    <p className="text-xs text-gray-500">${playerAmount.toLocaleString()}</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>${playerAmount.toLocaleString()}</p>
                   </div>
                   <Button
                     variant={isPaid ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => togglePlayerPayment(booking.id, playerKey as keyof typeof booking.individualPayments)}
-                    className={`text-xs ${isPaid ? 'bg-green-600 hover:bg-green-700 text-white' : 'border-red-300 text-red-600 hover:bg-red-50'} ${(disableToggle || inFlightUpdates[booking.id]) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    className={`text-xs ${
+                      isPaid
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : (isDarkMode
+                            ? 'border-red-500 text-red-300 bg-red-900/30 hover:bg-red-900/40'
+                            : 'border-red-300 text-red-600 hover:bg-red-50')
+                    } ${(disableToggle || inFlightUpdates[booking.id]) ? 'opacity-60 cursor-not-allowed' : ''}`}
                     disabled={disableToggle || !!inFlightUpdates[booking.id]}
                     aria-disabled={disableToggle || !!inFlightUpdates[booking.id]}
                     data-testid={`admin-player-payment-toggle-${idx + 1}-${playerKey}`}
@@ -915,7 +921,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
         <div>
           <h4
-            className="font-medium text-gray-900 mb-3 flex items-center gap-2 cursor-pointer hover:text-purple-600 transition-colors"
+            className={`font-medium mb-3 flex items-center gap-2 cursor-pointer transition-colors ${isDarkMode ? 'text-gray-200 hover:text-purple-300' : 'text-gray-900 hover:text-purple-600'}`}
             data-testid={`admin-extras-toggle-${idx + 1}`}
             onClick={() => setExtrasOpen(prev => ({ ...prev, [booking.id]: !prev[booking.id] }))}
           >
@@ -944,21 +950,21 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-600 font-medium">Total original</p>
-            <p className="text-xl font-bold text-blue-700">${formatCurrency(totalOriginal)}</p>
+          <div className={`text-center p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total original</p>
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>${formatCurrency(totalOriginal)}</p>
           </div>
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-600 font-medium">Pagado</p>
-            <p className="text-xl font-bold text-green-700">${formatCurrency(amountPaid)}</p>
+          <div className={`text-center p-4 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-50'}`}>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Pagado</p>
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>${formatCurrency(amountPaid)}</p>
           </div>
-        <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50'}`}>
+        <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? (isDarkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200') : (isDarkMode ? 'bg-yellow-900/20' : 'bg-yellow-50')}`}>
           {pendingBalance === 0 ? (
-            <p className="text-sm text-green-600 font-medium"><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
           ) : (
-            <p className="text-sm text-yellow-600 font-medium">Saldo pendiente</p>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>Saldo pendiente</p>
           )}
-          <p className={`text-xl font-bold ${pendingBalance === 0 ? 'text-green-700' : 'text-yellow-700'} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
+          <p className={`text-xl font-bold ${pendingBalance === 0 ? (isDarkMode ? 'text-green-200' : 'text-green-700') : (isDarkMode ? 'text-yellow-200' : 'text-yellow-700')} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
         </div>
         </div>
 
@@ -1069,7 +1075,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 id="turnos-title" className="text-2xl font-bold text-gray-900">Gestión de Turnos</h2>
+          <h2 id="turnos-title" className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Turnos</h2>
           <p className="text-gray-600" id="turnos-description">Administra y supervisa todas las reservas</p>
         </div>
         
@@ -1109,7 +1115,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Turnos</p>
-                <p className="text-2xl font-bold text-gray-900">{totalBookings}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalBookings}</p>
               </div>
             </div>
           </CardContent>
@@ -1123,7 +1129,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Confirmados</p>
-                <p className="text-2xl font-bold text-gray-900">{confirmedBookings}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{confirmedBookings}</p>
               </div>
             </div>
           </CardContent>
@@ -1137,7 +1143,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Ingresos</p>
-                <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">${totalRevenue.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -1148,34 +1154,34 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             Resumen Financiero
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-600 font-medium">Total Recaudado</p>
-              <p className="text-xl font-bold text-green-700">${totalCollected.toLocaleString()}</p>
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p className="text-sm text-green-600 dark:text-green-300 font-medium">Total Recaudado</p>
+              <p className="text-xl font-bold text-green-700 dark:text-green-400">${totalCollected.toLocaleString()}</p>
             </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-sm text-yellow-600 font-medium">Saldo Pendiente</p>
-              <p className="text-xl font-bold text-yellow-700">${pendingBalance.toLocaleString()}</p>
+            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <p className="text-sm text-yellow-600 dark:text-yellow-300 font-medium">Saldo Pendiente</p>
+              <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">${pendingBalance.toLocaleString()}</p>
             </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium">Total Reserva</p>
-              <p className="text-xl font-bold text-blue-700">${reserveTotal.toLocaleString()}</p>
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-600 dark:text-blue-300 font-medium">Total Reserva</p>
+              <p className="text-xl font-bold text-blue-700 dark:text-blue-400">${reserveTotal.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
         <div className="space-y-2">
-          <label htmlFor="search-turnos" className="text-sm font-medium text-gray-700">Buscar</label>
+          <label htmlFor="search-turnos" className="text-sm font-medium text-gray-700 dark:text-gray-300">Buscar</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400 w-4 h-4" />
             <Input
               id="search-turnos"
               type="text"
@@ -1189,12 +1195,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">Estado</label>
+          <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
           <select
             id="status-filter"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="status-filter"
           >
             <option value="all">Todos los estados</option>
@@ -1205,12 +1211,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="date-filter" className="text-sm font-medium text-gray-700">Fecha</label>
+          <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
           <select
             id="date-filter"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="date-filter"
           >
             <option value="all">Todas las fechas</option>

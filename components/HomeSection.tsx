@@ -503,20 +503,7 @@ export default function HomeSection({
                 Solo disponibles
               </button>
             </div>
-            {/* Mensaje de indisponibilidad - Mobile */}
-            {!hasAvailableSlots && (
-              <div
-                role="status"
-                aria-live="polite"
-                data-testid="no-slots-message"
-                className={`mt-2 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2 ${
-                  isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                <span>Se acabaron los turnos de hoy</span>
-                <span aria-hidden="true">😞</span>
-              </div>
-            )}
+            
           </div>
 
           {/* Desktop: Horizontal Layout */}
@@ -602,20 +589,7 @@ export default function HomeSection({
                 Solo disponibles
               </button>
             </div>
-            {/* Mensaje de indisponibilidad - Desktop */}
-            {!hasAvailableSlots && (
-              <div
-                role="status"
-                aria-live="polite"
-                data-testid="no-slots-message-desktop"
-                className={`mt-2 px-4 py-3 rounded-md text-sm font-medium flex items-center gap-2 ${
-                  isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-                }`}
-              >
-                <span>Se acabaron los turnos de hoy</span>
-                <span aria-hidden="true">😞</span>
-              </div>
-            )}
+            
           </div>
         </div>
 
@@ -672,7 +646,7 @@ export default function HomeSection({
                           {dayNumber}
                         </div>
                         <div className={`text-xs ${
-                          isSelected ? "text-white/80" : isDarkMode ? "text-gray-400" : "text-gray-600"
+                          isSelected ? "text-white/90" : isDarkMode ? "text-white/80" : "text-gray-700"
                         }`}>
                           {monthName}
                         </div>
@@ -723,7 +697,7 @@ export default function HomeSection({
                           {dayName}
                         </div>
                         <div className={`text-sm ${
-                          isSelected ? "text-blue-100" : isDarkMode ? "text-gray-400" : "text-gray-600"
+                          isSelected ? "text-blue-100" : isDarkMode ? "text-white/80" : "text-gray-700"
                         }`}>
                           {dayNumber} {monthName}
                         </div>
@@ -833,7 +807,20 @@ export default function HomeSection({
             {/* Slots Grid - 5 Columns Layout */}
             {!loading && !error && (
               <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 p-4 border rounded-lg bg-card border-border`}>
-                {slotsForRender.map((slot) => {
+                {!hasAvailableSlots ? (
+                  <div className="col-span-full flex items-center justify-center py-12">
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      data-testid="no-slots-message"
+                      className={`${isDarkMode ? 'text-white' : 'text-gray-900'} text-2xl sm:text-3xl font-bold flex items-center gap-3`}
+                    >
+                      <span>Se acabaron los turnos de hoy</span>
+                      <span aria-hidden="true">😞</span>
+                    </div>
+                  </div>
+                ) : (
+                slotsForRender.map((slot) => {
                   const isSelected = selectedSlot?.id === slot.id
                   const isAvailable = slot.status === 'available' || slot.isAvailable || slot.available
                   const courtName = slot.courtName || slot.court || `Cancha ${slot.courtId?.replace('court-', '') || '1'}`
@@ -931,7 +918,8 @@ export default function HomeSection({
                     </div>
                   </button>
                 )
-              })}
+                })
+                )}
               </div>
             )}
           </div>

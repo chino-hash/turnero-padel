@@ -374,6 +374,38 @@
   border-radius: 9999px;
 }
 
+/* Scrollbar estilo sutil para navegación del admin */
+[data-testid="admin-navigation"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--input) transparent;
+}
+[data-testid="admin-navigation"]::-webkit-scrollbar {
+  height: 6px;
+}
+[data-testid="admin-navigation"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-testid="admin-navigation"]::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 9999px;
+}
+
+/* Scrollbar oscuro para grilla de disponibilidad del admin */
+[data-testid="admin-availability-grid"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--input) transparent;
+}
+[data-testid="admin-availability-grid"]::-webkit-scrollbar {
+  height: 8px;
+}
+[data-testid="admin-availability-grid"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-testid="admin-availability-grid"]::-webkit-scrollbar-thumb {
+  background-color: var(--muted);
+  border-radius: 9999px;
+}
+
 /* Gutter de snap para que el primer botón no se corte al inicio */
 [data-testid="date-selection-mobile"] {
   scroll-padding-left: 20px;

@@ -25,7 +25,6 @@ import {
   RefreshCcw,
   X,
   Home,
-  Package,
   MapPin,
   User,
   CheckCircle,
@@ -102,7 +101,7 @@ interface Extra {
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const { courts, slotsForRender, isUnifiedView, selectedDate, setSelectedDate, refreshMultipleSlots, refreshSlots } = useAppState()
+  const { courts, slotsForRender, isUnifiedView, selectedDate, setSelectedDate, refreshMultipleSlots, refreshSlots, isDarkMode } = useAppState()
 
   const [bookings, setBookings] = useState<Booking[]>([])
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([])
@@ -120,6 +119,7 @@ export default function AdminDashboard() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
   const [quantity, setQuantity] = useState<number>(1)
   const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
+  const [usersSummary, setUsersSummary] = useState<{ inactive30d: number; avgBookingsPerUser: number; upcoming7dUsers: number } | null>(null)
 
   const [prefs, setPrefs] = useState<{ mostrarCanchas: boolean; mostrarTurnos: boolean; mostrarUsuarios: boolean; mostrarProductos: boolean; mostrarFinanzas: boolean; orden: string }>(() => {
     if (typeof window === 'undefined') return { mostrarCanchas: true, mostrarTurnos: true, mostrarUsuarios: true, mostrarProductos: true, mostrarFinanzas: true, orden: 'importancia' }
@@ -137,6 +137,45 @@ export default function AdminDashboard() {
     const end = new Date()
     end.setHours(23,59,59,999)
     return { start: start.toISOString(), end: end.toISOString() }
+  }, [])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const now = new Date()
+        const end7 = new Date(now)
+        end7.setDate(now.getDate() + 7)
+        const [estadRes, crudRes, upcomingRes] = await Promise.all([
+          fetch('/api/estadisticas'),
+          fetch('/api/crud/stats?model=user'),
+          fetch(`/api/bookings?dateFrom=${encodeURIComponent(now.toISOString())}&dateTo=${encodeURIComponent(end7.toISOString())}&limit=200&sortOrder=asc`)
+        ])
+        const estad = await estadRes.json()
+        const crud = await crudRes.json()
+        const upcoming = await upcomingRes.json()
+        const usuariosActivos = Number(estad?.data?.usuariosActivos || 0)
+        const avg = Number(estad?.data?.promedioReservasPorUsuario || 0)
+        const total = Number(
+          crud?.data?.counts?.total ??
+          crud?.data?.models?.user?.total ??
+          0
+        )
+        const inactive30d = Math.max(0, total - usuariosActivos)
+        const bookingsArr = Array.isArray(upcoming?.data)
+          ? upcoming.data
+          : Array.isArray(upcoming?.data?.data)
+          ? upcoming.data.data
+          : []
+        const userIds = new Set(
+          bookingsArr.map((b: any) => b?.user?.id ?? b?.userId).filter(Boolean)
+        )
+        const upcoming7dUsers = userIds.size
+        setUsersSummary({ inactive30d, avgBookingsPerUser: avg, upcoming7dUsers })
+      } catch {
+        setUsersSummary({ inactive30d: 0, avgBookingsPerUser: 0, upcoming7dUsers: 0 })
+      }
+    }
+    load()
   }, [])
 
   const bookingsApi = useBookings({ initialFilters: { limit: 50 }, autoFetch: true })
@@ -548,54 +587,6 @@ export default function AdminDashboard() {
     ] as any
   }
 
-  const chartData = useMemo(() => {
-    const normalize = (n: string) => {
-      const m = String(n).match(/^Cancha\s*\d+/i)
-      return m ? m[0].replace(/\s+/g, ' ').trim() : String(n)
-    }
-    const bases = ['Cancha 1', 'Cancha 2', 'Cancha 3']
-    const bookingsSource = Array.isArray(bookings) && bookings.length > 0 ? bookings : mockBookings
-    const isSameDay = (dateStr: string, d: Date) => {
-      const bd = new Date(dateStr)
-      const dd = new Date(d)
-      bd.setHours(0,0,0,0)
-      dd.setHours(0,0,0,0)
-      return bd.getTime() === dd.getTime()
-    }
-    const selectedDateStr = new Date(selectedDate).toISOString().split('T')[0]
-    const dayBookings = (bookingsSource as any[]).filter(b => isSameDay(String(b?.date || ''), selectedDate))
-    const effectiveBookings = dayBookings.length > 0 ? dayBookings : buildDemoBookingsForDay(selectedDateStr)
-    const totalByCourt = new Map<string, number>(bases.map(b => [b, 0]))
-    const parseHM = (hm: string) => {
-      const [h, m] = String(hm || '00:00').split(':').map(Number)
-      return (h || 0) * 60 + (m || 0)
-    }
-    for (const c of courts as any[]) {
-      const base = normalize(c?.name || '')
-      if (!bases.includes(base)) continue
-      const startMin = parseHM(String(c?.operatingHours?.start || '08:00'))
-      const endMin = parseHM(String(c?.operatingHours?.end || '22:30'))
-      const minutes = Math.max(0, endMin - startMin)
-      totalByCourt.set(base, (totalByCourt.get(base) || 0) + (minutes || 0))
-    }
-    const reservedByCourt = new Map<string, number>(bases.map(b => [b, 0]))
-    for (const b of effectiveBookings as any[]) {
-      const base = normalize(b?.courtName || '')
-      if (!bases.includes(base)) continue
-      const { startStr, endStr } = parseTimeRange(String(b?.timeRange || ''))
-      const [sh, sm] = (startStr || '00:00').split(':').map(Number)
-      const [eh, em] = (endStr || '00:00').split(':').map(Number)
-      const minutes = Math.max(0, (eh * 60 + em) - (sh * 60 + sm))
-      reservedByCourt.set(base, (reservedByCourt.get(base) || 0) + minutes)
-    }
-    const entries = bases.map(label => {
-      const total = Math.max(1, totalByCourt.get(label) || 0)
-      const reserved = Math.min(total, reservedByCourt.get(label) || 0)
-      const ratio = reserved / total
-      return { key: label, label, total, reserved, pct: Math.round(ratio * 100) }
-    })
-    return entries
-  }, [courts, bookings, selectedDate])
 
   const isToday = useMemo(() => {
     const t = new Date(); t.setHours(0,0,0,0)
@@ -610,6 +601,7 @@ export default function AdminDashboard() {
     next.setHours(0,0,0,0)
     setSelectedDate(next)
   }
+
 
   return (
     <div className="p-6 space-y-6">
@@ -640,92 +632,29 @@ export default function AdminDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{filteredBookings.length}</div>
-              <div className="text-sm text-gray-600">Turnos hoy</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{filteredBookings.length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Turnos hoy</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{filteredBookings.filter(b => b.status === 'confirmado').length}</div>
-              <div className="text-sm text-gray-600">Confirmados</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{filteredBookings.filter(b => b.status === 'confirmado').length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Confirmados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{filteredBookings.filter(b => b.paymentStatus === 'pagado').length}</div>
-              <div className="text-sm text-gray-600">Pagados</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{filteredBookings.filter(b => b.paymentStatus === 'pagado').length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Pagados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
-              <div className="text-sm text-gray-600">Ingresos estimados</div>
+              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Ingresos estimados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600">{courts.filter((c: any) => c.isActive !== false).length}</div>
-              <div className="text-sm text-gray-600">Canchas activas</div>
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{courts.filter((c: any) => c.isActive !== false).length}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Canchas activas</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between w-full">
-              <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" />Ocupación por cancha</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => {
-                  bookingsApi.refreshBookings()
-                  if (isUnifiedView) { refreshMultipleSlots() } else { refreshSlots() }
-                }} className="flex items-center gap-2">
-                  <RefreshCcw className="w-4 h-4" />
-                  Recargar
-                </Button>
-                <Button variant="outline" size="sm" onClick={toggleDay}>{isToday ? 'Ver mañana' : 'Volver a hoy'}</Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="mt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-white border rounded">
-                {chartData.map((d) => {
-                  const color = d.pct >= 66 ? 'bg-red-500' : d.pct >= 33 ? 'bg-orange-400' : 'bg-green-500'
-                  return (
-                    <div key={d.key} className="flex flex-col items-center">
-                      <div className="text-sm font-medium mb-2 text-gray-800">{d.label}</div>
-                      <div className="w-full h-36 bg-gray-100 rounded-xl relative overflow-hidden">
-                        <div className={`${color} absolute bottom-0 left-0 right-0 rounded-t-xl transition-all`} style={{ height: `${Math.max(4, d.pct)}%` }}></div>
-                        <div className="absolute top-2 right-2 text-xs font-semibold text-gray-700 bg-white/70 px-2 py-1 rounded">{d.pct}%</div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Accesos rápidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Link href="/admin-panel/admin/canchas" className="border rounded-lg px-3 py-4 flex items-center gap-2 hover:bg-blue-50">
-                <Settings className="w-5 h-5" />
-                <div className="text-sm">Canchas</div>
-              </Link>
-              <Link href="/admin-panel/admin/turnos" className="border rounded-lg px-3 py-4 flex items-center gap-2 hover:bg-blue-50">
-                <Calendar className="w-5 h-5" />
-                <div className="text-sm">Turnos</div>
-              </Link>
-              <Link href="/admin-panel/admin/usuarios" className="border rounded-lg px-3 py-4 flex items-center gap-2 hover:bg-blue-50">
-                <Users className="w-5 h-5" />
-                <div className="text-sm">Usuarios</div>
-              </Link>
-              <Link href="/admin-panel/admin/productos" className="border rounded-lg px-3 py-4 flex items-center gap-2 hover:bg-blue-50">
-                <Package className="w-5 h-5" />
-                <div className="text-sm">Productos</div>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
 
 
@@ -738,10 +667,15 @@ export default function AdminDashboard() {
               <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Canchas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Activas</p>
-                  <p className="text-2xl font-bold">{courts.filter((c: any) => c.isActive !== false).length}</p>
+                  <p className="text-sm text-muted-foreground">Activas</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{courts.filter((c: any) => c.isActive !== false).length}</p>
+                  <div className="mt-2 space-y-1">
+                    {courts.map((c: any) => (
+                      <div key={c.id} className="text-xs text-muted-foreground">{c.name}: ${Math.round(((c.basePrice ?? 0) * (c.priceMultiplier ?? 1))).toLocaleString()}</div>
+                    ))}
+                  </div>
                 </div>
                 <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/canchas">Ver</Link></Button>
               </div>
@@ -756,8 +690,8 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Hoy</p>
-                  <p className="text-2xl font-bold">{filteredBookings.length}</p>
+                  <p className="text-sm text-muted-foreground">Hoy</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredBookings.length}</p>
                 </div>
                 <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/turnos">Ver</Link></Button>
               </div>
@@ -772,8 +706,12 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Activos</p>
-                  <p className="text-2xl font-bold">—</p>
+                  <p className="text-sm text-muted-foreground">Engagement</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{usersSummary ? usersSummary.avgBookingsPerUser.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—'}</p>
+                  <div className="mt-2 space-y-1">
+                    <div className="text-xs text-muted-foreground">Inactivos 30d: {usersSummary ? usersSummary.inactive30d : '—'}</div>
+                    <div className="text-xs text-muted-foreground">Próximos 7d: {usersSummary ? usersSummary.upcoming7dUsers : '—'}</div>
+                  </div>
                 </div>
                 <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/usuarios">Ver</Link></Button>
               </div>
@@ -788,8 +726,8 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Hoy</p>
-                  <p className="text-2xl font-bold">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground">Hoy</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
                 </div>
                 <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/estadisticas">Ver</Link></Button>
               </div>
@@ -801,7 +739,7 @@ export default function AdminDashboard() {
       {/* Vista rápida de turnos por categorías (compacta) */}
       <div className="space-y-6" data-testid="admin-bookings-compact">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-gray-300 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Vista rápida de turnos
           </h2>
@@ -820,30 +758,32 @@ export default function AdminDashboard() {
             <Card>
               <CardHeader className="py-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <span className="text-gray-700">{title}</span>
-                  <span className="ml-auto text-xs text-gray-500">{groups[key].length}</span>
+                  <span className="text-muted-foreground">{title}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{groups[key].length}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="py-2">
                 {groups[key].length === 0 ? (
-                  <div className="text-xs text-gray-500">Sin elementos</div>
+                  <div className="text-xs text-muted-foreground">Sin elementos</div>
                 ) : (
                   <div className="space-y-2">
                     {groups[key].slice(0, 5).map(b => (
-                      <div key={b.id} className="flex items-center justify-between px-2 py-2 border rounded-md">
+                      <div key={b.id} className="flex items-center justify-between px-2 py-2 border rounded-md dark:border-gray-800">
                         <div className="flex items-center gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                          <span className="text-xs font-medium text-gray-900">{b.courtName}</span>
-                          <span className="text-[10px] text-gray-600">{b.timeRange}</span>
+                          <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                          <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{b.courtName}</span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400">{b.timeRange}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-gray-500">{b.userName}</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-300">{b.userName}</span>
                           <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                            b.status === 'confirmado' ? 'bg-green-100 text-green-800' :
-                            b.status === 'completado' ? 'bg-blue-100 text-blue-800' :
-                            b.status === 'cancelado' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>{b.status}</span>
+                            key === 'completed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                            key === 'closed' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
+                            b.status === 'confirmado' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                            b.status === 'completado' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                            b.status === 'cancelado' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          }`}>{key === 'completed' ? 'completado' : key === 'closed' ? 'finalizado' : b.status}</span>
                         </div>
                       </div>
                     ))}

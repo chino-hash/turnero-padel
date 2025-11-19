@@ -242,11 +242,11 @@ export default function ProductosPage() {
 
   const getCategoriaColor = (categoria: string) => {
     switch (categoria) {
-      case 'Bebidas': return 'bg-cyan-100 text-cyan-800'
-      case 'Accesorios': return 'bg-purple-100 text-purple-800'
-      case 'Equipamiento': return 'bg-blue-100 text-blue-800'
-      case 'Consumibles': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'Bebidas': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100'
+      case 'Accesorios': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100'
+      case 'Equipamiento': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100'
+      case 'Consumibles': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
     }
   }
 
@@ -257,7 +257,7 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
         <div className="mb-8">
@@ -280,9 +280,9 @@ export default function ProductosPage() {
           </div>
           <div className="mt-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-light text-gray-900 mb-2">Gestión de Productos</h1>
+              <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Productos</h1>
               <div className="w-16 h-0.5 bg-orange-500"></div>
-              <p className="text-gray-600 mt-2">
+              <p className="text-muted-foreground mt-2">
                 Última actualización: {new Date().toLocaleString('es-ES')}
               </p>
             </div>
@@ -290,10 +290,10 @@ export default function ProductosPage() {
               variant="outline"
               size="sm"
               onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+              className="flex items-center gap-2 border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-muted"
             >
               <span>Ir a</span>
-              <Home className="w-4 h-4 text-blue-600" />
+              <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             </Button>
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function ProductosPage() {
                   id="categoria"
                   value={filtroCategoria}
                   onChange={(e) => setFiltroCategoria(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full mt-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent dark:bg-background dark:text-foreground"
                 >
                   {categorias.map(categoria => (
                     <option key={categoria} value={categoria}>{categoria}</option>
@@ -334,12 +334,12 @@ export default function ProductosPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
-                  <Package className="w-6 h-6 text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg flex-shrink-0">
+                  <Package className="w-6 h-6 text-blue-600 dark:text-blue-100" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-600">Total Productos</p>
-                  <p className="text-2xl font-bold text-gray-900 break-words overflow-hidden text-ellipsis">{productos.length}</p>
+                  <p className="text-sm text-muted-foreground">Total Productos</p>
+                  <p className="text-2xl font-bold text-foreground break-words overflow-hidden text-ellipsis">{productos.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -348,12 +348,12 @@ export default function ProductosPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
-                  <Archive className="w-6 h-6 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg flex-shrink-0">
+                  <Archive className="w-6 h-6 text-green-600 dark:text-green-100" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-600">Productos Activos</p>
-                  <p className="text-2xl font-bold text-gray-900 break-words overflow-hidden text-ellipsis">{productos.filter(p => p.activo).length}</p>
+                  <p className="text-sm text-muted-foreground">Productos Activos</p>
+                  <p className="text-2xl font-bold text-foreground break-words overflow-hidden text-ellipsis">{productos.filter(p => p.activo).length}</p>
                 </div>
               </div>
             </CardContent>
@@ -362,12 +362,12 @@ export default function ProductosPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
-                  <Package className="w-6 h-6 text-yellow-600" />
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex-shrink-0">
+                  <Package className="w-6 h-6 text-yellow-600 dark:text-yellow-100" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-600">Stock Bajo</p>
-                  <p className="text-2xl font-bold text-gray-900 break-words overflow-hidden text-ellipsis">{productos.filter(p => p.stock <= 5 && p.stock > 0).length}</p>
+                  <p className="text-sm text-muted-foreground">Stock Bajo</p>
+                  <p className="text-2xl font-bold text-foreground break-words overflow-hidden text-ellipsis">{productos.filter(p => p.stock <= 5 && p.stock > 0).length}</p>
                 </div>
               </div>
             </CardContent>
@@ -376,12 +376,12 @@ export default function ProductosPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <DollarSign className="w-6 h-6 text-orange-600" />
+                <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
+                  <DollarSign className="w-6 h-6 text-orange-600 dark:text-orange-100" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-600">Valor Total</p>
-                  <p className="text-2xl font-bold text-gray-900 break-words overflow-hidden text-ellipsis">
+                  <p className="text-sm text-muted-foreground">Valor Total</p>
+                  <p className="text-2xl font-bold text-foreground break-words overflow-hidden text-ellipsis">
                     ${productos.reduce((total, p) => total + (p.precio * p.stock), 0).toLocaleString()}
                   </p>
                 </div>
@@ -396,12 +396,12 @@ export default function ProductosPage() {
             <CardTitle>Productos ({productosFiltrados.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {cargando ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                <span className="ml-3 text-gray-600">Cargando productos...</span>
-              </div>
-            ) : (
+                {cargando ? (
+                  <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    <span className="ml-3 text-muted-foreground">Cargando productos...</span>
+                  </div>
+                ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {productosFiltrados.map((producto) => (
                   <div key={producto.id} className={`rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 ${!producto.activo ? 'opacity-60' : ''} ${
@@ -412,24 +412,24 @@ export default function ProductosPage() {
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 text-lg mb-2">{producto.nombre}</h3>
+                          <h3 className="font-semibold text-foreground text-lg mb-2">{producto.nombre}</h3>
                           <Badge className={getCategoriaColor(producto.categoria)}>
                             {producto.categoria}
                           </Badge>
                         </div>
-                        <Badge className={producto.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        <Badge className={producto.activo ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}>
                           {producto.activo ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </div>
                       
                       <div className="space-y-3 mb-6">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Precio:</span>
-                          <span className="font-semibold text-lg">${producto.precio.toLocaleString()}</span>
+                          <span className="text-sm text-muted-foreground">Precio:</span>
+                          <span className="font-semibold text-lg text-foreground">${producto.precio.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Stock:</span>
-                          <span className={`font-medium ${getStockColor(producto.stock)}`}>
+                          <span className="text-sm text-muted-foreground">Stock:</span>
+                          <span className={`font-medium ${getStockColor(producto.stock)} dark:text-foreground`}>
                             {producto.stock} unidades
                           </span>
                         </div>
@@ -470,8 +470,8 @@ export default function ProductosPage() {
                 
                 {productosFiltrados.length === 0 && (
                   <div className="text-center py-12">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No se encontraron productos</p>
+                    <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No se encontraron productos</p>
                     <Button onClick={handleNuevoProducto} className="mt-4">
                       Agregar primer producto
                     </Button>
@@ -583,7 +583,7 @@ export default function ProductosPage() {
             <DialogHeader>
               <DialogTitle>Confirmar eliminación</DialogTitle>
             </DialogHeader>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               ¿Estás seguro de que deseas eliminar el producto <strong>{productoAEliminar?.nombre}</strong>?
               Esta acción no se puede deshacer.
             </p>

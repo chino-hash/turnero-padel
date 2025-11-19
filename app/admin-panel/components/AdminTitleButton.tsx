@@ -13,7 +13,7 @@ export default function AdminTitleButton() {
   return (
     <button
       onClick={handleClick}
-      className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm"
+      className="text-xl font-semibold text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md cursor-pointer transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-md px-3 py-1.5"
       id="admin-title"
       aria-label="Ir al panel principal de administración"
       title="Panel Principal de Administración"

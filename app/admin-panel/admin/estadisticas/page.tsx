@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation'
 
 // Componente simple de estadísticas sin gráficos por ahora
 const SimpleChart = ({ data, title }: { data: any[], title: string }) => (
-  <div className="p-4 bg-gray-50 rounded-lg">
-    <h4 className="font-medium mb-2">{title}</h4>
-    <div className="text-sm text-gray-600">
+  <div className="p-4 bg-muted rounded-lg">
+    <h4 className="font-medium mb-2 text-foreground">{title}</h4>
+    <div className="text-sm text-muted-foreground">
       Gráfico temporalmente deshabilitado para el build de producción
     </div>
   </div>
@@ -55,7 +55,7 @@ export default function EstadisticasPage() {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -69,9 +69,9 @@ export default function EstadisticasPage() {
               <ArrowLeft className="h-4 w-4" />
               <span>Volver</span>
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">Análisis y Estadísticas</h1>
+            <h1 className="text-3xl font-bold text-foreground">Análisis y Estadísticas</h1>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             Última actualización: {new Date().toLocaleString('es-ES')}
           </div>
         </div>
@@ -82,10 +82,10 @@ export default function EstadisticasPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Ocupación Promedio</p>
-                  <p className="text-2xl font-bold text-gray-900">78%</p>
+                  <p className="text-sm font-medium text-muted-foreground">Ocupación Promedio</p>
+                  <p className="text-2xl font-bold text-foreground">78%</p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-green-600" />
+                <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>
@@ -94,10 +94,10 @@ export default function EstadisticasPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Usuarios Activos</p>
-                  <p className="text-2xl font-bold text-gray-900">342</p>
+                  <p className="text-sm font-medium text-muted-foreground">Usuarios Activos</p>
+                  <p className="text-2xl font-bold text-foreground">342</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-600" />
+                <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               </div>
             </CardContent>
           </Card>
@@ -106,10 +106,10 @@ export default function EstadisticasPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Reservas Hoy</p>
-                  <p className="text-2xl font-bold text-gray-900">45</p>
+                  <p className="text-sm font-medium text-muted-foreground">Reservas Hoy</p>
+                  <p className="text-2xl font-bold text-foreground">45</p>
                 </div>
-                <Calendar className="h-8 w-8 text-purple-600" />
+                <Calendar className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               </div>
             </CardContent>
           </Card>
@@ -118,10 +118,10 @@ export default function EstadisticasPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Ingresos Hoy</p>
-                  <p className="text-2xl font-bold text-gray-900">$270,000</p>
+                  <p className="text-sm font-medium text-muted-foreground">Ingresos Hoy</p>
+                  <p className="text-2xl font-bold text-foreground">$270,000</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-600" />
+                <DollarSign className="h-8 w-8 text.green-600 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>
@@ -160,24 +160,24 @@ export default function EstadisticasPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {promocionesEfectivas.map((promo, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  <h4 className="font-semibold text-gray-900">{promo.nombre}</h4>
+                <div key={index} className="border rounded-lg p-4 space-y-3 bg-card text-card-foreground">
+                  <h4 className="font-semibold text-foreground">{promo.nombre}</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Conversión:</span>
-                      <span className="font-medium text-green-600">{promo.conversion}%</span>
+                      <span className="text-muted-foreground">Conversión:</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">{promo.conversion}%</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Reservas:</span>
+                      <span className="text-muted-foreground">Reservas:</span>
                       <span className="font-medium">{promo.reservasGeneradas}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Ingresos:</span>
-                      <span className="font-medium text-green-600">${promo.ingresosGenerados.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Ingresos:</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">${promo.ingresosGenerados.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Descuento:</span>
-                      <span className="font-medium text-red-600">-${promo.ingresosPerdidos.toLocaleString()}</span>
+                      <span className="text-muted-foreground">Descuento:</span>
+                      <span className="font-medium text-red-600 dark:text-red-400">-${promo.ingresosPerdidos.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -203,36 +203,36 @@ export default function EstadisticasPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-green-600">Total Recaudado</p>
-                    <p className="text-3xl font-bold text-green-700">$1,250,000</p>
-                    <p className="text-sm text-green-600 mt-1">Este mes</p>
+                    <p className="text-sm font-medium text-green-600 dark:text-green-300">Total Recaudado</p>
+                    <p className="text-3xl font-bold text-green-700 dark:text-green-300">$1,250,000</p>
+                    <p className="text-sm text-green-600 dark:text-green-300 mt-1">Este mes</p>
                   </div>
-                  <DollarSign className="h-12 w-12 text-green-600" />
+                  <DollarSign className="h-12 w-12 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-yellow-600">Saldo Pendiente</p>
-                    <p className="text-3xl font-bold text-yellow-700">$85,000</p>
-                    <p className="text-sm text-yellow-600 mt-1">Por cobrar</p>
+                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-300">Saldo Pendiente</p>
+                    <p className="text-3xl font-bold text-yellow-700 dark:text-yellow-300">$85,000</p>
+                    <p className="text-sm text-yellow-600 dark:text-yellow-300 mt-1">Por cobrar</p>
                   </div>
-                  <Calendar className="h-12 w-12 text-yellow-600" />
+                  <Calendar className="h-12 w-12 text-yellow-600 dark:text-yellow-400" />
                 </div>
               </div>
               
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-600">Total Reserva</p>
-                    <p className="text-3xl font-bold text-blue-700">$320,000</p>
-                    <p className="text-sm text-blue-600 mt-1">Próximo mes</p>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-300">Total Reserva</p>
+                    <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">$320,000</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">Próximo mes</p>
                   </div>
-                  <TrendingUp className="h-12 w-12 text-blue-600" />
+                  <TrendingUp className="h-12 w-12 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </div>
