@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
+import { Label } from '../../../components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent } from '../../../components/ui/popover'
 import { splitEven } from '../../../lib/utils/extras'
@@ -26,7 +27,6 @@ import {
   Settings,
   RefreshCcw,
   X,
-  Home,
   MapPin,
   User,
   CheckCircle,
@@ -36,6 +36,7 @@ import Link from 'next/link'
 import { useAppState } from '../../../components/providers/AppStateProvider'
 import { useBookings } from '../../../hooks/useBookings'
 import { useDashboardRealTimeUpdates } from '../../../hooks/useRealTimeUpdates'
+import { toast } from 'react-hot-toast'
 
 // Funciones auxiliares para colores
 const getPaymentStatusColor = (status: string) => {
@@ -140,6 +141,24 @@ export default function AdminDashboard() {
     }
   })
 
+  const [showEditDashboardModal, setShowEditDashboardModal] = useState(false)
+  const [dashboardSettingsId, setDashboardSettingsId] = useState<string | null>(null)
+  const [dashboardTitle, setDashboardTitle] = useState('Resumen del Sistema')
+  const [labelTurnosHoy, setLabelTurnosHoy] = useState('Turnos hoy')
+  const [labelConfirmados, setLabelConfirmados] = useState('Confirmados')
+  const [labelPagados, setLabelPagados] = useState('Pagados')
+  const [labelIngresos, setLabelIngresos] = useState('Ingresos estimados')
+  const [labelCanchas, setLabelCanchas] = useState('Canchas activas')
+  const [currencyPrefix, setCurrencyPrefix] = useState('$')
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [homeSettingsId, setHomeSettingsId] = useState<string | null>(null)
+  const [homeLabelCourtName, setHomeLabelCourtName] = useState('Nombre de la cancha')
+  const [homeLocationName, setHomeLocationName] = useState('Downtown Sports Center')
+  const [homeMapUrl, setHomeMapUrl] = useState('')
+  const [homeSessionText, setHomeSessionText] = useState('1:30 hour sessions')
+  const [homeDescriptionText, setHomeDescriptionText] = useState('Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.')
+  const [homeIconImage, setHomeIconImage] = useState<string>('')
+
   const todayRange = useMemo(() => {
     const start = new Date()
     start.setHours(0,0,0,0)
@@ -185,6 +204,49 @@ export default function AdminDashboard() {
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/crud/systemSetting?key=dashboard_settings&limit=1')
+        const json = await res.json()
+        const item = Array.isArray(json?.data?.items) ? json.data.items[0] : Array.isArray(json?.data) ? json.data[0] : null
+        if (item) {
+          setDashboardSettingsId(String(item.id))
+          const valStr = String(item.value || '')
+          try {
+            const parsed = JSON.parse(valStr)
+            setDashboardTitle(parsed?.title || 'Resumen del Sistema')
+            setLabelTurnosHoy(parsed?.labels?.today || 'Turnos hoy')
+            setLabelConfirmados(parsed?.labels?.confirmed || 'Confirmados')
+            setLabelPagados(parsed?.labels?.paid || 'Pagados')
+            setLabelIngresos(parsed?.labels?.incomes || 'Ingresos estimados')
+            setLabelCanchas(parsed?.labels?.courts || 'Canchas activas')
+            setCurrencyPrefix(parsed?.currencyPrefix || '$')
+          } catch {}
+        }
+      } catch {}
+      try {
+        const res2 = await fetch('/api/crud/systemSetting?key=home_card_settings&limit=1')
+        const json2 = await res2.json()
+        const item2 = Array.isArray(json2?.data?.items) ? json2.data.items[0] : Array.isArray(json2?.data) ? json2.data[0] : null
+        if (item2) {
+          setHomeSettingsId(String(item2.id))
+          const valStr2 = String(item2.value || '')
+          try {
+            const parsed2 = JSON.parse(valStr2)
+            setHomeLabelCourtName(parsed2?.labelCourtName || 'Nombre de la cancha')
+            setHomeLocationName(parsed2?.locationName || 'Downtown Sports Center')
+            setHomeMapUrl(parsed2?.mapUrl || '')
+            setHomeSessionText(parsed2?.sessionText || '1:30 hour sessions')
+            setHomeDescriptionText(parsed2?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.')
+            setHomeIconImage(parsed2?.iconImage || '')
+          } catch {}
+        }
+      } catch {}
+    }
+    loadSettings()
   }, [])
 
   const bookingsApi = useBookings({ initialFilters: { limit: 50 }, autoFetch: true })
@@ -655,14 +717,12 @@ export default function AdminDashboard() {
     <div className="p-6 space-y-6">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel de Administración</h1>
-          <p className="text-gray-600">Visión general del sistema y accesos rápidos</p>
+          <h1 className="text-3xl font-light text-foreground mb-2">Panel de Administración</h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Resumen general y accesos rápidos a todas las secciones.</p>
+          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')} className="flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700">
-            <span>Ir a</span>
-            <Home className="w-4 h-4 text-blue-600" />
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
             Preferencias
@@ -674,35 +734,143 @@ export default function AdminDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5" />
-            <span>Resumen del Sistema</span>
+            <span>{dashboardTitle}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-[#55C5FF] dark:text-[#55C5FF]">{filteredBookings.length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Turnos hoy</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{labelTurnosHoy}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-[#4ECDC4] dark:text-[#4ECDC4]">{filteredBookings.filter(b => b.status === 'confirmado').length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Confirmados</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{labelConfirmados}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-[#AE88D7] dark:text-[#AE88D7]">{filteredBookings.filter(b => b.paymentStatus === 'pagado').length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Pagados</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{labelPagados}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-[#FFB347] dark:text-[#FFB347]">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Ingresos estimados</div>
+              <div className="text-2xl font-bold text-[#FFB347] dark:text-[#FFB347]">{currencyPrefix}{filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{labelIngresos}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-[#A7D7C5] dark:text-[#A7D7C5]">{courts.filter((c: any) => c.isActive !== false).length}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Canchas activas</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">{labelCanchas}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Editar información del dashboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2" htmlFor="home-label-court">Nombre de la cancha (etiqueta)</Label>
+              <Input id="home-label-court" value={homeLabelCourtName} onChange={(e) => setHomeLabelCourtName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label className="mb-2" htmlFor="home-location-name">Dirección / Nombre del lugar</Label>
+                <Input id="home-location-name" value={homeLocationName} onChange={(e) => setHomeLocationName(e.target.value)} />
+              </div>
+              <div>
+                <Label className="mb-2" htmlFor="home-map-url">URL de Google Maps</Label>
+                <Input id="home-map-url" value={homeMapUrl} onChange={(e) => setHomeMapUrl(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="mb-2" htmlFor="home-session-text">Horarios / Duración</Label>
+              <Input id="home-session-text" value={homeSessionText} onChange={(e) => setHomeSessionText(e.target.value)} />
+            </div>
+            <div>
+              <Label className="mb-2" htmlFor="home-description-text">Información visible</Label>
+              <Input id="home-description-text" value={homeDescriptionText} onChange={(e) => setHomeDescriptionText(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label className="mb-2" htmlFor="home-icon-file">Imagen del icono</Label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const reader = new FileReader()
+                  reader.onload = () => {
+                    const result = reader.result
+                    if (typeof result === 'string') setHomeIconImage(result)
+                  }
+                  reader.readAsDataURL(file)
+                }}
+                id="home-icon-file"
+                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              />
+              {homeIconImage && (
+                <div className="mt-2">
+                  <img src={homeIconImage} alt="Previsualización" className="w-16 h-16 object-cover rounded-md border" />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                onClick={async () => {
+                  const homePayload = {
+                    labelCourtName: homeLabelCourtName.trim(),
+                    locationName: homeLocationName.trim(),
+                    mapUrl: homeMapUrl.trim(),
+                    sessionText: homeSessionText.trim(),
+                    descriptionText: homeDescriptionText.trim(),
+                    iconImage: homeIconImage.trim()
+                  }
+                  try {
+                    let resHome
+                    if (homeSettingsId) {
+                      resHome = await fetch(`/api/crud/systemSetting/${homeSettingsId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          value: JSON.stringify(homePayload),
+                          dataType: 'JSON',
+                          description: 'Configuración de tarjeta principal',
+                          category: 'home_card'
+                        })
+                      })
+                    } else {
+                      resHome = await fetch('/api/crud/systemSetting', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          key: 'home_card_settings',
+                          value: JSON.stringify(homePayload),
+                          dataType: 'JSON',
+                          description: 'Configuración de tarjeta principal',
+                          category: 'home_card',
+                          isPublic: true
+                        })
+                      })
+                    }
+                    const jsonHome = await resHome.json()
+                    if (resHome.ok && jsonHome?.success) {
+                      if (!homeSettingsId && jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
+                      toast.success('Cambios guardados')
+                    } else {
+                      toast.error(String(jsonHome?.error || 'Error al guardar tarjeta principal'))
+                    }
+                  } catch (e) {
+                    toast.error('Error de conexión al guardar')
+                  }
+                }} 
+              >
+                Guardar
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
 
 
@@ -768,19 +936,19 @@ export default function AdminDashboard() {
         )}
         {prefs.mostrarFinanzas && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5" />Ingresos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Hoy</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
-                </div>
-                <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/estadisticas">Ver</Link></Button>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5" />Ingresos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Hoy</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{currencyPrefix}{filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
               </div>
-            </CardContent>
-          </Card>
+              <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/estadisticas">Ver</Link></Button>
+            </div>
+          </CardContent>
+        </Card>
         )}
       </div>
 
@@ -1037,6 +1205,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+     
 
     </div>
   )

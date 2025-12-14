@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 interface AdminLayoutContentProps {
   children: ReactNode
@@ -14,9 +14,17 @@ interface AdminLayoutContentProps {
 export default function AdminLayoutContent({ children }: AdminLayoutContentProps) {
   const { isDarkMode, setIsDarkMode } = useAppState()
   const router = useRouter()
+  const pathname = usePathname()
+  const baseClasses = "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
+  const darkClasses = "text-gray-300 hover:text-blue-400 hover:bg-gray-700"
+  const lightClasses = "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+  const activeDark = " text-blue-400 bg-gray-700"
+  const activeLight = " text-blue-600 bg-blue-50"
+  const linkClass = (href: string) =>
+    `${baseClasses} ${isDarkMode ? darkClasses : lightClasses}${pathname.startsWith(href) ? (isDarkMode ? activeDark : activeLight) : ""}`
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#090E1A]' : 'bg-gray-50'}`}>
       {/* Header principal con navegación integrada */}
       <header
         className={`shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
@@ -46,10 +54,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/canchas"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/canchas")}
+                aria-current={pathname.startsWith("/admin-panel/admin/canchas") ? "page" : undefined}
                 data-testid="admin-courts-link"
               >
                 <Settings className="w-5 h-5" />
@@ -58,10 +64,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/turnos"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/turnos")}
+                aria-current={pathname.startsWith("/admin-panel/admin/turnos") ? "page" : undefined}
                 data-testid="admin-bookings-link"
               >
                 <Calendar className="w-5 h-5" />
@@ -70,10 +74,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/usuarios"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/usuarios")}
+                aria-current={pathname.startsWith("/admin-panel/admin/usuarios") ? "page" : undefined}
                 data-testid="admin-users-link"
               >
                 <Users className="w-5 h-5" />
@@ -82,10 +84,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/estadisticas"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/estadisticas")}
+                aria-current={pathname.startsWith("/admin-panel/admin/estadisticas") ? "page" : undefined}
                 data-testid="admin-stats-link"
               >
                 <BarChart3 className="w-5 h-5" />
@@ -94,10 +94,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/productos"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/productos")}
+                aria-current={pathname.startsWith("/admin-panel/admin/productos") ? "page" : undefined}
                 data-testid="admin-products-link"
               >
                 <Package className="w-5 h-5" />
@@ -106,10 +104,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
 
               <Link
                 href="/admin-panel/admin/torneos"
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                  }`}
+                className={linkClass("/admin-panel/admin/torneos")}
+                aria-current={pathname.startsWith("/admin-panel/admin/torneos") ? "page" : undefined}
                 data-testid="admin-tournaments-link"
               >
                 <Trophy className="w-5 h-5" />
@@ -122,13 +118,12 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               {/* Botón Ir a Home */}
               <button
                 onClick={() => router.push('/dashboard')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-200 ${isDarkMode
+                className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${isDarkMode
                     ? 'border-blue-500 text-blue-400 hover:bg-blue-900/20'
                     : 'border-blue-600 text-blue-600 hover:bg-blue-50'
                   }`}
                 title="Ir al sitio principal"
               >
-                <span className="text-sm font-medium">Ir a</span>
                 <Home className="w-4 h-4" />
               </button>
 

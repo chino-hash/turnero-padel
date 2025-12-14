@@ -65,25 +65,18 @@ export default function UsuariosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push('/admin-panel')}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Volver</span>
-            </Button>
-            <h1 className="text-3xl font-bold text-foreground">Gestión de Usuarios</h1>
+            <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Usuarios</h1>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Última actualización: {new Date().toLocaleString('es-ES')}
-          </div>
+        </div>
+        <div>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Consulta y organiza usuarios por actividad y beneficios.</p>
+          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
 
         {/* Métricas principales */}

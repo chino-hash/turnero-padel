@@ -348,27 +348,12 @@ export default function TurnosPage() {
       {/* Header de la página */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestión de Turnos</h1>
-          <p className="text-gray-600 mt-2">
-            Administra todas las reservas y turnos del sistema
-          </p>
+          <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Turnos</h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Crea, edita y administra reservas de canchas.</p>
+          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
         <div className="flex gap-3 items-center">
-          <span
-            className={`text-xs px-2 py-1 rounded ${
-              authLoading
-                ? 'bg-gray-100 text-gray-700'
-                : isAdmin
-                ? 'bg-green-100 text-green-700'
-                : isAuthenticated
-                ? 'bg-yellow-100 text-yellow-700'
-                : 'bg-red-100 text-red-700'
-            }`}
-            aria-live="polite"
-            title={authLoading ? 'Autenticando...' : isAdmin ? 'Administrador' : isAuthenticated ? 'Usuario autenticado' : 'No autenticado'}
-          >
-            {authLoading ? 'Autenticando...' : isAdmin ? 'Admin' : isAuthenticated ? 'Usuario' : 'No autenticado'}
-          </span>
           <Button 
             onClick={() => setShowCreateBookingModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white"

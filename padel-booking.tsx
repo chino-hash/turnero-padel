@@ -679,7 +679,7 @@ function PadelBookingPage() {
                 {profile?.full_name || user?.email}
               </div>
               {isAdmin && (
-                <div className="text-xs text-emerald-600 font-bold mt-0.5 bg-emerald-100 px-1 sm:px-2 py-0.5 rounded-full inline-block">
+                <div className="text-xs font-semibold mt-0.5 px-1 sm:px-2 py-0.5 rounded-full inline-block text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/20 dark:opacity-80">
                   ADMIN
                 </div>
               )}

@@ -79,6 +79,21 @@ export default function HomeSection({
   const nextAvailableBtnRef = useRef<HTMLButtonElement | null>(null)
   const [creationModeActive, setCreationModeActive] = useState(false)
   const [creationModeCourtId, setCreationModeCourtId] = useState<string | null>(null)
+  const [homeCardSettings, setHomeCardSettings] = useState<{
+    labelCourtName: string
+    locationName: string
+    mapUrl: string
+    sessionText: string
+    descriptionText: string
+    iconImage: string
+  }>({
+    labelCourtName: 'Nombre de la cancha',
+    locationName: 'Downtown Sports Center',
+    mapUrl: '',
+    sessionText: '1:30 hour sessions',
+    descriptionText: 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+    iconImage: ''
+  })
 
   // Obtener funciones del contexto
   const { refreshSlots, refreshMultipleSlots } = useAppState()
@@ -113,6 +128,30 @@ export default function HomeSection({
       }
     }
   })
+  useEffect(() => {
+    const loadHomeCard = async () => {
+      try {
+        const res = await fetch('/api/crud/systemSetting?key=home_card_settings&limit=1')
+        const json = await res.json()
+        const item = Array.isArray(json?.data?.items) ? json.data.items[0] : Array.isArray(json?.data) ? json.data[0] : null
+        if (item) {
+          const valStr = String(item.value || '')
+          try {
+            const parsed = JSON.parse(valStr)
+            setHomeCardSettings({
+              labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
+              locationName: parsed?.locationName || 'Downtown Sports Center',
+              mapUrl: parsed?.mapUrl || '',
+              sessionText: parsed?.sessionText || '1:30 hour sessions',
+              descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+              iconImage: parsed?.iconImage || ''
+            })
+          } catch {}
+        }
+      } catch {}
+    }
+    loadHomeCard()
+  }, [])
 
   // Fallback seguro para evitar errores mientras aún no cargan las canchas
   const defaultCourt: Court = {
@@ -223,14 +262,18 @@ export default function HomeSection({
                   className={"w-16 h-16 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"}
                   style={{ backgroundColor: '#4b5563' }}
                 >
-                  <Users className="w-8 h-8 text-white" />
+                  {homeCardSettings.iconImage ? (
+                    <img src={homeCardSettings.iconImage} alt="icono" className="w-16 h-16 object-cover rounded-lg" />
+                  ) : (
+                    <Users className="w-8 h-8 text-white" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className={`text-xl mb-1`}>
+                  <div className="text-xs text-muted-foreground mb-0.5">{homeCardSettings.labelCourtName}</div>
+                  <h2 className={`text-lg mt-2 mb-1`}>
                     <span className="font-semibold">Disponibilidad de</span>{" "}
                     <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
                   </h2>
-                  <p className="text-sm text-muted-foreground mb-3">Reserva tu horario preferido</p>
 
                   {/* Barra de disponibilidad combinada / individual */}
                   <div className="mb-3">
@@ -300,16 +343,22 @@ export default function HomeSection({
                   <div className="space-y-2">
                     <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
                       <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      <span>Downtown Sports Center</span>
+                      {homeCardSettings.mapUrl ? (
+                        <a href={homeCardSettings.mapUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                          {homeCardSettings.locationName}
+                        </a>
+                      ) : (
+                        <span>{homeCardSettings.locationName}</span>
+                      )}
                     </div>
                     <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
                       <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                      <span>1:30 hour sessions</span>
+                      <span>{homeCardSettings.sessionText}</span>
                     </div>
                   </div>
 
                   <p className={`text-sm mt-3 leading-relaxed text-muted-foreground`}>
-                    Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.
+                    {homeCardSettings.descriptionText}
                   </p>
                 </div>
               </div>

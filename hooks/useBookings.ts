@@ -87,22 +87,50 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
 
   const timedFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit, label?: string) => {
     const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
-    const res = await fetch(input as any, init)
-    const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
-    const ms = Math.round(t1 - t0)
+    const urlStr = (() => { try { return typeof input === 'string' ? input : (input as URL).toString() } catch { return '' } })()
+    const finalInit: RequestInit = {
+      ...init,
+      credentials: init?.credentials ?? 'same-origin',
+      headers: { Accept: 'application/json', ...(init?.headers as any) },
+      cache: init?.cache ?? 'no-store'
+    }
     try {
-      const urlStr = typeof input === 'string' ? input : (input as URL).toString()
-      if (!urlStr.includes('/api/admin/test-event') && typeof window !== 'undefined') {
-        console.log(`[latency] ${label || urlStr} ${ms}ms status ${res.status}`)
-        fetch('/api/admin/test-event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ type: 'admin_change', message: `[latency] ${label || urlStr} ${ms}ms status ${res.status}` })
-        }).catch(() => {})
+      const res = await fetch(input as any, finalInit)
+      const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+      const ms = Math.round(t1 - t0)
+      try {
+        if (!urlStr.includes('/api/admin/test-event') && typeof window !== 'undefined') {
+          console.log(`[latency] ${label || urlStr} ${ms}ms status ${res.status}`)
+          fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ type: 'admin_change', message: `[latency] ${label || urlStr} ${ms}ms status ${res.status}` })
+          }).catch(() => {})
+        }
+      } catch {}
+      return res
+    } catch (err) {
+      const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+      const ms = Math.round(t1 - t0)
+      if (typeof window !== 'undefined') {
+        console.warn(`[latency] ${label || urlStr} failed after ${ms}ms`)
+        try {
+          if (!urlStr.includes('/api/admin/test-event')) {
+            fetch('/api/admin/test-event', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ type: 'admin_change', message: `[latency] ${label || urlStr} failed after ${ms}ms` })
+            }).catch(() => {})
+          }
+        } catch {}
       }
-    } catch {}
-    return res
+      return new Response(JSON.stringify({ success: false, error: 'Error de conexión con el servidor' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
   }, [])
 
   const buildQueryParams = useCallback((filters: BookingFilters) => {
@@ -154,8 +182,8 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
         // optional error message from API; keep UX minimal
       }
     } catch (err: any) {
-      console.error('fetchBookings error:', err)
-      setError(err.message || 'Error al obtener reservas')
+      console.warn('fetchBookings error:', err?.message || err)
+      setError(err?.message || 'Error al obtener reservas')
     } finally {
       setLoading(false)
     }

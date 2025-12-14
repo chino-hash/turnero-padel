@@ -128,17 +128,16 @@ export default function Page() {
   return (
     <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-            <Trophy className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <div className="mb-8">
+            <div className="flex items-center space-x-3">
+              <div>
+                <h1 className="text-3xl font-light text-foreground mb-2">Crear Nuevo Torneo</h1>
+                <div className="w-16 h-0.5 bg-orange-500"></div>
+                <p className="text-muted-foreground text-xs mt-2">Define categorías, premios y cronograma del torneo.</p>
+                <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Crear Nuevo Torneo</h1>
-            <p className="text-muted-foreground text-sm">Configura la información general y los horarios disponibles.</p>
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Stepper & Form (80%) */}
@@ -478,7 +477,6 @@ export default function Page() {
                 </div>
 
                 <div className="flex gap-4 justify-center pt-4">
-                  <button className="px-6 py-3 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors" onClick={() => setStep(2)}>Volver a editar</button>
                   <button
                     className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg font-bold shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 flex items-center gap-2 transform hover:scale-105"
                     onClick={handlePublish}

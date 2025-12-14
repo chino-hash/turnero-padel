@@ -295,21 +295,12 @@ export default function ProductosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-8 py-12">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/admin-panel')}
-                className="flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Volver al Panel</span>
-              </Button>
             </div>
             <Button onClick={handleNuevoProducto} className="flex items-center space-x-2">
               <Plus className="w-4 h-4" />
@@ -320,7 +311,8 @@ export default function ProductosPage() {
             <div>
               <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Productos</h1>
               <div className="w-16 h-0.5 bg-orange-500"></div>
-              <p className="text-muted-foreground mt-2">
+              <p className="text-muted-foreground text-xs mt-2">Administra catálogo, stock y precios de productos.</p>
+              <p className="text-muted-foreground mt-1">
                 Última actualización: {new Date().toLocaleString('es-ES')}
               </p>
             </div>

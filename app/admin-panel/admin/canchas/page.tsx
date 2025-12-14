@@ -187,17 +187,11 @@ export default function GestionCanchas() {
     <main className="container mx-auto p-6 space-y-6">
       <header className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Volver
-          </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Gestión de Canchas</h1>
-            <p className="text-muted-foreground">Administra las canchas y sus precios</p>
+            <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
+            <div className="w-16 h-0.5 bg-orange-500"></div>
+            <p className="text-muted-foreground text-xs mt-2">Activa, edita y configura precios de canchas.</p>
+            <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
           </div>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
