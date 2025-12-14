@@ -101,7 +101,7 @@ interface Booking {
 
 interface Extra {
   id: string
-  type: 'pelotas' | 'bebida' | 'paleta'
+  type: 'pelotas' | 'bebida' | 'paleta' | 'otro'
   name: string
   cost: number
   assignedTo: 'all' | 'player1' | 'player2' | 'player3' | 'player4'
