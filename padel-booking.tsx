@@ -656,15 +656,11 @@ function PadelBookingPage() {
     )
   }
 
-  if (slotsLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
-      </div>
-    )
-  }
-
-  return (
+  return slotsLoading ? (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
+    </div>
+  ) : (
     <div className="dashboard-theme font-sans">
       {/* Navbar con diseño de notch invertido */}
       <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent">

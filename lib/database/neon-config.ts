@@ -5,8 +5,6 @@
  * con Neon, incluyendo connection pooling, timeouts y optimizaciones de queries.
  */
 
-import { neon } from '@neondatabase/serverless'
-import { drizzle } from 'drizzle-orm/neon-http'
 import { PrismaClient } from '@prisma/client'
 import { getDatabaseConfig, isDevelopment, isProduction } from '../config/env'
 
@@ -24,8 +22,6 @@ export const neonConfig = {
   }
 }
 
-const sql = neon(dbConfig.url)
-export const db = drizzle(sql)
 
 // Configuración específica para diferentes entornos
 const getEnvironmentConfig = () => {

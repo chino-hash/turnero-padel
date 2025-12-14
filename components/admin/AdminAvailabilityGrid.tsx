@@ -48,7 +48,7 @@ export default function AdminAvailabilityGrid() {
   const headerDays = data.timeSlots[0]?.days ?? []
 
   return (
-    <div>
+    <div className={cn('availability-grid')} aria-label="Grilla de disponibilidad de canchas">
       <div className={cn('mb-2 flex justify-between')}>
         <Button type="button" onClick={() => setAbierta(false)} variant="outline" className={cn('h-9 px-3')}>
           Ocultar grilla
@@ -58,36 +58,68 @@ export default function AdminAvailabilityGrid() {
           {isValidating ? 'Actualizando...' : 'Actualizar'}
         </Button>
       </div>
-      <div className={cn('w-full overflow-x-auto rounded-lg border')} data-testid="admin-availability-grid"> 
-      <table className={cn('min-w-[800px] w-full text-sm')}> 
-        <thead>
-          <tr className={cn('bg-muted/50')}> 
-            <th className={cn('px-3 py-2 text-left font-medium text-gray-700')}>Horario</th>
-            {headerDays.map((d) => {
-              const label = new Date(`${d.date}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })
-              return (
-                <th key={d.date} className={cn('px-3 py-2 text-center font-medium text-gray-700')}>{label.toUpperCase()}</th>
-              )
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {data.timeSlots.map((slot) => (
-            <tr key={slot.timeLabel} className={cn('border-t')}> 
-              <td className={cn('px-3 py-2 whitespace-nowrap font-medium text-gray-800')}>{slot.timeLabel}</td>
-              {slot.days.map((day) => (
-                <td key={`${slot.timeLabel}-${day.date}`} className={cn('px-3 py-2')}> 
-                  <div className={cn('flex items-center gap-2')}> 
-                    {day.courts.slice(0, 3).map((court) => (
-                      <CourtStatusIndicator key={court.courtId} status={court.status} />
-                    ))}
-                  </div>
-                </td>
-              ))}
+      <div
+        className={cn('availability-grid__scroll w-full overflow-auto rounded-xl border')}
+        data-testid="admin-availability-grid"
+        aria-label="Tabla de disponibilidad semanal"
+      >
+        <table className={cn('availability-grid__table min-w-[800px] w-full text-sm')} role="table">
+          <thead role="rowgroup" className={cn('availability-grid__head')}> 
+            <tr role="row">
+              <th
+                role="columnheader"
+                scope="col"
+                className={cn('availability-grid__head-cell sticky top-0 text-left font-medium')}
+              >
+                Horario
+              </th>
+              {headerDays.map((d) => {
+                const label = new Date(`${d.date}T00:00:00`).toLocaleDateString('es-ES', {
+                  weekday: 'short',
+                  day: 'numeric',
+                })
+                return (
+                  <th
+                    key={d.date}
+                    role="columnheader"
+                    scope="col"
+                    className={cn('availability-grid__head-cell sticky top-0 text-center font-medium')}
+                    aria-label={`Día ${label}`}
+                  >
+                    {label.toUpperCase()}
+                  </th>
+                )
+              })}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody role="rowgroup">
+            {data.timeSlots.map((slot) => (
+              <tr key={slot.timeLabel} role="row" className={cn('availability-grid__row')}> 
+                <td role="cell" className={cn('availability-grid__cell availability-grid__cell--time whitespace-nowrap font-medium')}>
+                  {slot.timeLabel}
+                </td>
+                {slot.days.map((day) => (
+                  <td
+                    key={`${slot.timeLabel}-${day.date}`}
+                    role="cell"
+                    className={cn('availability-grid__cell')}
+                    data-date={day.date}
+                  > 
+                    <div className={cn('availability-grid__badges')}> 
+                      {day.courts.slice(0, 3).map((court, idx) => (
+                        <CourtStatusIndicator
+                          key={court.courtId}
+                          status={court.status}
+                          labelNumber={idx + 1}
+                        />
+                      ))}
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )

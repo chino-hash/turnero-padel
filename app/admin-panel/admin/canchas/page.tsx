@@ -9,7 +9,7 @@ import { Button } from '../../../../components/ui/button'
 import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Switch } from '../../../../components/ui/switch'
-import { ArrowLeft, Save, Plus, Edit2, Trash2, X, Home } from 'lucide-react'
+import { ArrowLeft, Save, Plus, Edit2, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useAppState } from '../../../../components/providers/AppStateProvider'
@@ -60,12 +60,12 @@ export default function GestionCanchas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name.trim()) {
       toast.error('El nombre de la cancha es requerido')
       return
     }
-    
+
     if (formData.basePrice <= 0) {
       toast.error('El precio base debe ser mayor a 0')
       return
@@ -74,7 +74,7 @@ export default function GestionCanchas() {
     try {
       const url = editingCourt ? '/api/courts' : '/api/courts'
       const method = editingCourt ? 'PUT' : 'POST'
-      const payload = editingCourt 
+      const payload = editingCourt
         ? { id: editingCourt.id, ...formData }
         : formData
 
@@ -199,15 +199,6 @@ export default function GestionCanchas() {
             <h1 className="text-2xl font-bold text-foreground">Gestión de Canchas</h1>
             <p className="text-muted-foreground">Administra las canchas y sus precios</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push('/dashboard')}
-            className="flex items-center gap-2 border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-muted"
-          >
-            <span>Ir a</span>
-            <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          </Button>
         </div>
         <Button onClick={() => setShowAddForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -232,25 +223,25 @@ export default function GestionCanchas() {
             </CardHeader>
             <CardContent className="p-4 flex-1 flex flex-col justify-between">
               <div className="space-y-4 flex-1">
-                 <div className="bg-muted p-3 rounded-md">
-                   <div className="flex justify-between items-center mb-2">
-                     <Label className="text-sm font-medium text-muted-foreground">Precio Base</Label>
-                     <p className="font-bold text-lg text-foreground">${court.basePrice.toLocaleString('es-AR')}</p>
-                   </div>
-                   <div className="flex justify-between items-center">
-                     <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
-                     <p className="font-bold text-lg text-green-600 dark:text-green-400">
-                       ${parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                     </p>
-                   </div>
-                 </div>
-                 {court.description && (
-                   <div className="border-t pt-3">
-                     <Label className="text-sm font-medium text-muted-foreground block mb-2">Descripción</Label>
-                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{court.description}</p>
-                   </div>
-                 )}
-               </div>
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Precio Base</Label>
+                    <p className="font-bold text-lg text-foreground">${court.basePrice.toLocaleString('es-AR')}</p>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
+                    <p className="font-bold text-lg text-green-600 dark:text-green-400">
+                      ${parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+                {court.description && (
+                  <div className="border-t pt-3">
+                    <Label className="text-sm font-medium text-muted-foreground block mb-2">Descripción</Label>
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{court.description}</p>
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 pt-4 mt-auto">
                 <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(court)}>
                   <Edit2 className="w-3 h-3 mr-1" />
@@ -269,11 +260,10 @@ export default function GestionCanchas() {
       {/* Modal de Agregar/Editar Cancha */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className={`rounded-lg p-6 w-full max-w-md ${
-            isDarkMode 
-              ? 'bg-card border border-gray-600 text-foreground' 
+          <div className={`rounded-lg p-6 w-full max-w-md ${isDarkMode
+              ? 'bg-card border border-gray-600 text-foreground'
               : 'bg-card border border-gray-200 text-foreground'
-          }`}>
+            }`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {editingCourt ? 'Editar Cancha' : 'Nueva Cancha'}
@@ -282,7 +272,7 @@ export default function GestionCanchas() {
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">Nombre de la Cancha</Label>
@@ -296,7 +286,7 @@ export default function GestionCanchas() {
                   className="mt-1"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="basePrice" className="text-sm font-medium text-muted-foreground">Precio Base</Label>
                 <Input
@@ -317,7 +307,7 @@ export default function GestionCanchas() {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="description" className="text-sm font-medium text-muted-foreground">Descripción (Opcional)</Label>
                 <Input
@@ -328,7 +318,7 @@ export default function GestionCanchas() {
                   placeholder="Descripción de la cancha"
                 />
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
@@ -337,19 +327,19 @@ export default function GestionCanchas() {
                 />
                 <Label htmlFor="isActive" className="text-sm font-medium text-muted-foreground">Cancha Activa</Label>
               </div>
-              
+
               {formData.basePrice > 0 && (
                 <div className="bg-muted p-4 rounded-md border space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
                   <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                     ${parseFloat(calculatePricePerPerson(formData.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                   </p>
+                    ${parseFloat(calculatePricePerPerson(formData.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     Calculado para 4 personas
                   </p>
                 </div>
               )}
-              
+
               <div className="flex space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={resetForm} className="flex-1">
                   Cancelar

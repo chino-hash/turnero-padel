@@ -34,7 +34,6 @@ export async function GET() {
     const activeCourts = await prisma.court.findMany({
       where: { isActive: true, deletedAt: null },
       orderBy: { name: 'asc' },
-      take: 3,
       select: { id: true, name: true },
     })
 

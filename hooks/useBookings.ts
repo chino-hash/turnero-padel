@@ -85,6 +85,26 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
   const [stats, setStats] = useState<any>(null)
   const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: pageSize, total: 0, totalPages: 0 })
 
+  const timedFetch = useCallback(async (input: RequestInfo | URL, init?: RequestInit, label?: string) => {
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+    const res = await fetch(input as any, init)
+    const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+    const ms = Math.round(t1 - t0)
+    try {
+      const urlStr = typeof input === 'string' ? input : (input as URL).toString()
+      if (!urlStr.includes('/api/admin/test-event') && typeof window !== 'undefined') {
+        console.log(`[latency] ${label || urlStr} ${ms}ms status ${res.status}`)
+        fetch('/api/admin/test-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ type: 'admin_change', message: `[latency] ${label || urlStr} ${ms}ms status ${res.status}` })
+        }).catch(() => {})
+      }
+    } catch {}
+    return res
+  }, [])
+
   const buildQueryParams = useCallback((filters: BookingFilters) => {
     const params = new URLSearchParams()
     if (filters.page) params.set('page', String(filters.page))
@@ -104,7 +124,7 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     setError(null)
     try {
       const query = buildQueryParams(filters)
-      const response = await fetch(`/api/bookings?${query}`)
+      const response = await timedFetch(`/api/bookings?${query}`, undefined, 'GET /api/bookings')
       if (!response.ok) {
         try {
           const payload = await response.json()
@@ -145,11 +165,11 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/bookings', {
+      const response = await timedFetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
-      })
+      }, 'POST /api/bookings')
       if (!response.ok) throw new Error(`Error al crear reserva (${response.status})`)
       const result = await response.json()
       const newBooking: Booking | null = result?.data ?? null
@@ -171,11 +191,11 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/bookings/${bookingId}`, {
+      const response = await timedFetch(`/api/bookings/${bookingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingData)
-      })
+      }, 'PUT /api/bookings/:id')
       if (!response.ok) throw new Error(`Error al actualizar reserva (${response.status})`)
       const result = await response.json()
       const updated: Booking | null = result?.data ?? null
@@ -197,7 +217,7 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/bookings/${bookingId}`, { method: 'DELETE' })
+      const response = await timedFetch(`/api/bookings/${bookingId}`, { method: 'DELETE' }, 'DELETE /api/bookings/:id')
       if (!response.ok) throw new Error(`Error al cancelar reserva (${response.status})`)
       // server may return booking data; we optimistically remove from list
       setBookings(prev => prev.filter(b => b.id !== bookingId))
@@ -220,7 +240,7 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
       if (request.date) params.set('date', String(request.date))
       if (request.startTime) params.set('startTime', String(request.startTime))
       if (request.endTime) params.set('endTime', String(request.endTime))
-      const response = await fetch(`/api/bookings/availability?${params.toString()}`)
+      const response = await timedFetch(`/api/bookings/availability?${params.toString()}`, undefined, 'GET /api/bookings/availability')
       if (!response.ok) {
         try {
           const payload = await response.json()
@@ -244,11 +264,11 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
   const getAvailabilitySlots = useCallback(async (courtId: string, date: string, duration: number = 90): Promise<Array<{ startTime: string, endTime: string, available: boolean }> | null> => {
     setError(null)
     try {
-      const response = await fetch('/api/bookings/availability', {
+      const response = await timedFetch('/api/bookings/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courtId, date, duration })
-      })
+      }, 'POST /api/bookings/availability')
       if (!response.ok) {
         try {
           const payload = await response.json()

@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle } from "lucide-react"
 import { Input } from "./ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select"
+import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover"
+import { splitEven } from "../lib/utils/extras"
 import { removeDuplicates } from '../lib/utils/array-utils'
 import { useAppState } from './providers/AppStateProvider'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
@@ -70,6 +72,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [dateFilter, setDateFilter] = useState('all')
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [extrasOpen, setExtrasOpen] = useState<Record<string, boolean>>({})
+  const [showFiltersModal, setShowFiltersModal] = useState(false)
 
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
@@ -79,7 +82,35 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [quantity, setQuantity] = useState<number>(1)
   const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
   const [addingExtra, setAddingExtra] = useState<boolean>(false)
+  const [selectedPlayers, setSelectedPlayers] = useState<("player1"|"player2"|"player3"|"player4")[]>(["player1","player2","player3","player4"])
   const selectedProduct = productos.find(p => p.id === (selectedProductId ?? -1)) || null
+
+  const timedFetch = async (input: RequestInfo | URL, init?: RequestInit, label?: string) => {
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+    const res = await fetch(input as any, init)
+    const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+    const ms = Math.round(t1 - t0)
+    try {
+      const urlStr = typeof input === 'string' ? input : (input as URL).toString()
+      if (!urlStr.includes('/api/admin/test-event') && typeof window !== 'undefined') {
+        console.log(`[latency] ${label || urlStr} ${ms}ms status ${res.status}`)
+        fetch('/api/admin/test-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ type: 'admin_change', message: `[latency] ${label || urlStr} ${ms}ms status ${res.status}` })
+        }).catch(() => {})
+      }
+    } catch {}
+    return res
+  }
+
+  // Estados para el modal de excepciones de turno fijo
+  const [showExceptionsModal, setShowExceptionsModal] = useState(false)
+  const [exceptionType, setExceptionType] = useState<'SKIP' | 'OVERRIDE'>('SKIP')
+  const [exceptionReason, setExceptionReason] = useState<string>('')
+  const [exceptionNewPrice, setExceptionNewPrice] = useState<number | ''>('')
+  const [processingException, setProcessingException] = useState<boolean>(false)
 
   // Estados para la modal de calendario
   const [showCalendarModal, setShowCalendarModal] = useState(false)
@@ -318,6 +349,47 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     }, 0)
   }
 
+  const handleCreateException = async () => {
+    if (!selectedBookingId) return
+    if (processingException) return
+    const booking = bookings.find(b => b.id === selectedBookingId)
+    if (!booking || !booking.recurringId) return
+    const payload: any = {
+      recurringId: booking.recurringId,
+      date: booking.date,
+      type: exceptionType,
+    }
+    if (exceptionType === 'OVERRIDE' && exceptionNewPrice !== '' && !Number.isNaN(Number(exceptionNewPrice))) {
+      payload.newPrice = Number(exceptionNewPrice)
+    }
+    if (exceptionReason.trim()) payload.reason = exceptionReason.trim()
+
+    setProcessingException(true)
+    try {
+      const res = await fetch('/api/recurring-exceptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      })
+      if (res.ok) {
+        setBookings(prev => prev.map(b => {
+          if (b.id !== booking.id) return b
+          if (exceptionType === 'SKIP') {
+            return { ...b, status: 'cancelado' }
+          } else {
+            const np = typeof payload.newPrice === 'number' ? payload.newPrice : b.totalPrice
+            return { ...b, totalPrice: np }
+          }
+        }))
+      }
+    } catch (_) {
+    } finally {
+      setProcessingException(false)
+      closeExceptionsModal()
+    }
+  }
+
   // Funciones para gestión de extras
   const addExtra = (bookingId: string, extra: Omit<Extra, 'id'>) => {
     const newExtra: Extra = {
@@ -336,10 +408,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   const removeExtra = async (bookingId: string, extraId: string) => {
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/extras/${extraId}`, {
+      const res = await timedFetch(`/api/bookings/${bookingId}/extras/${extraId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
-      })
+      }, 'DELETE /api/bookings/:id/extras/:extraId')
       if (!res.ok) {
         // Fallback: eliminar localmente si falla el backend
         setBookings(prevBookings => 
@@ -396,11 +468,26 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     setExtraAssignedTo('all')
   }
 
+  const openExceptionsModal = (bookingId: string) => {
+    setSelectedBookingId(bookingId)
+    setShowExceptionsModal(true)
+    setExceptionType('SKIP')
+    setExceptionReason('')
+    setExceptionNewPrice('')
+  }
+
+  const closeExceptionsModal = () => {
+    setShowExceptionsModal(false)
+    setSelectedBookingId(null)
+    setExceptionReason('')
+    setExceptionNewPrice('')
+  }
+
   useEffect(() => {
     const loadProductos = async () => {
       const fetchWithRetry = async (retries: number, delayMs: number) => {
         try {
-          const res = await fetch('/api/productos')
+          const res = await timedFetch('/api/productos', undefined, 'GET /api/productos')
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           return await res.json()
         } catch (err) {
@@ -458,6 +545,18 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     }
   }, [showExtrasModal])
 
+  useEffect(() => {
+    if (!showExceptionsModal) return
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.documentElement.style.overflow = prevHtmlOverflow
+      document.body.style.overflow = prevBodyOverflow
+    }
+  }, [showExceptionsModal])
+
   const handleAddExtra = async () => {
     if (!selectedBookingId || !selectedProductId || quantity <= 0) return
     if (addingExtra) return
@@ -468,63 +567,76 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     if (!producto) return
 
     try {
-      const postWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
-        const res = await fetch(`/api/bookings/${selectedBookingId}/extras`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productoId: selectedProductId,
-            quantity,
-            assignedToAll: extraAssignedTo === 'all',
-          })
-        })
-        if (!res.ok && retries > 0) {
-          await new Promise(r => setTimeout(r, delayMs))
-          return postWithRetry(retries - 1, delayMs * 2)
-        }
-        return res
-      }
-      const res = await postWithRetry(2, 300)
-      if (!res.ok) {
-        // Fallback optimista si el backend falla
+      if (selectedPlayers.length > 1 && selectedPlayers.length < 4) {
         const total = producto.precio * quantity
-        addExtra(selectedBookingId, {
-          type: 'otro',
-          name: producto.nombre,
-          cost: total,
-          assignedTo: extraAssignedTo
+        const parts = splitEven(total, selectedPlayers.length)
+        selectedPlayers.forEach((p, idx) => {
+          const cost = parts[idx]
+          addExtra(selectedBookingId, {
+            type: 'otro',
+            name: producto.nombre,
+            cost,
+            assignedTo: p
+          })
         })
         setExtrasOpen(prev => ({ ...prev, [selectedBookingId]: true }))
       } else {
-        // Actualizar reserva con respuesta completa (incluye extras y pricing)
-        const data = await res.json()
-        const booking = data?.data
-        if (booking && booking.id) {
-          setBookings(prev => prev.map(b => {
-            if (b.id !== booking.id) return b
-            // Mapear extras del backend al formato del componente
-            const mappedExtras = (booking.extras || [])
-              .filter((e: any) => !e.deletedAt)
-              .map((e: any) => ({
-                id: e.id,
-                type: 'otro',
-                name: e.producto?.nombre || 'Extra',
-                cost: e.totalPrice,
-                assignedTo: e.assignedToAll ? 'all' : (
-                  e.player?.position === 1
-                    ? 'player1'
-                    : e.player?.position === 2
-                    ? 'player2'
-                    : e.player?.position === 3
-                    ? 'player3'
-                    : e.player?.position === 4
-                    ? 'player4'
-                    : 'player1'
-                )
-              }))
-            return { ...b, extras: mappedExtras }
-          }))
-          setExtrasOpen(prev => ({ ...prev, [booking.id]: true }))
+        const postWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
+          const res = await timedFetch(`/api/bookings/${selectedBookingId}/extras`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productoId: selectedProductId,
+              quantity,
+              assignedToAll: selectedPlayers.length === 4 || extraAssignedTo === 'all',
+            })
+          }, 'POST /api/bookings/:id/extras')
+          if (!res.ok && retries > 0) {
+            await new Promise(r => setTimeout(r, delayMs))
+            return postWithRetry(retries - 1, delayMs * 2)
+          }
+          return res
+        }
+        const res = await postWithRetry(2, 300)
+        if (!res.ok) {
+          const total = producto.precio * quantity
+          const assigned = selectedPlayers.length === 1 ? selectedPlayers[0] : extraAssignedTo
+          addExtra(selectedBookingId, {
+            type: 'otro',
+            name: producto.nombre,
+            cost: total,
+            assignedTo: assigned
+          })
+          setExtrasOpen(prev => ({ ...prev, [selectedBookingId]: true }))
+        } else {
+          const data = await res.json()
+          const booking = data?.data
+          if (booking && booking.id) {
+            setBookings(prev => prev.map(b => {
+              if (b.id !== booking.id) return b
+              const mappedExtras = (booking.extras || [])
+                .filter((e: any) => !e.deletedAt)
+                .map((e: any) => ({
+                  id: e.id,
+                  type: 'otro',
+                  name: e.producto?.nombre || 'Extra',
+                  cost: e.totalPrice,
+                  assignedTo: e.assignedToAll ? 'all' : (
+                    e.player?.position === 1
+                      ? 'player1'
+                      : e.player?.position === 2
+                      ? 'player2'
+                      : e.player?.position === 3
+                      ? 'player3'
+                      : e.player?.position === 4
+                      ? 'player4'
+                      : 'player1'
+                  )
+                }))
+              return { ...b, extras: mappedExtras }
+            }))
+            setExtrasOpen(prev => ({ ...prev, [booking.id]: true }))
+          }
         }
       }
     } catch (err) {
@@ -550,7 +662,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         params.set('limit', '50')
         const fetchWithRetry = async (retries: number, delayMs: number) => {
           try {
-            const res = await fetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' })
+            const res = await timedFetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' }, 'GET /api/bookings (AdminTurnos)')
             if (!res.ok) throw new Error(String(res.status))
             return await res.json()
           } catch (err) {
@@ -657,11 +769,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       return
     }
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/close`, {
+      const res = await timedFetch(`/api/bookings/${bookingId}/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin'
-      })
+      }, 'POST /api/bookings/:id/close')
       if (!res.ok) {
         // Mantener estado si falla
         return
@@ -688,30 +800,38 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   const cancelBooking = async (bookingId: string) => {
     try {
-      const postWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
-        const res = await fetch(`/api/bookings/${bookingId}/cancel`, {
-          method: 'POST',
+      const delWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
+        const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+        const res = await fetch(`/api/bookings/${bookingId}`, {
+          method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin'
         })
+        const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+        const ms = Math.round(t1 - t0)
+        try {
+          if (typeof window !== 'undefined') {
+            console.log(`[latency] DELETE /api/bookings/${bookingId} ${ms}ms status ${res.status}`)
+            fetch('/api/admin/test-event', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ type: 'bookings_updated', message: `DELETE /api/bookings/${bookingId} ${ms}ms status ${res.status}` })
+            }).catch(() => {})
+          }
+        } catch {}
         if (!res.ok && retries > 0) {
           await new Promise(r => setTimeout(r, delayMs))
-          return postWithRetry(retries - 1, delayMs * 2)
+          return delWithRetry(retries - 1, delayMs * 2)
         }
         return res
       }
-      const res = await postWithRetry(2, 300)
+      const res = await delWithRetry(2, 300)
       if (!res.ok) {
         setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelado' } : b)))
         return
       }
       setBookings(prev => prev.filter(b => b.id !== bookingId))
-      await fetch('/api/admin/test-event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ type: 'bookings_updated', message: `Turno ${bookingId} cancelado por administrador` })
-      }).catch(() => {})
     } catch (err) {
       setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'cancelado' } : b)))
       fetch('/api/admin/test-event', {
@@ -926,39 +1046,113 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             onClick={() => setExtrasOpen(prev => ({ ...prev, [booking.id]: !prev[booking.id] }))}
           >
             {extrasOpen[booking.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            Extras Agregados ({booking.extras.length})
+            {(() => {
+              const grouped = (() => {
+                const groups: { key: string; ids: string[]; name: string; cost: number; label: string }[] = []
+                const byKey: Record<string, { ids: string[]; name: string; cost: number; label: string }> = {}
+                const playersShort: Record<'player1'|'player2'|'player3'|'player4', string> = { player1: 'J1', player2: 'J2', player3: 'J3', player4: 'J4' }
+                const playerExtrasByName: Record<string, { player: 'player1'|'player2'|'player3'|'player4'; extra: Extra }[]> = {}
+                booking.extras.forEach(e => {
+                  if (e.assignedTo === 'all') {
+                    const key = `all|${e.name}|${e.id}`
+                    byKey[key] = { key, ids: [e.id], name: e.name, cost: e.cost, label: 'Todos' }
+                  } else {
+                    const list = playerExtrasByName[e.name] || []
+                    playerExtrasByName[e.name] = [...list, { player: e.assignedTo, extra: e }]
+                  }
+                })
+                Object.entries(playerExtrasByName).forEach(([name, list]) => {
+                  const players = Array.from(new Set(list.map(l => l.player))) as ('player1'|'player2'|'player3'|'player4')[]
+                  if (players.length > 1) {
+                    const key = `multi|${name}|${players.sort().join(',')}`
+                    const ids = list.map(l => l.extra.id)
+                    const cost = list.reduce((s, l) => s + l.extra.cost, 0)
+                    const label = `Compartido por ${players.map(p => playersShort[p]).join(' y ')}`
+                    byKey[key] = { key, ids, name, cost, label }
+                  } else {
+                    const only = list[0]
+                    const key = `single|${name}|${players[0]}|${only.extra.id}`
+                    const label = playersShort[players[0]]
+                    byKey[key] = { key, ids: [only.extra.id], name, cost: only.extra.cost, label }
+                  }
+                })
+                groups.push(...Object.values(byKey))
+                return groups
+              })()
+              return `Extras Agregados (${grouped.length})`
+            })()}
           </h4>
           {extrasOpen[booking.id] && booking.extras.length > 0 && (
             <div className="space-y-2">
-              {booking.extras.map((extra) => (
-                <div key={extra.id} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-gray-900">{extra.name}</span>
-                    <span className="text-xs text-gray-500">({extra.assignedTo === 'all' ? 'Todos' : Object.entries(booking.players).find(([key]) => key === extra.assignedTo)?.[1] || 'N/A'})</span>
+              {(() => {
+                const groups: { key: string; ids: string[]; name: string; cost: number; label: string }[] = []
+                const byKey: Record<string, { ids: string[]; name: string; cost: number; label: string }> = {}
+                const playersShort: Record<'player1'|'player2'|'player3'|'player4', string> = { player1: 'J1', player2: 'J2', player3: 'J3', player4: 'J4' }
+                const playerExtrasByName: Record<string, { player: 'player1'|'player2'|'player3'|'player4'; extra: Extra }[]> = {}
+                booking.extras.forEach(e => {
+                  if (e.assignedTo === 'all') {
+                    const key = `all|${e.name}|${e.id}`
+                    byKey[key] = { ids: [e.id], name: e.name, cost: e.cost, label: 'Todos' }
+                  } else {
+                    const list = playerExtrasByName[e.name] || []
+                    playerExtrasByName[e.name] = [...list, { player: e.assignedTo, extra: e }]
+                  }
+                })
+                Object.entries(playerExtrasByName).forEach(([name, list]) => {
+                  const players = Array.from(new Set(list.map(l => l.player))) as ('player1'|'player2'|'player3'|'player4')[]
+                  if (players.length > 1) {
+                    const key = `multi|${name}|${players.sort().join(',')}`
+                    const ids = list.map(l => l.extra.id)
+                    const cost = list.reduce((s, l) => s + l.extra.cost, 0)
+                    const label = `Compartido por ${players.map(p => playersShort[p]).join(' y ')}`
+                    byKey[key] = { ids, name, cost, label }
+                  } else {
+                    const only = list[0]
+                    const key = `single|${name}|${players[0]}|${only.extra.id}`
+                    const label = playersShort[players[0]]
+                    byKey[key] = { ids: [only.extra.id], name, cost: only.extra.cost, label }
+                  }
+                })
+                groups.push(...Object.values(byKey))
+                return groups.map(group => (
+                  <div key={group.ids.join('|')} className={`flex items-center justify-between p-3 rounded-md border ${isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{group.name}</span>
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>({group.label})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(group.cost)}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          for (const id of group.ids) {
+                            await removeExtra(booking.id, id)
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 h-auto"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(extra.cost)}</span>
-                    <Button variant="ghost" size="sm" onClick={() => removeExtra(booking.id, extra.id)} className="text-red-500 hover:text-red-700 p-1 h-auto">
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                ))
+              })()}
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-          <div className={`text-center p-4 rounded-lg ${isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50'}`}>
+          <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
             <p className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total original</p>
             <p className={`text-xl font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>${formatCurrency(totalOriginal)}</p>
           </div>
-          <div className={`text-center p-4 rounded-lg ${isDarkMode ? 'bg-green-900/20' : 'bg-green-50'}`}>
+          <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
             <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Pagado</p>
             <p className={`text-xl font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>${formatCurrency(amountPaid)}</p>
           </div>
-        <div className={`text-center p-4 rounded-lg ${pendingBalance === 0 ? (isDarkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200') : (isDarkMode ? 'bg-yellow-900/20' : 'bg-yellow-50')}`}>
+        <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
           {pendingBalance === 0 ? (
             <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
           ) : (
@@ -999,7 +1193,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 variant="outline"
                 size="sm"
                 onClick={() => setCancelBookingId(booking.id)}
-                className={`text-red-600 border-red-600 hover:bg-red-50 ${disableCancel ? 'opacity-60 cursor-not-allowed' : ''}`}
+                className={`text-red-500 dark:text-red-300 border-border hover:bg-red-50 dark:hover:bg-red-900/15 dark:hover:text-red-300 focus-visible:ring-red-500/30 disabled:text-muted-foreground disabled:border-border disabled:opacity-70 ${disableCancel ? 'cursor-not-allowed' : ''}`}
                 data-testid={`admin-cancel-btn-${idx + 1}`}
                 disabled={disableCancel}
                 aria-disabled={disableCancel}
@@ -1009,6 +1203,18 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </Button>
             )
           })()}
+          {booking.recurringId && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openExceptionsModal(booking.id)}
+              className="text-purple-600 border-purple-600 hover:bg-purple-50"
+              data-testid={`admin-exceptions-btn-${idx + 1}`}
+            >
+              <AlertCircle className="w-4 h-4 mr-1" />
+              Excepciones
+            </Button>
+          )}
         </div>
       </div>
     )
@@ -1102,6 +1308,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <Calendar className="w-4 h-4 mr-2" aria-hidden="true" />
             Calendario
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFiltersModal(true)}
+            aria-label="Abrir filtros"
+            data-testid="filters-button"
+          >
+            <Filter className="w-4 h-4 mr-2" aria-hidden="true" />
+            Filtros
+          </Button>
         </nav>
       </header>
 
@@ -1177,7 +1393,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       </Card>
 
       {/* Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+      <div className="hidden">
         <div className="space-y-2">
           <label htmlFor="search-turnos" className="text-sm font-medium text-gray-700 dark:text-gray-300">Buscar</label>
           <div className="relative">
@@ -1687,7 +1903,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       </div>
 
       {/* Modal de Extras */}
-      {showExtrasModal && (
+  {showExtrasModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className={`rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
             <div className="flex justify-between items-center mb-4">
@@ -1756,21 +1972,55 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               
               <div>
                 <label className="block text-sm font-medium mb-2">Asignado a</label>
-                <Select
-                  value={extraAssignedTo}
-                  onValueChange={(value) => setExtraAssignedTo(value as 'all' | 'player1' | 'player2' | 'player3' | 'player4')}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los jugadores</SelectItem>
-                    <SelectItem value="player1">Solo jugador 1</SelectItem>
-                    <SelectItem value="player2">Solo jugador 2</SelectItem>
-                    <SelectItem value="player3">Solo jugador 3</SelectItem>
-                    <SelectItem value="player4">Solo jugador 4</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm w-full">
+                    <span className="line-clamp-1">
+                      {selectedPlayers.length === 4
+                        ? 'Todos los jugadores'
+                        : selectedPlayers.length === 1
+                          ? `Solo ${selectedPlayers[0] === 'player1' ? 'jugador 1' : selectedPlayers[0] === 'player2' ? 'jugador 2' : selectedPlayers[0] === 'player3' ? 'jugador 3' : 'jugador 4'}`
+                          : `Compartido por ${selectedPlayers.map(p => (
+                              p === 'player1' ? 'J1' : p === 'player2' ? 'J2' : p === 'player3' ? 'J3' : 'J4'
+                            )).join(' y ')}`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64">
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm ${selectedPlayers.length === 4 ? 'bg-accent text-accent-foreground' : ''}`}
+                        onClick={() => {
+                          setSelectedPlayers(selectedPlayers.length === 4 ? [] : ["player1","player2","player3","player4"]) 
+                          setExtraAssignedTo(selectedPlayers.length === 4 ? 'player1' : 'all')
+                        }}
+                      >
+                        <span>Todos los jugadores</span>
+                        <input type="checkbox" checked={selectedPlayers.length === 4} readOnly className="h-4 w-4" />
+                      </button>
+                      {(["player1","player2","player3","player4"] as const).map((p, idx) => {
+                        const label = `Solo jugador ${idx+1}`
+                        const checked = selectedPlayers.includes(p)
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm ${checked ? 'bg-accent text-accent-foreground' : ''}`}
+                            onClick={() => {
+                              const next = checked ? selectedPlayers.filter(sp => sp !== p) : [...selectedPlayers, p]
+                              setSelectedPlayers(next)
+                              if (next.length === 4) setExtraAssignedTo('all')
+                              else if (next.length === 1) setExtraAssignedTo(next[0])
+                            }}
+                          >
+                            <span>{label}</span>
+                            <input type="checkbox" checked={checked} readOnly className="h-4 w-4" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             
@@ -1798,6 +2048,85 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
          selectedDate={selectedDate}
          onDateSelect={setSelectedDate}
        />
+
+      <Dialog open={showFiltersModal} onOpenChange={setShowFiltersModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Filtros</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="search-turnos" className="text-sm font-medium text-gray-700 dark:text-gray-300">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400 w-4 h-4" />
+                <Input
+                  id="search-turnos"
+                  type="text"
+                  placeholder="Nombre, email o cancha..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid="search-input"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Estado</label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="status-filter"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="in_progress">En curso</option>
+                <option value="completed">Completados</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+              <select
+                id="date-filter"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 dark:bg-gray-900/30 dark:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="date-filter"
+              >
+                <option value="all">Todas las fechas</option>
+                <option value="today">Hoy</option>
+                <option value="plus1">Mañana</option>
+                <option value="plus2">Pasado mañana</option>
+                <option value="plus3">En 3 días</option>
+                <option value="plus4">En 4 días</option>
+                <option value="plus5">En 5 días</option>
+                <option value="plus6">En 6 días</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('')
+                  setStatusFilter('all')
+                  setDateFilter('all')
+                }}
+                className="w-full"
+                data-testid="clear-filters"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Limpiar
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowFiltersModal(false)}>Cancelar</Button>
+            <Button onClick={() => setShowFiltersModal(false)}>Aplicar filtros</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de doble validación para completar turno */}
       {confirmBookingId && (
@@ -1844,6 +2173,54 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      )}
+
+      {showExceptionsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Excepciones de turno fijo</h3>
+              <Button variant="ghost" size="sm" onClick={closeExceptionsModal}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Tipo de excepción</label>
+                <Select value={exceptionType} onValueChange={(v) => setExceptionType(v as 'SKIP' | 'OVERRIDE')}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SKIP">Baja puntual (SKIP)</SelectItem>
+                    <SelectItem value="OVERRIDE">Override de precio/nota</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Motivo (opcional)</label>
+                <Input value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} />
+              </div>
+              {exceptionType === 'OVERRIDE' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Nuevo precio</label>
+                  <Input type="number" min={0} value={exceptionNewPrice === '' ? '' : String(exceptionNewPrice)} onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '') { setExceptionNewPrice(''); return }
+                    const n = Number(v)
+                    if (!Number.isNaN(n)) setExceptionNewPrice(n)
+                  }} />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" onClick={closeExceptionsModal} className="flex-1">Cancelar</Button>
+              <Button onClick={handleCreateException} className="flex-1" disabled={processingException || (exceptionType === 'OVERRIDE' && (exceptionNewPrice === '' || Number(exceptionNewPrice) < 0))}>
+                {processingException ? (<><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Procesando...</>) : 'Guardar excepción'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )

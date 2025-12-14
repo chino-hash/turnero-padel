@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select'
+import { Popover, PopoverTrigger, PopoverContent } from '../../../components/ui/popover'
+import { splitEven } from '../../../lib/utils/extras'
 import { 
   Calendar, 
   Clock, 
@@ -89,6 +91,12 @@ interface Booking {
     player4: 'pagado' | 'pendiente'
   }
   extras: Extra[]
+  playerIds?: {
+    player1?: string
+    player2?: string
+    player3?: string
+    player4?: string
+  }
 }
 
 interface Extra {
@@ -119,6 +127,7 @@ export default function AdminDashboard() {
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
   const [quantity, setQuantity] = useState<number>(1)
   const [extraAssignedTo, setExtraAssignedTo] = useState<'all' | 'player1' | 'player2' | 'player3' | 'player4'>('all')
+  const [selectedPlayers, setSelectedPlayers] = useState<("player1"|"player2"|"player3"|"player4")[]>(["player1","player2","player3","player4"])
   const [usersSummary, setUsersSummary] = useState<{ inactive30d: number; avgBookingsPerUser: number; upcoming7dUsers: number } | null>(null)
 
   const [prefs, setPrefs] = useState<{ mostrarCanchas: boolean; mostrarTurnos: boolean; mostrarUsuarios: boolean; mostrarProductos: boolean; mostrarFinanzas: boolean; orden: string }>(() => {
@@ -334,6 +343,12 @@ export default function AdminDashboard() {
       player3: String(sorted[2]?.playerName || ''),
       player4: String(sorted[3]?.playerName || ''),
     }
+    const playerIdsObj: Booking['playerIds'] = {
+      player1: String(sorted[0]?.id || ''),
+      player2: String(sorted[1]?.id || ''),
+      player3: String(sorted[2]?.id || ''),
+      player4: String(sorted[3]?.id || ''),
+    }
     const individualPayments: Booking['individualPayments'] = {
       player1: sorted[0]?.hasPaid ? 'pagado' : 'pendiente',
       player2: sorted[1]?.hasPaid ? 'pagado' : 'pendiente',
@@ -379,6 +394,7 @@ export default function AdminDashboard() {
       closedAt: apiBooking?.closedAt ? String(apiBooking.closedAt) : null,
       recurringId: apiBooking?.recurringId ? String(apiBooking.recurringId) : null,
       players: playersObj,
+      playerIds: playerIdsObj,
       individualPayments,
       extras: extrasMapped,
     }
@@ -392,29 +408,33 @@ export default function AdminDashboard() {
   }
 
   // Funciones para gestión de extras
-  const addExtra = (bookingId: string, extra: Omit<Extra, 'id'>) => {
-    const newExtra: Extra = {
-      ...extra,
-      id: `extra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const addExtra = async (bookingId: string, productoId: number, quantity: number, assignedTo: 'all' | 'player1' | 'player2' | 'player3' | 'player4', notes?: string) => {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (!booking) return
+    const assignedToAll = assignedTo === 'all'
+    const playerKey = assignedTo === 'all' ? undefined : assignedTo
+    const playerId = playerKey ? booking.playerIds?.[playerKey] || undefined : undefined
+    const res = await fetch(`/api/bookings/${bookingId}/extras`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productoId, quantity, assignedToAll, playerId, notes })
+    })
+    const data = await res.json()
+    if (res.ok && data?.success && data?.data) {
+      const mapped = mapApiBookingToLocal(data.data)
+      setBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
+      setFilteredBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
     }
-    
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, extras: [...booking.extras, newExtra] }
-          : booking
-      )
-    )
   }
 
-  const removeExtra = (bookingId: string, extraId: string) => {
-    setBookings(prevBookings => 
-      prevBookings.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, extras: booking.extras.filter(extra => extra.id !== extraId) }
-          : booking
-      )
-    )
+  const removeExtra = async (bookingId: string, extraId: string) => {
+    const res = await fetch(`/api/bookings/${bookingId}/extras/${extraId}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (res.ok && data?.success && data?.data) {
+      const mapped = mapApiBookingToLocal(data.data)
+      setBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
+      setFilteredBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
+    }
   }
 
   const openExtrasModal = (bookingId: string) => {
@@ -453,15 +473,35 @@ export default function AdminDashboard() {
     if (!selectedBookingId || !selectedProductId || quantity <= 0) return
     const producto = productos.find(p => p.id === selectedProductId)
     if (!producto) return
-
-    const total = producto.precio * quantity
-    addExtra(selectedBookingId, {
-      type: 'pelotas',
-      name: producto.nombre,
-      cost: total,
-      assignedTo: extraAssignedTo
-    })
-
+    if (selectedPlayers.length > 1 && selectedPlayers.length < 4) {
+      const total = producto.precio * quantity
+      const parts = splitEven(total, selectedPlayers.length)
+      setBookings(prev => prev.map(b => {
+        if (b.id !== selectedBookingId) return b
+        const newExtras = selectedPlayers.map((p, idx) => ({
+          id: `${Date.now()}-${p}-${idx}`,
+          type: 'otro' as const,
+          name: producto.nombre,
+          cost: parts[idx],
+          assignedTo: p as any
+        }))
+        return { ...b, extras: [...b.extras, ...newExtras] }
+      }))
+      setFilteredBookings(prev => prev.map(b => {
+        if (b.id !== selectedBookingId) return b
+        const newExtras = selectedPlayers.map((p, idx) => ({
+          id: `${Date.now()}-${p}-${idx}`,
+          type: 'otro' as const,
+          name: producto.nombre,
+          cost: parts[idx],
+          assignedTo: p as any
+        }))
+        return { ...b, extras: [...b.extras, ...newExtras] }
+      }))
+      closeExtrasModal()
+      return
+    }
+    addExtra(selectedBookingId, selectedProductId, quantity, selectedPlayers.length === 4 ? 'all' : extraAssignedTo)
     closeExtrasModal()
   }
 
@@ -493,15 +533,23 @@ export default function AdminDashboard() {
     if (showExtrasModal) loadProductos()
   }, [showExtrasModal])
 
-  const togglePlayerPayment = (bookingId: string, playerKey: keyof Booking['individualPayments']) => {
-    setBookings(prev => prev.map(booking => {
-      if (booking.id === bookingId) {
-        const newPayments = { ...booking.individualPayments }
-        newPayments[playerKey] = newPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
-        return { ...booking, individualPayments: newPayments }
-      }
-      return booking
-    }))
+  const togglePlayerPayment = async (bookingId: string, playerKey: keyof Booking['individualPayments']) => {
+    const booking = bookings.find(b => b.id === bookingId)
+    if (!booking) return
+    const position = playerKey === 'player1' ? 1 : playerKey === 'player2' ? 2 : playerKey === 'player3' ? 3 : 4
+    const current = booking.individualPayments[playerKey]
+    const hasPaid = current !== 'pagado'
+    const res = await fetch(`/api/bookings/${bookingId}/players/position/${position}/payment`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hasPaid })
+    })
+    const json = await res.json()
+    if (res.ok && json?.success && json?.data) {
+      const mapped = mapApiBookingToLocal(json.data)
+      setBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
+      setFilteredBookings(prev => prev.map(b => b.id === bookingId ? mapped : b))
+    }
   }
 
   const calculatePlayerAmount = (booking: Booking, playerKey: keyof Booking['players']) => {
@@ -632,23 +680,23 @@ export default function AdminDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{filteredBookings.length}</div>
+              <div className="text-2xl font-bold text-[#55C5FF] dark:text-[#55C5FF]">{filteredBookings.length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Turnos hoy</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{filteredBookings.filter(b => b.status === 'confirmado').length}</div>
+              <div className="text-2xl font-bold text-[#4ECDC4] dark:text-[#4ECDC4]">{filteredBookings.filter(b => b.status === 'confirmado').length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Confirmados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{filteredBookings.filter(b => b.paymentStatus === 'pagado').length}</div>
+              <div className="text-2xl font-bold text-[#AE88D7] dark:text-[#AE88D7]">{filteredBookings.filter(b => b.paymentStatus === 'pagado').length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Pagados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-[#FFB347] dark:text-[#FFB347]">${filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Ingresos estimados</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{courts.filter((c: any) => c.isActive !== false).length}</div>
+              <div className="text-2xl font-bold text-[#A7D7C5] dark:text-[#A7D7C5]">{courts.filter((c: any) => c.isActive !== false).length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Canchas activas</div>
             </div>
           </div>
@@ -806,10 +854,10 @@ export default function AdminDashboard() {
 
       {/* Modal de Filtros y Preferencias */}
       {showFilterModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="filters-modal">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" data-testid="filters-modal">
+          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Filtros y Preferencias</h3>
+              <h3 className="text-lg font-semibold text-foreground">Filtros y Preferencias</h3>
               <Button
                 variant="ghost"
                 size="sm"
@@ -820,35 +868,17 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
-              {/* Campo de búsqueda */}
-              <div className="space-y-2">
-                <label htmlFor="modal-search-turnos" className="text-sm font-medium text-gray-700">
-                  Buscar por nombre, email o cancha
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="modal-search-turnos"
-                    type="text"
-                    placeholder="Escribe para buscar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                    data-testid="filters-search-input"
-                  />
-                </div>
-              </div>
 
-              {/* Filtro por estado */}
-              <div className="space-y-2">
-                <label htmlFor="modal-status-filter" className="text-sm font-medium text-gray-700">
+                {/* Filtro por estado */}
+                <div className="space-y-2">
+                <label htmlFor="modal-status-filter" className="text-sm font-medium text-foreground">
                   Estado del turno
                 </label>
                 <select
                   id="modal-status-filter"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   data-testid="filters-status-select"
                 >
                   <option value="all">Todos los estados</option>
@@ -860,7 +890,7 @@ export default function AdminDashboard() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Personalización del resumen</label>
+                <label className="text-sm font-medium text-foreground">Personalización del resumen</label>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <label className="flex items-center gap-2"><input type="checkbox" checked={prefs.mostrarCanchas} onChange={(e) => setPrefs(prev => ({ ...prev, mostrarCanchas: e.target.checked }))} />Canchas</label>
                   <label className="flex items-center gap-2"><input type="checkbox" checked={prefs.mostrarTurnos} onChange={(e) => setPrefs(prev => ({ ...prev, mostrarTurnos: e.target.checked }))} />Turnos</label>
@@ -870,7 +900,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Orden</label>
+                <label className="text-sm font-medium text-foreground">Orden</label>
                 <Select value={prefs.orden} onValueChange={(v) => setPrefs(prev => ({ ...prev, orden: v }))}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -886,10 +916,10 @@ export default function AdminDashboard() {
 
       {/* Modal de Extras */}
       {showExtrasModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Agregar Extra</h3>
+              <h3 className="text-lg font-semibold text-foreground">Agregar Extra</h3>
               <Button variant="ghost" size="sm" onClick={closeExtrasModal}>
                 <X className="h-4 w-4" />
               </Button>
@@ -931,25 +961,59 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-sm font-medium mb-2">Asignado a</label>
-                <Select
-                  value={extraAssignedTo}
-                  onValueChange={(value) => setExtraAssignedTo(value as any)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los jugadores</SelectItem>
-                    <SelectItem value="player1">Titular</SelectItem>
-                    <SelectItem value="player2">Jugador 2</SelectItem>
-                    <SelectItem value="player3">Jugador 3</SelectItem>
-                    <SelectItem value="player4">Jugador 4</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger className="flex h-10 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm w-full">
+                    <span className="line-clamp-1">
+                      {selectedPlayers.length === 4
+                        ? 'Todos los jugadores'
+                        : selectedPlayers.length === 1
+                          ? `${selectedPlayers[0] === 'player1' ? 'Titular' : selectedPlayers[0] === 'player2' ? 'Jugador 2' : selectedPlayers[0] === 'player3' ? 'Jugador 3' : 'Jugador 4'}`
+                          : `Compartido por ${selectedPlayers.map(p => (
+                              p === 'player1' ? 'J1' : p === 'player2' ? 'J2' : p === 'player3' ? 'J3' : 'J4'
+                            )).join(' y ')}`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64">
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm ${selectedPlayers.length === 4 ? 'bg-accent text-accent-foreground' : ''}`}
+                        onClick={() => {
+                          setSelectedPlayers(selectedPlayers.length === 4 ? [] : ["player1","player2","player3","player4"]) 
+                          setExtraAssignedTo(selectedPlayers.length === 4 ? 'player1' : 'all')
+                        }}
+                      >
+                        <span>Todos los jugadores</span>
+                        <input type="checkbox" checked={selectedPlayers.length === 4} readOnly className="h-4 w-4" />
+                      </button>
+                      {(["player1","player2","player3","player4"] as const).map((p, idx) => {
+                        const label = idx === 0 ? 'Titular' : `Jugador ${idx+1}`
+                        const checked = selectedPlayers.includes(p)
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm ${checked ? 'bg-accent text-accent-foreground' : ''}`}
+                            onClick={() => {
+                              const next = checked ? selectedPlayers.filter(sp => sp !== p) : [...selectedPlayers, p]
+                              setSelectedPlayers(next)
+                              if (next.length === 4) setExtraAssignedTo('all')
+                              else if (next.length === 1) setExtraAssignedTo(next[0])
+                            }}
+                          >
+                            <span>{label}</span>
+                            <input type="checkbox" checked={checked} readOnly className="h-4 w-4" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {selectedProductId && (
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-muted-foreground">
                   Total: ${(() => {
                     const prod = productos.find(p => p.id === selectedProductId)
                     return ((prod?.precio ?? 0) * quantity).toLocaleString()

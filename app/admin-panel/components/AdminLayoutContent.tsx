@@ -2,9 +2,10 @@
 
 import { ReactNode } from "react"
 import Link from "next/link"
-import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy } from "lucide-react"
+import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
+import { useRouter } from "next/navigation"
 
 interface AdminLayoutContentProps {
   children: ReactNode
@@ -12,11 +13,12 @@ interface AdminLayoutContentProps {
 
 export default function AdminLayoutContent({ children }: AdminLayoutContentProps) {
   const { isDarkMode, setIsDarkMode } = useAppState()
+  const router = useRouter()
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       {/* Header principal con navegación integrada */}
-      <header 
+      <header
         className={`shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
         role="banner"
         aria-label="Navegación del panel de administración"
@@ -32,105 +34,111 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                 <AdminTitleButton />
               </div>
             </div>
-            
+
             {/* Navegación principal en el header */}
-            <nav 
-              className="flex flex-1 items-center space-x-1 overflow-x-auto" 
+            <nav
+              className="flex flex-1 items-center space-x-1 overflow-x-auto"
               role="navigation"
               aria-labelledby="admin-nav-title"
               data-testid="admin-navigation"
             >
               <h2 id="admin-nav-title" className="sr-only">Navegación administrativa</h2>
-              
-              <Link 
-                href="/admin-panel/admin/canchas" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+
+              <Link
+                href="/admin-panel/admin/canchas"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-courts-link"
               >
                 <Settings className="w-5 h-5" />
                 <div>Canchas</div>
               </Link>
-              
-              <Link 
-                href="/admin-panel/admin/turnos" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+
+              <Link
+                href="/admin-panel/admin/turnos"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-bookings-link"
               >
                 <Calendar className="w-5 h-5" />
                 <div>Turnos</div>
               </Link>
-              
-              <Link 
-                href="/admin-panel/admin/usuarios" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+
+              <Link
+                href="/admin-panel/admin/usuarios"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-users-link"
               >
                 <Users className="w-5 h-5" />
                 <div>Usuarios</div>
               </Link>
-              
-              <Link 
-                href="/admin-panel/admin/estadisticas" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+
+              <Link
+                href="/admin-panel/admin/estadisticas"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-stats-link"
               >
                 <BarChart3 className="w-5 h-5" />
                 <div>Estadísticas</div>
               </Link>
-              
-              <Link 
-                href="/admin-panel/admin/productos" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+
+              <Link
+                href="/admin-panel/admin/productos"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-products-link"
               >
                 <Package className="w-5 h-5" />
                 <div>Productos</div>
               </Link>
 
-              <Link 
-                href="/admin-panel/admin/torneos" 
-                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isDarkMode 
-                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700' 
+              <Link
+                href="/admin-panel/admin/torneos"
+                className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${isDarkMode
+                    ? 'text-gray-300 hover:text-blue-400 hover:bg-gray-700'
                     : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
-                }`}
+                  }`}
                 data-testid="admin-tournaments-link"
               >
                 <Trophy className="w-5 h-5" />
                 <div>Torneo</div>
               </Link>
             </nav>
-            
+
             {/* Información del usuario y toggle de modo oscuro */}
             <div className="flex items-center space-x-4">
+              {/* Botón Ir a Home */}
+              <button
+                onClick={() => router.push('/dashboard')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md border transition-all duration-200 ${isDarkMode
+                    ? 'border-blue-500 text-blue-400 hover:bg-blue-900/20'
+                    : 'border-blue-600 text-blue-600 hover:bg-blue-50'
+                  }`}
+                title="Ir al sitio principal"
+              >
+                <span className="text-sm font-medium">Ir a</span>
+                <Home className="w-4 h-4" />
+              </button>
+
               {/* Toggle de modo oscuro */}
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${
-                  isDarkMode
+                className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${isDarkMode
                     ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
                     : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                }`}
+                  }`}
                 aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}
                 title={isDarkMode ? "Modo claro" : "Modo oscuro"}
               >

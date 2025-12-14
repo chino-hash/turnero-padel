@@ -43,29 +43,27 @@ function transformCourtData(court: any): Court {
     // ignore JSON parse errors
   }
 
-  // Generate colors based on court name or ID
   const getCourtColors = (courtId: string, courtName: string) => {
-    const name = courtName.toLowerCase()
-    if (name.includes('a') || courtId === 'cmew6nvsd0001u2jcngxgt8au') {
-      return {
-        // colores originales en Tailwind para gradiente
-        color: 'from-purple-400 to-purple-600',
-        bgColor: 'bg-purple-100',
-        textColor: 'text-purple-700'
-      }
-    } else if (name.includes('b') || courtId === 'cmew6nvsd0002u2jcc24nirbn') {
-      return {
-        color: 'from-red-400 to-red-600',
-        bgColor: 'bg-red-100',
-        textColor: 'text-red-700'
-      }
-    } else {
-      return {
-        color: 'from-green-400 to-green-600',
-        bgColor: 'bg-green-100',
-        textColor: 'text-green-700'
-      }
+    const name = (courtName || '').toLowerCase().trim()
+    const m = name.match(/cancha\s*(\d+)/i)
+    let n = m ? Number(m[1]) : 0
+    if (!n) {
+      if (courtId === 'cmew6nvsd0001u2jcngxgt8au' || name.includes(' a') || name.startsWith('a')) n = 1
+      else if (courtId === 'cmew6nvsd0002u2jcc24nirbn' || name.includes(' b') || name.startsWith('b')) n = 2
+      else if (courtId === 'cmew6nvi40000u2jcmer3av60' || name.includes(' c') || name.startsWith('c')) n = 3
     }
+    const palette = [
+      { color: 'from-purple-400 to-purple-600', bgColor: 'bg-purple-100', textColor: 'text-purple-700' },
+      { color: 'from-red-400 to-red-600', bgColor: 'bg-red-100', textColor: 'text-red-700' },
+      { color: 'from-green-400 to-green-600', bgColor: 'bg-green-100', textColor: 'text-green-700' },
+      { color: 'from-orange-400 to-orange-600', bgColor: 'bg-orange-100', textColor: 'text-orange-700' },
+      { color: 'from-pink-400 to-pink-600', bgColor: 'bg-pink-100', textColor: 'text-pink-700' },
+      { color: 'from-cyan-400 to-cyan-600', bgColor: 'bg-cyan-100', textColor: 'text-cyan-700' },
+      { color: 'from-gray-300 to-gray-500', bgColor: 'bg-gray-200', textColor: 'text-gray-700' }
+    ]
+    if (!n || n < 1) n = 3
+    const idx = (n - 1) % palette.length
+    return palette[idx]
   }
 
   const colors = getCourtColors(court.id, court.name)

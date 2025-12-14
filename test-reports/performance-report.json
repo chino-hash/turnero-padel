@@ -1,7 +1,19 @@
 {
-  "timestamp": "2025-11-14T14:17:27.658Z",
+  "timestamp": "2025-11-21T04:18:16.815Z",
   "totalRuntime": 0,
   "slowestTests": [
+    {
+      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\components\\AdminTurnos.closed.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
     {
       "file": "\\__tests__\\lib\\services\\booking-service.availability.test.ts",
       "runtime": 0,
@@ -10,6 +22,18 @@
     }
   ],
   "allTests": [
+    {
+      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\components\\AdminTurnos.closed.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
     {
       "file": "\\__tests__\\lib\\services\\booking-service.availability.test.ts",
       "runtime": 0,

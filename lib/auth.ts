@@ -45,6 +45,8 @@ const logAdminAccessSafe = async (email: string, success: boolean, method: 'emai
 const authConfig = getAuthConfig()
 
 export const config = {
+  secret: authConfig.secret,
+  trustHost: true,
   providers: [
     Google({
       clientId: authConfig.google.clientId,

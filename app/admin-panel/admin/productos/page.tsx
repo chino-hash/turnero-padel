@@ -5,12 +5,13 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import { Button } from '../../../../components/ui/button'
 import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../../components/ui/dialog'
 import { Badge } from '../../../../components/ui/badge'
-import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive, Home } from 'lucide-react'
+import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { useAppState } from '@/components/providers/AppStateProvider'
@@ -36,6 +37,11 @@ export default function ProductosPage() {
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null)
   const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null)
 
+  // Estados para el volumen de bebidas
+  const [volumen, setVolumen] = useState('')
+  const [unidadVolumen, setUnidadVolumen] = useState('ml')
+  const [categoriaFormulario, setCategoriaFormulario] = useState('')
+
   const categorias = ['Todas', 'Alquiler', 'Pelotas', 'Toallas', 'Bebidas', 'Snacks', 'Otros']
 
   const productosFiltrados = productos.filter(producto => {
@@ -46,6 +52,24 @@ export default function ProductosPage() {
 
   const handleEditarProducto = (producto: Producto) => {
     setProductoEditando(producto)
+    setCategoriaFormulario(producto.categoria)
+
+    // Intentar extraer volumen del nombre si es bebida
+    if (producto.categoria === 'Bebidas') {
+      const regex = /\s*\((\d+(?:[.,]\d+)?)\s*(ml|L|l|cc)\)$/i
+      const match = producto.nombre.match(regex)
+      if (match) {
+        setVolumen(match[1])
+        setUnidadVolumen(match[2].toLowerCase() === 'l' ? 'L' : 'ml')
+      } else {
+        setVolumen('')
+        setUnidadVolumen('ml')
+      }
+    } else {
+      setVolumen('')
+      setUnidadVolumen('ml')
+    }
+
     setModalAbierto(true)
   }
 
@@ -59,6 +83,9 @@ export default function ProductosPage() {
       activo: true
     }
     setProductoEditando(nuevoProducto)
+    setCategoriaFormulario('Bebidas') // Default o vacío
+    setVolumen('')
+    setUnidadVolumen('ml')
     setModalAbierto(true)
   }
 
@@ -71,7 +98,7 @@ export default function ProductosPage() {
       setCargando(true)
       const response = await fetch('/api/productos')
       const data = await response.json()
-      
+
       if (data.success) {
         setProductos(data.data)
       } else {
@@ -82,29 +109,29 @@ export default function ProductosPage() {
           // Alquiler de Raqueta
           { id: 1, nombre: 'Alquiler de Raqueta', precio: 15000, stock: 10, categoria: 'Alquiler', activo: true },
           { id: 2, nombre: 'Alquiler de Raqueta Premium', precio: 20000, stock: 5, categoria: 'Alquiler', activo: true },
-          
+
           // Pelotas
           { id: 3, nombre: 'Pelota de Pádel', precio: 5000, stock: 50, categoria: 'Pelotas', activo: true },
           { id: 4, nombre: 'Pelotas x2', precio: 9000, stock: 30, categoria: 'Pelotas', activo: true },
           { id: 5, nombre: 'Pelotas x3', precio: 13000, stock: 25, categoria: 'Pelotas', activo: true },
-          
+
           // Toallas
           { id: 6, nombre: 'Toalla', precio: 8000, stock: 20, categoria: 'Toallas', activo: true },
           { id: 7, nombre: 'Toalla Premium', precio: 12000, stock: 15, categoria: 'Toallas', activo: true },
-          
+
           // Bebidas
           { id: 8, nombre: 'Bebida', precio: 3000, stock: 40, categoria: 'Bebidas', activo: true },
           { id: 9, nombre: 'Agua Mineral', precio: 2000, stock: 50, categoria: 'Bebidas', activo: true },
           { id: 10, nombre: 'Gatorade', precio: 4000, stock: 30, categoria: 'Bebidas', activo: true },
           { id: 11, nombre: 'Coca Cola', precio: 3500, stock: 35, categoria: 'Bebidas', activo: true },
           { id: 12, nombre: 'Cerveza', precio: 5000, stock: 25, categoria: 'Bebidas', activo: true },
-          
+
           // Snacks
           { id: 13, nombre: 'Snack', precio: 4000, stock: 30, categoria: 'Snacks', activo: true },
           { id: 14, nombre: 'Barrita Energética', precio: 3500, stock: 40, categoria: 'Snacks', activo: true },
           { id: 15, nombre: 'Frutos Secos', precio: 4500, stock: 25, categoria: 'Snacks', activo: true },
           { id: 16, nombre: 'Sandwich', precio: 8000, stock: 15, categoria: 'Snacks', activo: true },
-          
+
           // Otros productos adicionales
           { id: 17, nombre: 'Otro', precio: 5000, stock: 20, categoria: 'Otros', activo: true },
           { id: 18, nombre: 'Grip Antideslizante', precio: 6000, stock: 30, categoria: 'Otros', activo: true },
@@ -123,18 +150,29 @@ export default function ProductosPage() {
   const handleGuardarProducto = async (e: React.FormEvent) => {
     e.preventDefault()
     const formData = new FormData(e.target as HTMLFormElement)
-    
+
+    let nombreFinal = formData.get('nombre') as string
+    const categoria = formData.get('categoria') as string
+
+    // Si es bebida y tiene volumen, agregarlo al nombre
+    if (categoria === 'Bebidas' && volumen) {
+      // Limpiar volumen anterior si existe para no duplicar al editar
+      const regex = /\s*\((\d+(?:[.,]\d+)?)\s*(ml|L|l|cc)\)$/i
+      nombreFinal = nombreFinal.replace(regex, '').trim()
+      nombreFinal = `${nombreFinal} (${volumen}${unidadVolumen})`
+    }
+
     const productoData = {
-      nombre: formData.get('nombre') as string,
+      nombre: nombreFinal,
       precio: Number(formData.get('precio')),
       stock: Number(formData.get('stock')),
-      categoria: formData.get('categoria') as string,
+      categoria: categoria,
       activo: formData.get('activo') === 'on'
     }
 
     try {
       let response
-      
+
       // Si el producto ya existe, actualizar
       if (productoEditando && productos.find(p => p.id === productoEditando.id)) {
         // Actualizar producto existente
@@ -160,10 +198,10 @@ export default function ProductosPage() {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
-        toast.success(productoEditando && productos.find(p => p.id === productoEditando.id) 
-          ? 'Producto actualizado correctamente' 
+        toast.success(productoEditando && productos.find(p => p.id === productoEditando.id)
+          ? 'Producto actualizado correctamente'
           : 'Producto creado correctamente')
         setModalAbierto(false)
         setProductoEditando(null)
@@ -191,7 +229,7 @@ export default function ProductosPage() {
         })
 
         const data = await response.json()
-        
+
         if (data.success) {
           toast.success('Producto eliminado correctamente')
           setModalEliminar(false)
@@ -226,7 +264,7 @@ export default function ProductosPage() {
       })
 
       const data = await response.json()
-      
+
       if (data.success) {
         toast.success(`Producto ${!producto.activo ? 'activado' : 'desactivado'} correctamente`)
         // Recargar productos para mostrar los cambios
@@ -286,15 +324,7 @@ export default function ProductosPage() {
                 Última actualización: {new Date().toLocaleString('es-ES')}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 border border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-muted"
-            >
-              <span>Ir a</span>
-              <Home className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            </Button>
+
           </div>
         </div>
 
@@ -344,7 +374,7 @@ export default function ProductosPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
@@ -358,7 +388,7 @@ export default function ProductosPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
@@ -372,7 +402,7 @@ export default function ProductosPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
@@ -396,78 +426,82 @@ export default function ProductosPage() {
             <CardTitle>Productos ({productosFiltrados.length})</CardTitle>
           </CardHeader>
           <CardContent>
-                {cargando ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                    <span className="ml-3 text-muted-foreground">Cargando productos...</span>
-                  </div>
-                ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {productosFiltrados.map((producto) => (
-                  <div key={producto.id} className={`rounded-lg border shadow-sm hover:shadow-md transition-shadow duration-200 ${!producto.activo ? 'opacity-60' : ''} ${
-                    isDarkMode 
-                      ? 'bg-gray-800 border-gray-600 text-white' 
-                      : 'bg-white border-gray-200 text-gray-900'
-                  }`}>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-foreground text-lg mb-2">{producto.nombre}</h3>
+            {cargando ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <span className="ml-3 text-muted-foreground">Cargando productos...</span>
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead>Precio</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {productosFiltrados.map((producto) => (
+                      <TableRow key={producto.id} className={!producto.activo ? 'opacity-60 bg-muted/50' : ''}>
+                        <TableCell className="font-medium">
+                          {producto.nombre}
+                        </TableCell>
+                        <TableCell>
                           <Badge className={getCategoriaColor(producto.categoria)}>
                             {producto.categoria}
                           </Badge>
-                        </div>
-                        <Badge className={producto.activo ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'}>
-                          {producto.activo ? 'Activo' : 'Inactivo'}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-3 mb-6">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Precio:</span>
-                          <span className="font-semibold text-lg text-foreground">${producto.precio.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Stock:</span>
-                          <span className={`font-medium ${getStockColor(producto.stock)} dark:text-foreground`}>
-                            {producto.stock} unidades
+                        </TableCell>
+                        <TableCell>
+                          ${producto.precio.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-medium ${getStockColor(producto.stock)}`}>
+                            {producto.stock} u.
                           </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-end space-x-2 pt-4 border-t">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditarProducto(producto)}
-                          className="p-2"
-                          title="Editar producto"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => toggleActivoProducto(producto)}
-                          className="p-2"
-                          title={producto.activo ? 'Desactivar producto' : 'Activar producto'}
-                        >
-                          <Archive className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEliminarProducto(producto)}
-                          className="p-2 text-red-600 hover:text-red-700"
-                          title="Eliminar producto"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={producto.activo ? 'border-green-600 text-green-600 dark:border-green-400 dark:text-green-400' : 'border-red-600 text-red-600 dark:border-red-400 dark:text-red-400'}>
+                            {producto.activo ? 'Activo' : 'Inactivo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleEditarProducto(producto)}
+                              title="Editar producto"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => toggleActivoProducto(producto)}
+                              title={producto.activo ? 'Desactivar producto' : 'Activar producto'}
+                            >
+                              <Archive className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleEliminarProducto(producto)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              title="Eliminar producto"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
                 {productosFiltrados.length === 0 && (
                   <div className="text-center py-12">
                     <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
@@ -487,8 +521,8 @@ export default function ProductosPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {productoEditando && productos.find(p => p.id === productoEditando.id) 
-                  ? 'Editar Producto' 
+                {productoEditando && productos.find(p => p.id === productoEditando.id)
+                  ? 'Editar Producto'
                   : 'Nuevo Producto'
                 }
               </DialogTitle>
@@ -501,10 +535,39 @@ export default function ProductosPage() {
                   name="nombre"
                   placeholder="Ej: Pelotas de Pádel"
                   required
-                  defaultValue={productoEditando?.nombre || ''}
+                  defaultValue={productoEditando?.nombre.replace(/\s*\((\d+(?:[.,]\d+)?)\s*(ml|L|l|cc)\)$/i, '') || ''}
                 />
               </div>
-              
+
+              {categoriaFormulario === 'Bebidas' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="volumen">Cantidad</Label>
+                    <Input
+                      id="volumen"
+                      type="number"
+                      placeholder="Ej: 500"
+                      value={volumen}
+                      onChange={(e) => setVolumen(e.target.value)}
+                      min="0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="unidad">Unidad</Label>
+                    <select
+                      id="unidad"
+                      value={unidadVolumen}
+                      onChange={(e) => setUnidadVolumen(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-background text-foreground"
+                    >
+                      <option value="ml">ml</option>
+                      <option value="L">Litros</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="precio">Precio ($)</Label>
@@ -530,23 +593,24 @@ export default function ProductosPage() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="categoria">Categoría</Label>
                 <select
                   id="categoria"
                   name="categoria"
                   required
-                  defaultValue={productoEditando?.categoria || 'Bebidas'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  defaultValue={productoEditando?.categoria || ''}
+                  onChange={(e) => setCategoriaFormulario(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-background text-foreground"
                 >
-                  <option value="Bebidas">Bebidas</option>
-                  <option value="Accesorios">Accesorios</option>
-                  <option value="Equipamiento">Equipamiento</option>
-                  <option value="Consumibles">Consumibles</option>
+                  <option value="" disabled>Seleccionar categoría</option>
+                  {categorias.filter(c => c !== 'Todas').map(categoria => (
+                    <option key={categoria} value={categoria}>{categoria}</option>
+                  ))}
                 </select>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -557,7 +621,7 @@ export default function ProductosPage() {
                 />
                 <Label htmlFor="activo">Producto activo</Label>
               </div>
-              
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
@@ -567,8 +631,8 @@ export default function ProductosPage() {
                   Cancelar
                 </Button>
                 <Button type="submit">
-                  {productoEditando && productos.find(p => p.id === productoEditando.id) 
-                    ? 'Actualizar' 
+                  {productoEditando && productos.find(p => p.id === productoEditando.id)
+                    ? 'Actualizar'
                     : 'Crear'
                   }
                 </Button>

@@ -286,6 +286,8 @@
   animation: slideIn 0.3s ease-out;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
   font-family: var(--font-sans);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .modal-header-new {
@@ -406,6 +408,78 @@
   border-radius: 9999px;
 }
 
+/* === Admin Availability Grid (BEM + Dark Mode) === */
+@layer components {
+  :root {
+    --admin-bg-main: #0d0d0d;
+    --admin-row-even: #1a1a1a;
+    --admin-row-odd: #262626;
+    --admin-text-main: #e6e6e6;
+    --admin-free-border: #2d5e2d;
+    --admin-booked-bg: #6d2a2a;
+    --admin-pending-border: #b38b1a;
+    --admin-pending-bg: rgba(179, 139, 26, 0.15);
+  }
+  @media (prefers-color-scheme: dark) {
+    .availability-grid {
+      @apply text-sm;
+      color: var(--admin-text-main);
+    }
+    .availability-grid__scroll {
+      background-color: var(--admin-bg-main);
+      max-height: 560px;
+    }
+    .availability-grid__table {
+      width: 100%;
+    }
+    .availability-grid__head-cell {
+      @apply px-4 py-4; /* 16px */
+      background-color: var(--admin-bg-main);
+      color: var(--admin-text-main);
+      border-bottom: 1px solid oklch(1 0 0 / 0.08);
+      z-index: 10;
+    }
+    .availability-grid__row:nth-child(even) { background-color: var(--admin-row-even); }
+    .availability-grid__row:nth-child(odd) { background-color: var(--admin-row-odd); }
+    .availability-grid__cell { @apply px-4 py-4 align-middle; }
+    .availability-grid__cell--time { @apply font-medium; }
+    .availability-grid__badges { @apply flex items-center; gap: 12px; }
+
+    /* Badges */
+    .availability-grid__badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 300ms ease-in-out;
+      box-sizing: border-box;
+    }
+    .availability-grid__badge-number { @apply font-medium; font-size: 12px; }
+    .availability-grid__badge-content { display: inline-flex; align-items: center; gap: 4px; }
+    .availability-grid__badge-x { font-size: 10px; line-height: 1; color: #ffffff; }
+
+    .availability-grid__badge--free {
+      background: transparent;
+      border: 1px solid var(--admin-free-border);
+      color: rgba(179, 179, 179, 0.7);
+    }
+    .availability-grid__badge--booked {
+      background: var(--admin-booked-bg);
+      color: #ffffff;
+    }
+    .availability-grid__badge--booked:hover {
+      box-shadow: 0 0 4px rgba(109, 42, 42, 0.3);
+    }
+    .availability-grid__badge--pending {
+      background: var(--admin-pending-bg);
+      border: 1px solid var(--admin-pending-border);
+      color: rgba(179, 179, 179, 0.85);
+    }
+  }
+}
+
 /* Gutter de snap para que el primer botón no se corte al inicio */
 [data-testid="date-selection-mobile"] {
   scroll-padding-left: 20px;
@@ -440,6 +514,11 @@
   font-size: 1.2rem;
   font-weight: 800;
   color: var(--electric-teal);
+}
+
+.total-label {
+  color: var(--foreground);
+  opacity: 0.95;
 }
 
 /* Estilos antiguos mantenidos para compatibilidad */
@@ -515,7 +594,7 @@
 
 .total-label {
   font-size: 0.95rem;
-  color: #000000;
+  color: var(--foreground);
   font-weight: 600;
 }
 

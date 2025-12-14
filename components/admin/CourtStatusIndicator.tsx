@@ -5,6 +5,7 @@ type Status = 'free' | 'booked' | 'pending'
 
 interface Props {
   status: Status
+  labelNumber?: number
 }
 
 const labels: Record<Status, string> = {
@@ -13,13 +14,28 @@ const labels: Record<Status, string> = {
   pending: 'Bloqueado',
 }
 
-export default function CourtStatusIndicator({ status }: Props) {
-  const base = 'w-4 h-4 rounded-full'
-  const color =
-    status === 'free' ? 'bg-green-500' :
-    status === 'booked' ? 'bg-red-500' :
-    'bg-yellow-500'
-  const animation = status === 'pending' ? 'animate-pulse' : ''
-
-  return <div className={cn(base, color, animation)} title={labels[status]} aria-label={labels[status]} />
+export default function CourtStatusIndicator({ status, labelNumber }: Props) {
+  const base = 'availability-grid__badge'
+  const stateClass =
+    status === 'free' ? 'availability-grid__badge--free' :
+    status === 'booked' ? 'availability-grid__badge--booked' :
+    'availability-grid__badge--pending'
+  return (
+    <div
+      className={cn(base, stateClass)}
+      title={labels[status]}
+      aria-label={labels[status]}
+      data-state={status}
+      role="img"
+    >
+      {status === 'booked' ? (
+        <span className={cn('availability-grid__badge-content')}>
+          <span className={cn('availability-grid__badge-x')} aria-hidden>×</span>
+          <span className={cn('availability-grid__badge-number')}>{labelNumber}</span>
+        </span>
+      ) : (
+        <span className={cn('availability-grid__badge-number opacity-70')}>{labelNumber}</span>
+      )}
+    </div>
+  )
 }
