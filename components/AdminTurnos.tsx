@@ -1048,14 +1048,14 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             {extrasOpen[booking.id] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             {(() => {
               const grouped = (() => {
-                const groups: { key: string; ids: string[]; name: string; cost: number; label: string }[] = []
+                const groups: { ids: string[]; name: string; cost: number; label: string }[] = []
                 const byKey: Record<string, { ids: string[]; name: string; cost: number; label: string }> = {}
                 const playersShort: Record<'player1'|'player2'|'player3'|'player4', string> = { player1: 'J1', player2: 'J2', player3: 'J3', player4: 'J4' }
                 const playerExtrasByName: Record<string, { player: 'player1'|'player2'|'player3'|'player4'; extra: Extra }[]> = {}
                 booking.extras.forEach(e => {
                   if (e.assignedTo === 'all') {
                     const key = `all|${e.name}|${e.id}`
-                    byKey[key] = { key, ids: [e.id], name: e.name, cost: e.cost, label: 'Todos' }
+                    byKey[key] = { ids: [e.id], name: e.name, cost: e.cost, label: 'Todos' }
                   } else {
                     const list = playerExtrasByName[e.name] || []
                     playerExtrasByName[e.name] = [...list, { player: e.assignedTo, extra: e }]
@@ -1068,12 +1068,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     const ids = list.map(l => l.extra.id)
                     const cost = list.reduce((s, l) => s + l.extra.cost, 0)
                     const label = `Compartido por ${players.map(p => playersShort[p]).join(' y ')}`
-                    byKey[key] = { key, ids, name, cost, label }
+                    byKey[key] = { ids, name, cost, label }
                   } else {
                     const only = list[0]
                     const key = `single|${name}|${players[0]}|${only.extra.id}`
                     const label = playersShort[players[0]]
-                    byKey[key] = { key, ids: [only.extra.id], name, cost: only.extra.cost, label }
+                    byKey[key] = { ids: [only.extra.id], name, cost: only.extra.cost, label }
                   }
                 })
                 groups.push(...Object.values(byKey))
@@ -1085,7 +1085,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           {extrasOpen[booking.id] && booking.extras.length > 0 && (
             <div className="space-y-2">
               {(() => {
-                const groups: { key: string; ids: string[]; name: string; cost: number; label: string }[] = []
+                const groups: { ids: string[]; name: string; cost: number; label: string }[] = []
                 const byKey: Record<string, { ids: string[]; name: string; cost: number; label: string }> = {}
                 const playersShort: Record<'player1'|'player2'|'player3'|'player4', string> = { player1: 'J1', player2: 'J2', player3: 'J3', player4: 'J4' }
                 const playerExtrasByName: Record<string, { player: 'player1'|'player2'|'player3'|'player4'; extra: Extra }[]> = {}
