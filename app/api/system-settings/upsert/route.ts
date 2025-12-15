@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/database/neon-config'
 import { auth } from '../../../../lib/auth'
+import { revalidateTag } from 'next/cache'
+import { eventEmitters } from '../../../../lib/sse-events'
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +30,23 @@ export async function POST(req: NextRequest) {
       update: { ...data, updatedAt: new Date() },
       create: { ...data, createdAt: new Date(), updatedAt: new Date() }
     })
+
+    try {
+      const operatingKeys = new Set([
+        'operating_hours_start',
+        'operating_hours_end',
+        'default_slot_duration'
+      ])
+      if (operatingKeys.has(key)) {
+        revalidateTag('system-settings:operating-hours')
+      }
+      eventEmitters.adminChange({
+        type: 'system_setting_updated',
+        key,
+        message: `Configuración "${key}" actualizada`
+      })
+    } catch {}
+
     return NextResponse.json({ success: true, data: result })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message || 'Error al guardar' }, { status: 500 })

@@ -856,6 +856,24 @@ export default function AdminDashboard() {
                     const jsonHome = await resHome.json()
                     if (resHome.ok && jsonHome?.success) {
                       if (!homeSettingsId && jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
+                      try {
+                        const homePayload = {
+                          labelCourtName: homeLabelCourtName.trim(),
+                          locationName: homeLocationName.trim(),
+                          mapUrl: homeMapUrl.trim(),
+                          sessionText: homeSessionText.trim(),
+                          descriptionText: homeDescriptionText.trim(),
+                          iconImage: homeIconImage.trim()
+                        }
+                        localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
+                        localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                        window.dispatchEvent(new Event('home_card_settings_updated'))
+                        fetch('/api/admin/test-event', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ type: 'admin_change', message: 'home_card_settings updated', key: 'home_card_settings' })
+                        }).catch(() => {})
+                      } catch {}
                       toast.success('Cambios guardados')
                     } else {
                       toast.error(String(jsonHome?.error || 'Error al guardar tarjeta principal'))

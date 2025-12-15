@@ -735,35 +735,18 @@ function PadelBookingPage() {
           <div className="flex-1 min-h-[3rem] sm:min-h-[3.5rem]" aria-hidden="true"></div>
 
           {/* Sección derecha: Botón de recarga y modo oscuro */}
-          <div className={`
+          <div
+            className={`
             flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5
             rounded-b-2xl shadow-lg
-            transition-all duration-300 hover:shadow-xl
-            ${isDarkMode ? "bg-gray-800 text-white shadow-gray-900/20" : "bg-white text-gray-900 shadow-gray-900/10"}
-          `}>
-            <div className="flex items-center gap-1 sm:gap-1.5 mr-1 sm:mr-2">
-              <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden flex items-center justify-center shadow-sm ${
-                isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-              }`}>
-                <img
-                  src={`data:image/svg+xml;utf8,${encodeURIComponent(`
-                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
-                      <defs>
-                        <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-                          <stop offset='0%' stop-color='#8fdc5a'/>
-                          <stop offset='100%' stop-color='#00c4b4'/>
-                        </linearGradient>
-                      </defs>
-                      <rect x='5' y='5' width='90' height='90' rx='20' fill='url(#g)'/>
-                      <path d='M55 18c-8 18-12 28-18 44l8 0c2-6 4-12 6-18 3 2 8 9 8 16 0 9-7 17-19 17-8 0-14-5-14-12 0-7 6-11 14-11h3c4-10 9-22 14-33z' fill='#111'/>
-                    </svg>
-                  `)}
-                  `}
-                  alt="PADEL BOOK logo"
-                  className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
-                />
+            transition-all duration-300 hover:shadow-xl backdrop-blur-xl border border-border text-card-foreground
+          `}
+            style={{ backgroundColor: 'var(--navbar-bg)' }}
+          >
+            <div className="flex items-center gap-0 mr-1 sm:mr-2">
+              <div className="w-10 h-6 sm:w-12 sm:h-7 overflow-hidden flex items-center justify-center">
+                <img src="/logo/padel.svg" alt="PADEL BOOK logo" className="w-full h-full object-contain" />
               </div>
-              <span className="text-sm sm:text-base font-bold sm:font-extrabold tracking-tight">PADEL BOOK</span>
             </div>
             {/* Div modo oscuro con dimensiones exactas del botón */}
             <div

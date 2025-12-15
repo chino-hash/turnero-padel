@@ -359,8 +359,6 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
         if (!res.ok) throw new Error(`Error ${res.status}`)
         const data: Court[] = await res.json()
         setCourts(data)
-        const firstActive = data.find(c => c.isActive !== false) || data[0]
-        if (firstActive) setSelectedCourt(firstActive.id)
       } catch (err) {
         // Ignorar abortos de la peticiÃ³n para evitar ruido en consola durante Fast Refresh
         if (err instanceof Error && err.name === 'AbortError') {
@@ -374,6 +372,18 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     loadCourts()
     return () => controller.abort()
   }, [])
+  
+  useEffect(() => {
+    if (selectedCourt) {
+      setIsUnifiedView(false)
+    }
+  }, [selectedCourt])
+  
+  useEffect(() => {
+    if (isUnifiedView) {
+      setSelectedCourt("")
+    }
+  }, [isUnifiedView])
   
   // Hooks de slots (usando versiÃ³n optimizada)
    const {

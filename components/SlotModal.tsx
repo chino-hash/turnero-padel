@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { TimeSlot } from '../types/types';
 
 interface SlotModalProps {
@@ -82,9 +83,11 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
     return new Intl.DateTimeFormat('es-ES', options).format(new Date(date));
   };
 
-  if (!isOpen || !slot) return null;
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  if (!isOpen || !slot || !mounted) return null;
 
-  return (
+  return createPortal(
     <div 
       className="modal-overlay" 
       onClick={handleOverlayClick}
@@ -152,7 +155,6 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
             <button 
               className="btn-primary"
               onClick={() => {
-                // Aquí se podría integrar la lógica de reserva
                 console.log('Reservar turno:', slot);
                 onClose();
               }}
@@ -162,7 +164,8 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

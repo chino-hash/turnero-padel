@@ -126,11 +126,36 @@ export default function HomeSection({
           setCreationModeCourtId(null)
         }, 60000)
       }
+    },
+    onAdminChange: (data: any) => {
+      try {
+        if (data?.type === 'system_setting_updated' && data?.key === 'home_card_settings') {
+          loadHomeCardSettings()
+          window.dispatchEvent(new Event('home_card_settings_updated'))
+          localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+        }
+      } catch {}
     }
   })
   async function loadHomeCardSettings() {
     try {
-      const res = await fetch('/api/system-settings/by-key?key=home_card_settings', { cache: 'no-store' as any })
+      if (typeof window !== 'undefined') {
+        const latestStr = localStorage.getItem('home_card_settings_latest')
+        if (latestStr) {
+          try {
+            const parsed = JSON.parse(latestStr)
+            setHomeCardSettings({
+              labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
+              locationName: parsed?.locationName || 'Downtown Sports Center',
+              mapUrl: parsed?.mapUrl || '',
+              sessionText: parsed?.sessionText || '1:30 hour sessions',
+              descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+              iconImage: parsed?.iconImage || ''
+            })
+          } catch {}
+        }
+      }
+      const res = await fetch('/api/system-settings/public/by-key?key=home_card_settings', { cache: 'no-store' as any })
       const json = await res.json()
       const item = json?.data
       if (item) {
@@ -182,7 +207,7 @@ export default function HomeSection({
     bgColor: 'bg-white',
     textColor: 'text-gray-900',
   }
-  const selectedCourtData = courts.find((court) => court.id === selectedCourt) || courts[0] || defaultCourt
+  const selectedCourtData = courts.find((court) => court.id === selectedCourt)
   const availableDays = getAvailableDays()
   // Color hex para el ícono/ilustración de la cancha seleccionada en la tarjeta superior
   const getCourtNumber = (name: string, id?: string) => {
@@ -196,7 +221,7 @@ export default function HomeSection({
   }
   const paletteHex = ['#8b5cf6', '#ef4444', '#008000', '#ff9933', '#f54ea2', '#00c4b4', '#e2e8f0']
   const selectedNumber = getCourtNumber(selectedCourtData?.name || '', selectedCourtData?.id)
-  const selectedCourtHex = selectedNumber > 0 ? paletteHex[(selectedNumber - 1) % paletteHex.length] : '#4b5563'
+  const selectedCourtHex = selectedNumber > 0 ? paletteHex[(selectedNumber - 1) % paletteHex.length] : '#ffffff'
 
   // Court.color ahora usa clases Tailwind originales (from-... to-...)
 
@@ -431,6 +456,7 @@ export default function HomeSection({
                   e.preventDefault()
                   e.stopPropagation()
                   setSelectedCourt(court.id)
+                  setIsUnifiedView(false)
                 }}
                 data-testid="court-card"
                 className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${selectedCourt === court.id
@@ -519,6 +545,7 @@ export default function HomeSection({
                           e.preventDefault()
                           e.stopPropagation()
                           setSelectedCourt(court.id)
+                          setIsUnifiedView(false)
                         }}
                         data-testid="court-card"
                         className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'
@@ -583,6 +610,7 @@ export default function HomeSection({
                   e.preventDefault()
                   e.stopPropagation()
                   setIsUnifiedView(true)
+                  setSelectedCourt('')
                 }}
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
                     ? 'text-[color:var(--color-neon-lime)] font-bold'
@@ -659,6 +687,7 @@ export default function HomeSection({
                   e.preventDefault()
                   e.stopPropagation()
                   setIsUnifiedView(true)
+                  setSelectedCourt('')
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
                     ? 'text-white shadow-md'

@@ -4,6 +4,8 @@ import { prisma } from '../../../../lib/database/neon-config';
 import { getTestDataByModel, getValidationRules } from '../../../../lib/services/test-data';
 import { auth } from '../../../../lib/auth';
 import { config as authOptions } from '../../../../lib/auth';
+import { eventEmitters } from '../../../../lib/sse-events';
+import { revalidateTag } from 'next/cache';
 
 // Modelos permitidos para operaciones CRUD
 const ALLOWED_MODELS = [
@@ -203,6 +205,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json(result, { status: 400 });
     }
 
+    try {
+      if (model === 'systemSetting') {
+        const key = String((body?.key ?? result?.data?.key) || '');
+        if (key) {
+          const operatingKeys = new Set(['operating_hours_start','operating_hours_end','default_slot_duration']);
+          if (operatingKeys.has(key)) {
+            revalidateTag('system-settings:operating-hours');
+          }
+          eventEmitters.adminChange({
+            type: 'system_setting_updated',
+            key,
+            message: `Configuración "${key}" creada`
+          });
+        }
+      }
+    } catch {}
+
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {
     console.error('Error in POST /api/crud:', error);
@@ -248,6 +267,31 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
     }
+
+    try {
+      if (model === 'systemSetting') {
+        let key = '';
+        if (typeof body?.key === 'string' && body.key.length > 0) {
+          key = body.key;
+        } else if (result?.data?.key) {
+          key = String(result.data.key);
+        } else {
+          const found = await prisma.systemSetting.findUnique({ where: { id } as any });
+          key = String(found?.key || '');
+        }
+        if (key) {
+          const operatingKeys = new Set(['operating_hours_start','operating_hours_end','default_slot_duration']);
+          if (operatingKeys.has(key)) {
+            revalidateTag('system-settings:operating-hours');
+          }
+          eventEmitters.adminChange({
+            type: 'system_setting_updated',
+            key,
+            message: `Configuración "${key}" actualizada`
+          });
+        }
+      }
+    } catch {}
 
     return NextResponse.json(result);
   } catch (error: any) {

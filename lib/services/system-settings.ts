@@ -28,5 +28,8 @@ export const getDefaultOperatingHours = cache(
     }
   },
   ['system-settings', 'default-operating-hours'],
-  { revalidate: 3600 }
+  {
+    revalidate: 60,
+    tags: ['system-settings:operating-hours']
+  }
 )
