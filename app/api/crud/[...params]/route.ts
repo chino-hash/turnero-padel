@@ -287,10 +287,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     const hard = url.searchParams.get('hard') === 'true';
     
     let result;
+    const service = getService(model);
     if (hard) {
-      result = await crudService.hardDelete(id);
+      result = await service.hardDelete(id);
     } else {
-      result = await crudService.delete(id);
+      result = await service.delete(id);
     }
     
     if (!result.success) {
