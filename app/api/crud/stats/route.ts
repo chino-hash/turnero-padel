@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crudService } from '../../../../lib/services/crud-service';
+import { CrudService } from '../../../../lib/services/crud-service';
+import { prisma } from '../../../../lib/database/neon-config';
 import { auth } from '../../../../lib/auth';
 
 // Modelos disponibles para estadísticas
@@ -20,6 +21,21 @@ async function checkAdminPermission() {
   return session?.user?.role === 'ADMIN';
 }
 
+function getService(model: string) {
+  const map: Record<string, string> = {
+    user: 'User',
+    court: 'Court',
+    booking: 'Booking',
+    bookingPlayer: 'BookingPlayer',
+    payment: 'Payment',
+    systemSetting: 'SystemSetting',
+    producto: 'Producto',
+    adminWhitelist: 'AdminWhitelist',
+  };
+  const name = map[model];
+  if (!name) throw new Error(`Modelo '${model}' no disponible`);
+  return new CrudService(prisma, name);
+}
 // GET - Obtener estadísticas
 export async function GET(request: NextRequest) {
   try {
@@ -47,20 +63,21 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const service = getService(model);
       switch (type) {
         case 'table':
-          result = await crudService.getTableStats({ userRole: 'ADMIN' });
+          result = await service.getTableStats({ userRole: 'ADMIN' });
           break;
         case 'count':
-          const where = {}; // Puedes agregar filtros aquí
-          result = await crudService.count(where, { userRole: 'ADMIN' });
+          const where = {};
+          result = await service.count(where, { userRole: 'ADMIN' });
           break;
         default:
           // Estadísticas generales del modelo
           const [tableStats, totalCount, activeCount] = await Promise.all([
-            crudService.getTableStats({ userRole: 'ADMIN' }),
-            crudService.count({}, { userRole: 'ADMIN' }),
-            crudService.count({ deletedAt: null }, { userRole: 'ADMIN' })
+            service.getTableStats({ userRole: 'ADMIN' }),
+            service.count({}, { userRole: 'ADMIN' }),
+            service.count({ deletedAt: null }, { userRole: 'ADMIN' })
           ]);
 
           result = {
@@ -82,9 +99,10 @@ export async function GET(request: NextRequest) {
       
       for (const modelName of AVAILABLE_MODELS) {
         try {
+          const service = getService(modelName);
           const [totalCount, activeCount] = await Promise.all([
-            crudService.count({}, { userRole: 'ADMIN' }),
-            crudService.count({ deletedAt: null }, { userRole: 'ADMIN' })
+            service.count({}, { userRole: 'ADMIN' }),
+            service.count({ deletedAt: null }, { userRole: 'ADMIN' })
           ]);
 
           stats[modelName] = {
@@ -177,16 +195,17 @@ export async function POST(request: NextRequest) {
 
       try {
         let result;
+        const service = getService(model);
 
         switch (operation) {
           case 'count':
-            result = await crudService.count(model, filters);
+            result = await service.count(filters);
             break;
           case 'read':
-            result = await crudService.read(model);
+            result = await service.read();
             break;
           case 'stats':
-            result = await crudService.getTableStats(model);
+            result = await service.getTableStats();
             break;
           default:
             result = {

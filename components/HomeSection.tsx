@@ -128,29 +128,44 @@ export default function HomeSection({
       }
     }
   })
+  async function loadHomeCardSettings() {
+    try {
+      const res = await fetch('/api/system-settings/by-key?key=home_card_settings', { cache: 'no-store' as any })
+      const json = await res.json()
+      const item = json?.data
+      if (item) {
+        const valStr = String(item.value || '')
+        try {
+          const parsed = JSON.parse(valStr)
+          setHomeCardSettings({
+            labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
+            locationName: parsed?.locationName || 'Downtown Sports Center',
+            mapUrl: parsed?.mapUrl || '',
+            sessionText: parsed?.sessionText || '1:30 hour sessions',
+            descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+            iconImage: parsed?.iconImage || ''
+          })
+        } catch {}
+      }
+    } catch {}
+  }
   useEffect(() => {
-    const loadHomeCard = async () => {
-      try {
-        const res = await fetch('/api/crud/systemSetting?key=home_card_settings&limit=1')
-        const json = await res.json()
-        const item = Array.isArray(json?.data?.items) ? json.data.items[0] : Array.isArray(json?.data) ? json.data[0] : null
-        if (item) {
-          const valStr = String(item.value || '')
-          try {
-            const parsed = JSON.parse(valStr)
-            setHomeCardSettings({
-              labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
-              locationName: parsed?.locationName || 'Downtown Sports Center',
-              mapUrl: parsed?.mapUrl || '',
-              sessionText: parsed?.sessionText || '1:30 hour sessions',
-              descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
-              iconImage: parsed?.iconImage || ''
-            })
-          } catch {}
-        }
-      } catch {}
+    loadHomeCardSettings()
+    const handler = () => loadHomeCardSettings()
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key === 'home_card_settings_updated_at') loadHomeCardSettings()
     }
-    loadHomeCard()
+    const visHandler = () => {
+      if (document.visibilityState === 'visible') loadHomeCardSettings()
+    }
+    window.addEventListener('home_card_settings_updated', handler as any)
+    window.addEventListener('storage', storageHandler)
+    document.addEventListener('visibilitychange', visHandler)
+    return () => {
+      window.removeEventListener('home_card_settings_updated', handler as any)
+      window.removeEventListener('storage', storageHandler)
+      document.removeEventListener('visibilitychange', visHandler)
+    }
   }, [])
 
   // Fallback seguro para evitar errores mientras aún no cargan las canchas

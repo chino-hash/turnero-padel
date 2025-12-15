@@ -306,23 +306,41 @@ export class CrudService<T = any> {
         orderBy = { [validatedPagination.sortBy]: validatedPagination.sortOrder };
       }
 
-      // Filtrar registros eliminados por defecto (soft delete)
-      const where = {
-        ...options.where,
-        deletedAt: null
-      };
-
-      const [result, total] = await Promise.all([
-        (this.model as any).findMany({
-          where,
-          include: options.include,
-          select: options.select,
-          orderBy,
-          skip,
-          take
-        }),
-        (this.model as any).count({ where })
-      ]);
+      // Filtrar registros eliminados por defecto (soft delete) cuando aplica
+      const baseWhere = { ...(options.where || {}) };
+      const softDeleteWhere = { ...baseWhere, deletedAt: null };
+      let result: any[] = []
+      let total = 0
+      try {
+        const [res, cnt] = await Promise.all([
+          (this.model as any).findMany({
+            where: softDeleteWhere,
+            include: options.include,
+            select: options.select,
+            orderBy,
+            skip,
+            take
+          }),
+          (this.model as any).count({ where: softDeleteWhere })
+        ])
+        result = res
+        total = cnt
+      } catch (e: any) {
+        // Fallback para modelos sin campo deletedAt
+        const [res, cnt] = await Promise.all([
+          (this.model as any).findMany({
+            where: baseWhere,
+            include: options.include,
+            select: options.select,
+            orderBy,
+            skip,
+            take
+          }),
+          (this.model as any).count({ where: baseWhere })
+        ])
+        result = res
+        total = cnt
+      }
 
       const responseData = {
         items: result,
@@ -584,12 +602,19 @@ export class CrudService<T = any> {
         }
       }
 
-      const count = await (this.model as any).count({
-        where: {
-          deletedAt: null,
-          ...where
-        }
-      });
+      let count = 0
+      try {
+        count = await (this.model as any).count({
+          where: {
+            deletedAt: null,
+            ...where
+          }
+        })
+      } catch (e: any) {
+        count = await (this.model as any).count({
+          where
+        })
+      }
 
       return createSuccessResponse(`Conteo de ${this.modelName} obtenido exitosamente`, count);
     } catch (error: any) {
@@ -631,17 +656,32 @@ export class CrudService<T = any> {
         }
       }));
 
-      const result = await (this.model as any).findMany({
-        where: {
-          deletedAt: null,
-          OR: searchConditions,
-          ...options.where
-        },
-        take: 50, // Limitar resultados por defecto
-        orderBy: options.orderBy || { createdAt: 'desc' },
-        include: options.include,
-        select: options.select
-      });
+      let result: any[] = []
+      try {
+        result = await (this.model as any).findMany({
+          where: {
+            deletedAt: null,
+            OR: searchConditions,
+            ...options.where
+          },
+          take: 50,
+          orderBy: options.orderBy || { createdAt: 'desc' },
+          include: options.include,
+          select: options.select
+        })
+      } catch (e: any) {
+        // Fallback para modelos sin deletedAt
+        result = await (this.model as any).findMany({
+          where: {
+            OR: searchConditions,
+            ...options.where
+          },
+          take: 50,
+          orderBy: options.orderBy || { createdAt: 'desc' },
+          include: options.include,
+          select: options.select
+        })
+      }
 
       return createSuccessResponse(`Búsqueda en ${this.modelName} completada exitosamente`, result);
     } catch (error: any) {

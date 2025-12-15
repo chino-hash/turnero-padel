@@ -191,7 +191,6 @@ export default function GestionCanchas() {
             <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
             <div className="w-16 h-0.5 bg-orange-500"></div>
             <p className="text-muted-foreground text-xs mt-2">Activa, edita y configura precios de canchas.</p>
-            <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
           </div>
         </div>
         <Button onClick={() => setShowAddForm(true)}>

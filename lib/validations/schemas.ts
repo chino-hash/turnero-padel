@@ -135,8 +135,7 @@ export const systemSettingCreateSchema = z.object({
   value: z.string().min(1, 'El valor es requerido').max(1000, 'El valor es demasiado largo'),
   description: z.string().max(300, 'La descripción es demasiado larga').optional(),
   category: z.string().max(50, 'La categoría es demasiado larga').optional(),
-  isPublic: z.boolean().default(false),
-  dataType: z.enum(['STRING', 'NUMBER', 'BOOLEAN', 'JSON', 'DATE']).default('STRING')
+  isPublic: z.boolean().default(false)
 });
 
 export const systemSettingUpdateSchema = systemSettingCreateSchema.partial().omit({ key: true });

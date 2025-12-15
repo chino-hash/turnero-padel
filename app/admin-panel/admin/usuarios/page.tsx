@@ -76,7 +76,6 @@ export default function UsuariosPage() {
         <div>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Consulta y organiza usuarios por actividad y beneficios.</p>
-          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
 
         {/* Métricas principales */}

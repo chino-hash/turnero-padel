@@ -351,7 +351,6 @@ export default function TurnosPage() {
           <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Turnos</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Crea, edita y administra reservas de canchas.</p>
-          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
         <div className="flex gap-3 items-center">
           <Button 

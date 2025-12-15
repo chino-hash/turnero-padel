@@ -134,7 +134,6 @@ export default function Page() {
                 <h1 className="text-3xl font-light text-foreground mb-2">Crear Nuevo Torneo</h1>
                 <div className="w-16 h-0.5 bg-orange-500"></div>
                 <p className="text-muted-foreground text-xs mt-2">Define categorías, premios y cronograma del torneo.</p>
-                <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
               </div>
             </div>
           </div>

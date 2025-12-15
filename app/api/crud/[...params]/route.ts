@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { crudService } from '../../../../lib/services/crud-service';
+import { CrudService } from '../../../../lib/services/crud-service';
+import { prisma } from '../../../../lib/database/neon-config';
 import { getTestDataByModel, getValidationRules } from '../../../../lib/services/test-data';
 import { auth } from '../../../../lib/auth';
 import { config as authOptions } from '../../../../lib/auth';
@@ -27,6 +28,22 @@ function validateModel(model: string) {
   if (!ALLOWED_MODELS.includes(model)) {
     throw new Error(`Modelo '${model}' no permitido`);
   }
+}
+
+function getService(model: string) {
+  const map: Record<string, string> = {
+    user: 'User',
+    court: 'Court',
+    booking: 'Booking',
+    bookingPlayer: 'BookingPlayer',
+    payment: 'Payment',
+    systemSetting: 'SystemSetting',
+    producto: 'Producto',
+    adminWhitelist: 'AdminWhitelist',
+  };
+  const name = map[model];
+  if (!name) throw new Error(`Modelo '${model}' no permitido`);
+  return new CrudService(prisma, name);
 }
 
 // GET - Leer registros
@@ -98,13 +115,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     
     if (id) {
       // Obtener un registro específico
-      result = await crudService.readById(id, options);
+      const service = getService(model);
+      result = await service.readById(id, options);
     } else if (search && searchFields.length > 0) {
       // Búsqueda de texto
-      result = await crudService.search(search, searchFields, options);
+      const service = getService(model);
+      result = await service.search(search, searchFields, options);
     } else {
-      // Obtener todos los registros
-      result = await crudService.read(options);
+      // Fast-path para SystemSetting por key (evita filtros de soft delete)
+      if (model === 'systemSetting' && searchParams.get('key')) {
+        try {
+          const key = searchParams.get('key')!
+          const limit = parseInt(searchParams.get('limit') || '10')
+          const items = await prisma.systemSetting.findMany({
+            where: { key },
+            take: limit
+          })
+          result = { success: true, data: { items } }
+        } catch (error: any) {
+          result = { success: false, error: error.message }
+        }
+      } else {
+        // Obtener todos los registros
+        const service = getService(model);
+        result = await service.read(options);
+      }
     }
 
     if (!result.success) {
@@ -161,7 +196,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
-    const result = await crudService.create(body, validationRules);
+    const service = getService(model);
+    const result = await service.create(body, validationRules);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -206,7 +242,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
-    const result = await crudService.update(id, body, validationRules);
+    const service = getService(model);
+    const result = await service.update(id, body, validationRules);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -304,16 +341,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
             { status: 400 }
           );
         }
-        result = await crudService.restore(id);
+        result = await getService(model).restore(id);
         break;
         
       case 'count':
         const body = await request.json().catch(() => ({}));
-        result = await crudService.count(body.where || {});
+        result = await getService(model).count(body.where || {});
         break;
         
       case 'stats':
-        result = await crudService.getTableStats();
+        result = await getService(model).getTableStats();
         break;
         
       case 'seed':
@@ -330,7 +367,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const validationRules = getValidationRules(model);
         
         for (const data of testData) {
-          const seedResult = await crudService.create(data, validationRules);
+          const seedResult = await getService(model).create(data, validationRules);
           seedResults.push(seedResult);
         }
         

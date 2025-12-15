@@ -269,6 +269,8 @@
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 /* Nuevo diseño del modal */
@@ -804,6 +806,8 @@
   justify-content: center;
   z-index: 1001;
   animation: fadeIn 0.2s ease-out;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .modal-content {
