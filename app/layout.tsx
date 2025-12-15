@@ -21,8 +21,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Turnero de Padel",
-  description: "Sistema de reservas para canchas de padel",
+  title: "PADEL BOOK",
+  description: "Sistema de reservas para canchas de pádel",
+  applicationName: "PADEL BOOK",
+  openGraph: {
+    title: "PADEL BOOK",
+    siteName: "PADEL BOOK",
+  },
+  twitter: {
+    title: "PADEL BOOK",
+    card: "summary",
+  },
 };
 
 export default function RootLayout({

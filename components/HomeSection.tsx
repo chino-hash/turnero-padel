@@ -255,11 +255,10 @@ export default function HomeSection({
         {/* Header - Removed duplicate title */}
         <div className="text-center mb-6">
           <h1 className={`text-2xl sm:text-3xl mb-1 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-            <span className="font-bold">Reserva tu Cancha de</span>{" "}
-            <span className="font-extrabold" style={{ color: 'var(--color-neon-lime)' }}>Pádel</span>
+            <span className="font-extrabold" style={{ color: 'var(--color-neon-lime)' }}>PADEL BOOK</span>
           </h1>
           <p className={`text-sm sm:text-base ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
-            Reserva tu horario preferido para una experiencia <span className="font-semibold">increíble</span> de <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>pádel</span>
+            Sistema de reservas para canchas de pádel
           </p>
         </div>
 
@@ -284,7 +283,7 @@ export default function HomeSection({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground mb-0.5">{homeCardSettings.labelCourtName}</div>
+                  <div className="text-xl text-muted-foreground mb-0.5 font-bold">{homeCardSettings.labelCourtName}</div>
                   <h2 className={`text-lg mt-2 mb-1`}>
                     <span className="font-semibold">Disponibilidad de</span>{" "}
                     <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
@@ -329,23 +328,11 @@ export default function HomeSection({
 
                         return (
                           <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className={`text-sm font-medium text-muted-foreground`}>{label}</span>
-                            </div>
                             <div className="flex items-center gap-4 mb-1">
-                              <span className="text-3xl font-bold" style={{ color: 'var(--color-neon-lime)' }}>{showLoadingRate ? '—%' : `${safeRate}%`}</span>
-                              <div className="h-2 w-full bg-muted rounded-full overflow-hidden relative">
-                                <div
-                                  className={`h-full rounded-full transition-[width] duration-500 ease-out`}
-                                  style={{ width: showLoadingRate ? '0%' : `${safeRate}%`, backgroundColor: 'var(--color-neon-lime)' }}
-                                />
-                              </div>
+                              <span className="text-3xl font-bold" style={{ color: 'var(--color-neon-lime)' }}>
+                                {`${availableSlots} de ${totalSlots} horarios disponibles`}
+                              </span>
                             </div>
-                            {totalSlots > 0 && (
-                              <div className={`mt-1 text-xs text-muted-foreground`}>
-                                {availableSlots} de {totalSlots} horarios disponibles
-                              </div>
-                            )}
                           </div>
                         )
                       })()

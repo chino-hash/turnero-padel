@@ -745,9 +745,25 @@ function PadelBookingPage() {
               <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md overflow-hidden flex items-center justify-center shadow-sm ${
                 isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
               }`}>
-                <img src="/logo/padellisto.png" alt="PadelListo Logo" className="w-4 h-4 sm:w-5 sm:h-5 object-contain" />
+                <img
+                  src={`data:image/svg+xml;utf8,${encodeURIComponent(`
+                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+                      <defs>
+                        <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
+                          <stop offset='0%' stop-color='#8fdc5a'/>
+                          <stop offset='100%' stop-color='#00c4b4'/>
+                        </linearGradient>
+                      </defs>
+                      <rect x='5' y='5' width='90' height='90' rx='20' fill='url(#g)'/>
+                      <path d='M55 18c-8 18-12 28-18 44l8 0c2-6 4-12 6-18 3 2 8 9 8 16 0 9-7 17-19 17-8 0-14-5-14-12 0-7 6-11 14-11h3c4-10 9-22 14-33z' fill='#111'/>
+                    </svg>
+                  `)}
+                  `}
+                  alt="PADEL BOOK logo"
+                  className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
+                />
               </div>
-              <span className="text-sm sm:text-base font-bold sm:font-extrabold tracking-tight">PadelListo</span>
+              <span className="text-sm sm:text-base font-bold sm:font-extrabold tracking-tight">PADEL BOOK</span>
             </div>
             {/* Div modo oscuro con dimensiones exactas del botón */}
             <div
