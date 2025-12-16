@@ -152,12 +152,72 @@ export default function AdminDashboard() {
   const [currencyPrefix, setCurrencyPrefix] = useState('$')
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [homeSettingsId, setHomeSettingsId] = useState<string | null>(null)
-  const [homeLabelCourtName, setHomeLabelCourtName] = useState('Nombre de la cancha')
-  const [homeLocationName, setHomeLocationName] = useState('Downtown Sports Center')
-  const [homeMapUrl, setHomeMapUrl] = useState('')
-  const [homeSessionText, setHomeSessionText] = useState('1:30 hour sessions')
-  const [homeDescriptionText, setHomeDescriptionText] = useState('Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.')
-  const [homeIconImage, setHomeIconImage] = useState<string>('')
+  const [homeLabelCourtName, setHomeLabelCourtName] = useState(() => {
+    if (typeof window === 'undefined') return 'Nombre de la cancha'
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.labelCourtName || 'Nombre de la cancha'
+      }
+    } catch {}
+    return 'Nombre de la cancha'
+  })
+  const [homeLocationName, setHomeLocationName] = useState(() => {
+    if (typeof window === 'undefined') return 'Downtown Sports Center'
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.locationName || 'Downtown Sports Center'
+      }
+    } catch {}
+    return 'Downtown Sports Center'
+  })
+  const [homeMapUrl, setHomeMapUrl] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.mapUrl || ''
+      }
+    } catch {}
+    return ''
+  })
+  const [homeSessionText, setHomeSessionText] = useState(() => {
+    if (typeof window === 'undefined') return '1:30 hour sessions'
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.sessionText || '1:30 hour sessions'
+      }
+    } catch {}
+    return '1:30 hour sessions'
+  })
+  const [homeDescriptionText, setHomeDescriptionText] = useState(() => {
+    if (typeof window === 'undefined') return 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
+      }
+    } catch {}
+    return 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
+  })
+  const [homeIconImage, setHomeIconImage] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      const raw = localStorage.getItem('home_card_settings_latest')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        return parsed?.iconImage || ''
+      }
+    } catch {}
+    return ''
+  })
 
   const todayRange = useMemo(() => {
     const start = new Date()
@@ -826,6 +886,11 @@ export default function AdminDashboard() {
                     descriptionText: homeDescriptionText.trim(),
                     iconImage: homeIconImage.trim()
                   }
+                  try {
+                    localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
+                    localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                    window.dispatchEvent(new Event('home_card_settings_updated'))
+                  } catch {}
                   try {
                     let resHome
                     if (homeSettingsId) {

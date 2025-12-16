@@ -98,8 +98,6 @@ export default function HomeSection({
   // Obtener funciones del contexto
   const { refreshSlots, refreshMultipleSlots } = useAppState()
 
-  if (!isVisible) return null
-
   // Función para actualizar horarios
   const handleRefreshSlots = async () => {
     try {
@@ -268,7 +266,7 @@ export default function HomeSection({
     setSelectedSlot(null)
   }
 
-  return (
+  return isVisible ? (
     <div
       id="courts-section"
       data-testid="home-section"
@@ -1077,5 +1075,5 @@ export default function HomeSection({
         onClose={closeModal}
       />
     </div>
-  )
+  ) : null
 }

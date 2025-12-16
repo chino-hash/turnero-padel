@@ -352,25 +352,54 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Estado de canchas y carga inicial desde API
   const [courts, setCourts] = useState<Court[]>([])
   useEffect(() => {
-    const controller = new AbortController()
     const loadCourts = async () => {
       try {
-        const res = await fetch('/api/courts?view=public', { credentials: 'include', signal: controller.signal })
-        if (!res.ok) throw new Error(`Error ${res.status}`)
-        const data: Court[] = await res.json()
-        setCourts(data)
-      } catch (err) {
-        // Ignorar abortos de la peticiÃ³n para evitar ruido en consola durante Fast Refresh
-        if (err instanceof Error && err.name === 'AbortError') {
-          return
+        const cachedStr = typeof window !== 'undefined' ? localStorage.getItem('courts_cache') : null
+        if (cachedStr) {
+          try {
+            const cached = JSON.parse(cachedStr)
+            if (Array.isArray(cached)) setCourts(cached)
+          } catch {}
         }
+        const attempt = async () => {
+          const c = new AbortController()
+          const t = setTimeout(() => c.abort(), 8000)
+          try {
+            const res = await fetch('/api/courts?view=public', { credentials: 'include', signal: c.signal })
+            if (!res.ok) throw new Error(`Error ${res.status}`)
+            const data: Court[] = await res.json()
+            setCourts(data)
+            try {
+              localStorage.setItem('courts_cache', JSON.stringify(data))
+            } catch {}
+            setNotification(null)
+          } finally {
+            clearTimeout(t)
+          }
+        }
+        try {
+          await attempt()
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') return
+          try {
+            await new Promise(r => setTimeout(r, 1000))
+            await attempt()
+          } catch (err2) {
+            if (err2 instanceof Error && err2.name === 'AbortError') return
+            console.error('Error al cargar canchas:', err2)
+            setNotification({ message: 'Error al cargar canchas', type: 'warning' })
+            setTimeout(() => setNotification(null), 3000)
+          }
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return
         console.error('Error al cargar canchas:', err)
         setNotification({ message: 'Error al cargar canchas', type: 'warning' })
         setTimeout(() => setNotification(null), 3000)
       }
     }
     loadCourts()
-    return () => controller.abort()
+    return () => {}
   }, [])
   
   useEffect(() => {
