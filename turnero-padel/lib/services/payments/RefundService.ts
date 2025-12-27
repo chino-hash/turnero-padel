@@ -42,40 +42,148 @@ function getRefundService(): IRefundService {
 }
 
 /**
- * Procesa un reembolso y lo registra en la BD
+ * Verifica si ya existe un reembolso para este pago
  */
-export async function processRefund(params: ProcessRefundParams): Promise<RefundResult> {
-  const refundService = getRefundService();
-
-  // Llamar al proveedor para procesar el reembolso
-  const result = await refundService.processRefund(params);
-
-  if (result.success && result.refundId) {
-    // Registrar el reembolso en la tabla Payment
-    try {
-      await prisma.payment.create({
-        data: {
-          bookingId: params.bookingId,
-          amount: params.amount,
-          paymentMethod: 'CARD', // TODO: Obtener del pago original
-          paymentType: 'REFUND',
-          referenceNumber: result.refundId,
-          status: 'completed',
-          notes: `Reembolso procesado. Motivo: ${params.reason}. External Refund ID: ${result.refundId}`
+async function checkExistingRefund(paymentId: string, externalPaymentId: string): Promise<{
+  exists: boolean;
+  refundId?: string;
+  status?: string;
+}> {
+  // Buscar reembolsos existentes para este pago
+  const existingRefund = await prisma.payment.findFirst({
+    where: {
+      paymentType: 'REFUND',
+      referenceNumber: externalPaymentId,
+      OR: [
+        { id: paymentId }, // Reembolso del mismo registro de pago
+        { 
+          // Reembolsos relacionados al mismo pago externo
+          notes: {
+            contains: externalPaymentId
+          }
         }
-      });
-    } catch (error) {
-      console.error('Error registrando reembolso en BD:', error);
-      // El reembolso se procesó pero falló el registro, retornar éxito parcial
-      return {
-        success: true,
-        refundId: result.refundId,
-        error: 'Reembolso procesado pero falló el registro en BD'
-      };
+      ]
+    },
+    orderBy: {
+      createdAt: 'desc'
     }
+  });
+
+  if (existingRefund) {
+    return {
+      exists: true,
+      refundId: existingRefund.referenceNumber || undefined,
+      status: existingRefund.status
+    };
   }
 
-  return result;
+  return { exists: false };
+}
+
+/**
+ * Obtiene el método de pago del pago original
+ */
+async function getOriginalPaymentMethod(paymentId: string): Promise<string> {
+  const originalPayment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    select: { paymentMethod: true }
+  });
+
+  // Si no encontramos el pago original, intentar buscar por referencia externa
+  if (!originalPayment) {
+    return 'CARD'; // Default
+  }
+
+  // Mapear el enum a string
+  return originalPayment.paymentMethod || 'CARD';
+}
+
+/**
+ * Mapea el estado del reembolso a un estado estándar
+ */
+function mapRefundStatus(result: RefundResult): string {
+  if (result.status) {
+    return result.status.toLowerCase();
+  }
+  
+  if (result.success) {
+    return 'completed';
+  }
+  
+  return 'failed';
+}
+
+/**
+ * Procesa un reembolso y lo registra en la BD con estados y validaciones
+ */
+export async function processRefund(params: ProcessRefundParams): Promise<RefundResult> {
+  // Verificar si ya existe un reembolso para este pago
+  const existingRefund = await checkExistingRefund(params.paymentId, params.externalPaymentId);
+  if (existingRefund.exists && existingRefund.status === 'completed') {
+    return {
+      success: false,
+      error: `Este pago ya fue reembolsado previamente. Refund ID: ${existingRefund.refundId}`
+    };
+  }
+
+  // Obtener método de pago del pago original
+  const paymentMethod = await getOriginalPaymentMethod(params.paymentId);
+
+  // Registrar el reembolso como PENDING antes de procesarlo
+  let refundRecord;
+  try {
+    refundRecord = await prisma.payment.create({
+      data: {
+        bookingId: params.bookingId,
+        amount: params.amount,
+        paymentMethod: paymentMethod as any,
+        paymentType: 'REFUND',
+        referenceNumber: `pending_${Date.now()}`, // Temporal hasta obtener el ID real
+        status: 'pending',
+        notes: `Reembolso en proceso. Motivo: ${params.reason}. External Payment ID: ${params.externalPaymentId}`
+      }
+    });
+  } catch (error) {
+    console.error('Error creando registro de reembolso en BD:', error);
+    return {
+      success: false,
+      error: 'Error al crear registro de reembolso en la base de datos'
+    };
+  }
+
+  // Llamar al proveedor para procesar el reembolso
+  const refundService = getRefundService();
+  const result = await refundService.processRefund(params);
+
+  // Actualizar el registro con el resultado
+  const finalStatus = mapRefundStatus(result);
+  
+  try {
+    await prisma.payment.update({
+      where: { id: refundRecord.id },
+      data: {
+        referenceNumber: result.refundId || refundRecord.referenceNumber,
+        status: finalStatus,
+        notes: result.success
+          ? `Reembolso ${finalStatus}. Motivo: ${params.reason}. External Refund ID: ${result.refundId || 'N/A'}`
+          : `Reembolso fallido. Error: ${result.error || 'Error desconocido'}. Motivo: ${params.reason}`
+      }
+    });
+  } catch (error) {
+    console.error('Error actualizando registro de reembolso en BD:', error);
+    // El reembolso se procesó pero falló la actualización
+    return {
+      success: result.success,
+      refundId: result.refundId,
+      status: result.status,
+      error: result.error || 'Reembolso procesado pero falló la actualización en BD'
+    };
+  }
+
+  return {
+    ...result,
+    status: result.status || (result.success ? 'COMPLETED' : 'FAILED')
+  };
 }
 
 /**
@@ -129,9 +237,28 @@ export async function processRefundForCancellation(
     const refundAmount = booking.depositAmount || totalPaid;
 
     // Reembolsar todos los pagos aprobados
+    // Nota: Solo reembolsamos pagos con referencia externa (pagos de Mercado Pago)
     const refundResults = [];
     for (const payment of booking.payments) {
+      // Verificar que tenga referencia externa (ID de Mercado Pago)
       if (payment.referenceNumber && payment.paymentMethod === 'CARD') {
+        // Verificar que no haya sido reembolsado ya
+        const existingRefund = await prisma.payment.findFirst({
+          where: {
+            paymentType: 'REFUND',
+            bookingId: bookingId,
+            notes: {
+              contains: payment.referenceNumber
+            },
+            status: 'completed'
+          }
+        });
+
+        if (existingRefund) {
+          console.log(`Pago ${payment.id} ya fue reembolsado, omitiendo`);
+          continue;
+        }
+
         try {
           const refundResult = await processRefund({
             bookingId,
@@ -143,6 +270,10 @@ export async function processRefundForCancellation(
           refundResults.push(refundResult);
         } catch (error) {
           console.error(`Error reembolsando pago ${payment.id}:`, error);
+          refundResults.push({
+            success: false,
+            error: error instanceof Error ? error.message : 'Error desconocido'
+          });
         }
       }
     }
