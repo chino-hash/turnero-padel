@@ -7,6 +7,7 @@ import { bookingFiltersSchema, createBookingSchema } from "@/lib/validations/boo
 import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
+import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
