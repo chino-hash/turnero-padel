@@ -252,17 +252,43 @@ export class BookingWebhookHandler implements IWebhookHandler {
           });
 
           // Procesar reembolso automático
+          let refundStatus: 'success' | 'failed' | 'pending' = 'pending';
+          let refundError: string | undefined;
+
           try {
-            await processRefund({
+            const refundResult = await processRefund({
               bookingId,
               paymentId: paymentRecord.id,
               amount: paymentRecord.amount,
               externalPaymentId: paymentId?.toString() || '',
               reason: 'Pago tardío recibido pero cancha ya ocupada'
             });
-          } catch (refundError) {
-            console.error('Error procesando reembolso automático en PAYMENT_CONFLICT:', refundError);
-            // TODO: Enviar notificación al admin sobre el conflicto
+
+            if (refundResult.success) {
+              refundStatus = 'success';
+            } else {
+              refundStatus = 'failed';
+              refundError = refundResult.error || 'Error desconocido en reembolso';
+            }
+          } catch (error) {
+            console.error('Error procesando reembolso automático en PAYMENT_CONFLICT:', error);
+            refundStatus = 'failed';
+            refundError = error instanceof Error ? error.message : 'Error desconocido en reembolso';
+          }
+
+          // Enviar notificación a administradores
+          try {
+            const { notifyPaymentConflict } = await import('../AdminNotificationService');
+            await notifyPaymentConflict({
+              bookingId,
+              paymentId: paymentId?.toString() || '',
+              conflictingBookingId: conflictingBooking.id,
+              refundStatus,
+              refundError,
+            });
+          } catch (notificationError) {
+            console.error('Error enviando notificación de PAYMENT_CONFLICT:', notificationError);
+            // No fallar si la notificación falla, ya loggeamos el error
           }
         });
 

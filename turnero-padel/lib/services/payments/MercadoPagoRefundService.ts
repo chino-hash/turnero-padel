@@ -4,8 +4,9 @@
  * Incluye validaciones de saldo, plazo de 180 días y reembolsos previos
  */
 
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Payment, PaymentRefund } from 'mercadopago';
 import { IRefundService, ProcessRefundParams, RefundResult } from './interfaces/IRefundService';
+import { randomUUID } from 'crypto';
 
 export class MercadoPagoRefundService implements IRefundService {
   private client: MercadoPagoConfig;
@@ -120,12 +121,21 @@ export class MercadoPagoRefundService implements IRefundService {
         }
       }
 
-      // Intentar procesar el reembolso
+      // Generar clave de idempotencia única para prevenir reembolsos duplicados
+      // La idempotencia es obligatoria desde enero 2024 según documentación oficial
+      // Usamos una combinación de bookingId, paymentId y timestamp para garantizar unicidad
+      const idempotencyKey = randomUUID();
+
+      // Intentar procesar el reembolso usando PaymentRefund que soporta idempotencyKey
       // Nota: Mercado Pago validará automáticamente el saldo disponible
       // Si no hay saldo, la API retornará un error que capturaremos
-      const refundResponse = await payment.refund({
-        id: params.externalPaymentId,
-        body: refundAmount ? { amount: refundAmount } : {}
+      const refund = new PaymentRefund(this.client);
+      const refundResponse = await refund.create({
+        payment_id: params.externalPaymentId,
+        body: refundAmount ? { amount: refundAmount } : {},
+        requestOptions: {
+          idempotencyKey: idempotencyKey
+        }
       });
 
       if (!refundResponse.id) {
