@@ -8,7 +8,6 @@ import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
 import { clearBookingsCache } from '@/lib/services/courts'
-import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
