@@ -141,6 +141,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { status: 400 })
     }
 
+    // Invalidar caché de reservas para esta fecha y cancha
+    if (result.data) {
+      const bookingDate = new Date(result.data.bookingDate)
+      clearBookingsCache(validatedData.courtId, bookingDate)
+    }
+
     // Emitir eventos SSE para actualizaciones en tiempo real
     eventEmitters.bookingsUpdated({
       action: 'created',
