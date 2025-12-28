@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Listo - Reserva tu cancha</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* Aplicamos la fuente base */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0D0D0D;
+            color: #F3F4F6;
+            scroll-behavior: smooth;
+        }
+        /* Definimos el color neón en la configuración de Tailwind */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'neon-lime': '#BEF264',
+                        'dark-primary': '#0D0D0D',
+                        'dark-secondary': '#1A1A1A',
+                    }
+                }
+            }
+        }
+        /* Clase para el efecto de gradiente en texto (como "Fitvise") */
+        .neon-text-gradient {
+            background: linear-gradient(to right, #BEF264, #a1d94f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        /* Efecto glow para elementos neon */
+        .glow-neon {
+            box-shadow: 0 0 20px rgba(190, 242, 100, 0.3);
+        }
+        .hover-glow:hover {
+            box-shadow: 0 0 30px rgba(190, 242, 100, 0.5);
+        }
+        /* Pequeño ajuste para los botones de la App Store/Google Play */
+        .store-button-img {
+            height: 56px;
+            width: auto;
+        }
+        /* Animaciones suaves */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-dark-primary/95 backdrop-blur-sm border-b border-gray-800">
+        <nav class="container mx-auto px-6 py-5 flex justify-between items-center">
+            <!-- Logo (Texto Estilizado) -->
+            <a href="#" class="text-3xl font-black tracking-tight">
+                Padel<span class="text-neon-lime">Listo</span>
+            </a>
+            <!-- Navegación (Desktop) -->
+            <div class="hidden md:flex space-x-8 items-center">
+                <a href="#about" class="text-gray-300 hover:text-neon-lime transition-colors font-semibold">Sobre Nosotros</a>
+                <a href="#features" class="text-gray-300 hover:text-neon-lime transition-colors font-semibold">Funcionalidades</a>
+                <a href="#testimonials" class="text-gray-300 hover:text-neon-lime transition-colors font-semibold">Testimonios</a>
+                <a href="#clubs" class="text-gray-300 hover:text-neon-lime transition-colors font-semibold">Para Clubes</a>
+                <a href="#download" class="bg-neon-lime text-dark-primary font-bold py-2.5 px-6 rounded-lg shadow-lg hover:shadow-neon-lime/50 transition-all duration-300 transform hover:scale-105 hover-glow">
+                    Descargar App
+                </a>
+            </div>
+            <!-- Botón de Menú (Mobile) -->
+            <div class="md:hidden">
+                <button class="text-gray-300 hover:text-neon-lime transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="pt-24 md:pt-32">
+        <section class="container mx-auto px-6 mt-8 md:mt-16">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-12">
+                <!-- Columna de Texto -->
+                <div class="lg:w-1/2 text-center lg:text-left fade-in">
+                    <h1 class="text-5xl md:text-7xl font-black leading-tight tracking-tight">
+                        Tu Próximo Partido de Pádel,<br>
+                        <span class="neon-text-gradient">a un Solo Tap.</span>
+                    </h1>
+                    <p class="text-xl text-gray-300 mt-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                        Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. Padel Listo es la app definitiva para jugadores y clubes.
+                    </p>
+                    <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mt-10">
+                        <a href="#download" class="bg-neon-lime text-dark-primary font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-neon-lime/50 transition-all duration-300 transform hover:scale-105 hover-glow text-center">
+                            Reservar Ahora
+                        </a>
+                        <a href="#clubs" class="border-2 border-gray-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-gray-800 hover:border-neon-lime/50 transition-all duration-300 text-center">
+                            Soy un Club
+                        </a>
+                    </div>
+                </div>
+                <!-- Columna de Imagen (App Screenshot) -->
+                <div class="lg:w-1/2 mt-12 lg:mt-0 flex justify-center fade-in">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-neon-lime/20 blur-3xl rounded-full"></div>
+                        <img src="https://placehold.co/350x700/1A1A1A/BEF264?text=App+Preview" 
+                             alt="Vista previa de la app Padel Listo en un teléfono" 
+                             class="relative rounded-3xl shadow-2xl border-4 border-dark-secondary glow-neon transform hover:scale-105 transition-transform duration-300"
+                             onerror="this.src='https://placehold.co/350x700/1A1A1A/BEF264?text=App+Preview'">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section: Sobre Padel Listo -->
+        <section id="about" class="container mx-auto px-6 mt-32 md:mt-48">
+            <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+                <!-- Columna Izquierda: Texto -->
+                <div class="lg:w-1/2 text-center lg:text-left">
+                    <span class="text-neon-lime font-semibold tracking-wider uppercase text-sm">Sobre Padel Listo</span>
+                    <h2 class="text-4xl md:text-5xl font-black mt-4 leading-tight">
+                        Descubre una App Que Te Conecta con el <span class="neon-text-gradient">Mejor Pádel</span> de Tu Ciudad.
+                    </h2>
+                    <p class="text-lg text-gray-300 mt-6 leading-relaxed">
+                        En Padel Listo, combinamos tecnología de vanguardia con una comunidad apasionada. No solo te ofrecemos la forma más rápida de reservar canchas, sino también la oportunidad de conectar con jugadores de tu nivel y formar parte de una red creciente de amantes del pádel.
+                    </p>
+                    <p class="text-lg text-gray-300 mt-4 leading-relaxed">
+                        Desde clubes boutique hasta los centros más grandes, nuestra plataforma digitaliza y optimiza cada aspecto de tu experiencia con el pádel. Únete a miles de jugadores que ya están transformando cómo juegan y gestionan sus partidos.
+                    </p>
+                    <a href="#features" class="inline-block mt-8 border-2 border-neon-lime text-neon-lime font-bold py-3 px-8 rounded-lg hover:bg-neon-lime hover:text-dark-primary transition-all duration-300 transform hover:scale-105 hover-glow">
+                        Lee Más Sobre Nosotros
+                        <svg class="w-5 h-5 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                </div>
+                <!-- Columna Derecha: Badge y Estadísticas -->
+                <div class="lg:w-1/2 flex flex-col items-center lg:items-end">
+                    <div class="bg-dark-secondary border-2 border-neon-lime/30 rounded-2xl p-8 max-w-md w-full hover:border-neon-lime/60 transition-all duration-300 hover-glow">
+                        <div class="flex items-center justify-center mb-6">
+                            <div class="w-16 h-16 bg-neon-lime/20 rounded-full flex items-center justify-center">
+                                <svg class="w-10 h-10 text-neon-lime" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="text-3xl font-black text-center mb-2">
+                            <span class="text-neon-lime">+5,000</span> Reservas
+                        </h3>
+                        <p class="text-gray-400 text-center mb-6">Confianza de miles de usuarios</p>
+                        <div class="flex items-center justify-center gap-2 mb-4">
+                            <div class="flex -space-x-2">
+                                <div class="w-10 h-10 rounded-full bg-neon-lime/20 border-2 border-dark-secondary"></div>
+                                <div class="w-10 h-10 rounded-full bg-neon-lime/30 border-2 border-dark-secondary"></div>
+                                <div class="w-10 h-10 rounded-full bg-neon-lime/40 border-2 border-dark-secondary"></div>
+                                <div class="w-10 h-10 rounded-full bg-neon-lime/50 border-2 border-dark-secondary"></div>
+                            </div>
+                            <span class="text-neon-lime font-bold text-lg ml-2">+1K</span>
+                        </div>
+                        <p class="text-gray-400 text-center text-sm">
+                            Nuestra comunidad crece cada día. Desde jugadores casuales hasta competidores de élite, todos encuentran su lugar en Padel Listo.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="container mx-auto px-6 mt-32 md:mt-48">
+            <div class="text-center max-w-3xl mx-auto">
+                <span class="text-neon-lime font-semibold tracking-wider uppercase text-sm">Por qué Padel Listo</span>
+                <h2 class="text-4xl md:text-5xl font-black mt-2">
+                    Hecho para Jugadores. <span class="neon-text-gradient">Diseñado para Resultados.</span>
+                </h2>
+                <p class="text-lg text-gray-400 mt-4 leading-relaxed">
+                    <span class="text-neon-lime font-semibold">Reserva</span>, <span class="text-neon-lime font-semibold">Conecta</span>, <span class="text-neon-lime font-semibold">Juega</span> – Todo lo que necesitas para jugar más y gestionar menos.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+                <!-- Feature 1 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl transition-all duration-300 hover:border-neon-lime/60 hover-glow group">
+                    <div class="w-16 h-16 bg-neon-lime/20 rounded-xl flex items-center justify-center group-hover:bg-neon-lime/30 transition-colors">
+                        <svg class="w-8 h-8 text-neon-lime" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mt-6 mb-3">Reservas en Tiempo Real</h3>
+                    <p class="text-gray-400 leading-relaxed">Ve la disponibilidad de tus clubes favoritos y reserva tu cancha al instante. Sin llamadas ni esperas. Disponibilidad actualizada en tiempo real.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl transition-all duration-300 hover:border-neon-lime/60 hover-glow group">
+                    <div class="w-16 h-16 bg-neon-lime/20 rounded-xl flex items-center justify-center group-hover:bg-neon-lime/30 transition-colors">
+                        <svg class="w-8 h-8 text-neon-lime" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0-3.071-5.137c.372-1.218.499-2.5.499-3.835a2.25 2.25 0 0 0-2.25-2.25c-1.02.003-1.957.348-2.67.926C9.92 7.15 9 8.28 9 9.75c0 1.335.127 2.617.499 3.835a9.094 9.094 0 0 0-3.071 5.137 2.25 2.25 0 0 0 2.25 2.28h10.5a2.25 2.25 0 0 0 2.25-2.28Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mt-6 mb-3">Arma Partidos</h3>
+                    <p class="text-gray-400 leading-relaxed">¿Te faltan jugadores? Publica partidos abiertos y encuentra gente de tu nivel para jugar. La comunidad te espera para formar equipos perfectos.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl transition-all duration-300 hover:border-neon-lime/60 hover-glow group">
+                    <div class="w-16 h-16 bg-neon-lime/20 rounded-xl flex items-center justify-center group-hover:bg-neon-lime/30 transition-colors">
+                        <svg class="w-8 h-8 text-neon-lime" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6.375c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.75c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Zm6.375-3.75h6.375c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H10.125c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold mt-6 mb-3">Pagos Seguros</h3>
+                    <p class="text-gray-400 leading-relaxed">Paga tu parte de la cancha o la reserva completa directamente desde la app de forma rápida y segura. Múltiples métodos de pago disponibles.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section id="testimonials" class="container mx-auto px-6 mt-32 md:mt-48">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-neon-lime font-semibold tracking-wider uppercase text-sm">Testimonios</span>
+                <h2 class="text-4xl md:text-5xl font-black mt-2">
+                    Lo Que Dicen <span class="neon-text-gradient">Nuestros Usuarios</span>
+                </h2>
+                <p class="text-lg text-gray-400 mt-4">
+                    Miles de jugadores y clubes confían en Padel Listo para gestionar sus partidos.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Testimonio 1 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl hover:border-neon-lime/40 transition-all duration-300 hover-glow">
+                    <div class="flex items-center gap-1 mb-4">
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed mb-6 italic">
+                        "Antes de usar Padel Listo, tenía que llamar a varios clubes para encontrar cancha. Ahora reservo en segundos y siempre encuentro el mejor horario. ¡La app es increíble!"
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-neon-lime/20 border-2 border-neon-lime/30"></div>
+                        <div>
+                            <p class="font-bold text-white">Carlos Martínez</p>
+                            <p class="text-sm text-gray-400">Jugador frecuente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonio 2 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl hover:border-neon-lime/40 transition-all duration-300 hover-glow">
+                    <div class="flex items-center gap-1 mb-4">
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed mb-6 italic">
+                        "Como dueño de club, Padel Listo ha transformado nuestra operación. Las reservas se gestionan solas, los pagos son automáticos y nuestros clientes están más satisfechos. Ha aumentado nuestras reservas un 40%."
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-neon-lime/20 border-2 border-neon-lime/30"></div>
+                        <div>
+                            <p class="font-bold text-white">María González</p>
+                            <p class="text-sm text-gray-400">Directora, Padel Club Premium</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Testimonio 3 -->
+                <div class="bg-dark-secondary p-8 rounded-2xl border-2 border-gray-800 shadow-xl hover:border-neon-lime/40 transition-all duration-300 hover-glow">
+                    <div class="flex items-center gap-1 mb-4">
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-6 h-6 text-neon-lime" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed mb-6 italic">
+                        "La función de 'Armar Partidos' es genial. Siempre encuentro jugadores de mi nivel y he hecho nuevos amigos. Ahora juego mucho más seguido gracias a la app."
+                    </p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-neon-lime/20 border-2 border-neon-lime/30"></div>
+                        <div>
+                            <p class="font-bold text-white">Diego Ramírez</p>
+                            <p class="text-sm text-gray-400">Jugador intermedio</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Clubs Section -->
+        <section id="clubs" class="container mx-auto px-6 mt-32 md:mt-48">
+            <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+                <!-- Columna de Imagen -->
+                <div class="lg:w-1/2 flex justify-center order-2 lg:order-1">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-neon-lime/10 blur-3xl rounded-3xl"></div>
+                        <img src="https://placehold.co/600x400/1A1A1A/BEF264?text=Gesti%C3%B3n+de+Club" 
+                             alt="Panel de gestión para clubes de Padel Listo" 
+                             class="relative rounded-2xl shadow-2xl border-4 border-dark-secondary glow-neon transform hover:scale-105 transition-transform duration-300"
+                             onerror="this.src='https://placehold.co/600x400/1A1A1A/BEF264?text=Gesti%C3%B3n+de+Club'">
+                    </div>
+                </div>
+                <!-- Columna de Texto -->
+                <div class="lg:w-1/2 text-center lg:text-left order-1 lg:order-2">
+                    <span class="text-neon-lime font-semibold tracking-wider uppercase text-sm">Para Clubes</span>
+                    <h2 class="text-4xl md:text-5xl font-black mt-4 leading-tight">
+                        Optimiza tu <span class="neon-text-gradient">Gestión.</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 mt-6 leading-relaxed">
+                        Deja de gestionar reservas por teléfono. Ofrécele a tus clientes una experiencia moderna y centraliza toda tu operación en un solo lugar.
+                    </p>
+                    <ul class="space-y-5 mt-8 text-lg">
+                        <li class="flex items-start gap-4 text-gray-300">
+                            <svg class="w-7 h-7 text-neon-lime flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span><span class="font-semibold text-white">Calendario de reservas 100% digital.</span> Gestiona todas tus canchas desde una sola plataforma intuitiva.</span>
+                        </li>
+                        <li class="flex items-start gap-4 text-gray-300">
+                            <svg class="w-7 h-7 text-neon-lime flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span><span class="font-semibold text-white">Gestión de pagos y reportes.</span> Automatiza cobros, genera reportes detallados y analiza tu rendimiento.</span>
+                        </li>
+                        <li class="flex items-start gap-4 text-gray-300">
+                            <svg class="w-7 h-7 text-neon-lime flex-shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            <span><span class="font-semibold text-white">Aumenta tu visibilidad y reduce canchas vacías.</span> Más reservas, menos tiempo gestionando.</span>
+                        </li>
+                    </ul>
+                    <a href="#contact" class="inline-block mt-10 bg-neon-lime text-dark-primary font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-neon-lime/50 transition-all duration-300 transform hover:scale-105 hover-glow">
+                        Solicitar Demo
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Final CTA (Download) -->
+        <section id="download" class="container mx-auto px-6 mt-32 md:mt-48">
+            <div class="bg-dark-secondary p-12 md:p-20 rounded-3xl text-center border-2 border-gray-800 shadow-xl hover:border-neon-lime/30 transition-all duration-300">
+                <h2 class="text-4xl md:text-5xl font-black leading-tight">
+                    ¿Listo para Jugar?
+                </h2>
+                <p class="text-xl text-gray-300 mt-6 max-w-2xl mx-auto leading-relaxed">
+                    Descarga Padel Listo hoy mismo y lleva tu juego al siguiente nivel. Disponible en iOS y Android.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-6 mt-12">
+                    <!-- App Store Button -->
+                    <a href="#" class="inline-block transform hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/180x60/444444/FFFFFF?text=App+Store" 
+                             alt="Descargar en App Store" 
+                             class="store-button-img rounded-lg hover:opacity-90 transition-opacity"
+                             onerror="this.src='https://placehold.co/180x60/444444/FFFFFF?text=App+Store'">
+                    </a>
+                    <!-- Google Play Button -->
+                    <a href="#" class="inline-block transform hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/180x60/444444/FFFFFF?text=Google+Play" 
+                             alt="Descargar en Google Play" 
+                             class="store-button-img rounded-lg hover:opacity-90 transition-opacity"
+                             onerror="this.src='https://placehold.co/180x60/444444/FFFFFF?text=Google+Play'">
+                    </a>
+                </div>
+                <!-- QR Code Placeholder (opcional) -->
+                <div class="mt-8 flex justify-center">
+                    <div class="bg-white p-4 rounded-xl">
+                        <img src="https://placehold.co/150x150/FFFFFF/000000?text=QR" 
+                             alt="Código QR para descargar la app" 
+                             class="w-32 h-32"
+                             onerror="this.src='https://placehold.co/150x150/FFFFFF/000000?text=QR'">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contact" class="container mx-auto px-6 py-16 mt-24 border-t border-gray-800">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+            <!-- Información de la Empresa -->
+            <div>
+                <a href="#" class="text-2xl font-black text-white tracking-tight mb-4 inline-block">
+                    Padel<span class="text-neon-lime">Listo</span>
+                </a>
+                <p class="text-gray-400 mt-4 leading-relaxed">
+                    La app definitiva para reservar canchas de pádel y conectar con jugadores. Tu próximo partido, a un solo tap.
+                </p>
+            </div>
+
+            <!-- Enlaces Rápidos -->
+            <div>
+                <h3 class="text-white font-bold text-lg mb-4">Enlaces Rápidos</h3>
+                <ul class="space-y-3">
+                    <li><a href="#about" class="text-gray-400 hover:text-neon-lime transition-colors">Sobre Nosotros</a></li>
+                    <li><a href="#features" class="text-gray-400 hover:text-neon-lime transition-colors">Funcionalidades</a></li>
+                    <li><a href="#testimonials" class="text-gray-400 hover:text-neon-lime transition-colors">Testimonios</a></li>
+                    <li><a href="#clubs" class="text-gray-400 hover:text-neon-lime transition-colors">Para Clubes</a></li>
+                    <li><a href="#download" class="text-gray-400 hover:text-neon-lime transition-colors">Descargar</a></li>
+                </ul>
+            </div>
+
+            <!-- Información de Contacto -->
+            <div>
+                <h3 class="text-white font-bold text-lg mb-4">Contacto</h3>
+                <div class="space-y-3 text-gray-400">
+                    <p>
+                        <span class="text-neon-lime font-semibold">Email:</span><br>
+                        contacto@padellisto.com
+                    </p>
+                    <p>
+                        <span class="text-neon-lime font-semibold">Horarios de Atención:</span><br>
+                        Lunes - Viernes: 9:00 AM - 8:00 PM<br>
+                        Sábado - Domingo: 10:00 AM - 6:00 PM
+                    </p>
+                </div>
+                <!-- Redes Sociales -->
+                <div class="flex gap-4 mt-6">
+                    <a href="#" class="w-10 h-10 rounded-full bg-dark-secondary border border-gray-700 flex items-center justify-center text-gray-400 hover:text-neon-lime hover:border-neon-lime transition-all duration-300">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-dark-secondary border border-gray-700 flex items-center justify-center text-gray-400 hover:text-neon-lime hover:border-neon-lime transition-all duration-300">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-dark-secondary border border-gray-700 flex items-center justify-center text-gray-400 hover:text-neon-lime hover:border-neon-lime transition-all duration-300">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
+            <p>© 2025 Padel Listo. Todos los derechos reservados.</p>
+            <div class="flex gap-6 mt-4 md:mt-0">
+                <a href="#" class="hover:text-neon-lime transition-colors">Términos de Servicio</a>
+                <a href="#" class="hover:text-neon-lime transition-colors">Política de Privacidad</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+
+
+
