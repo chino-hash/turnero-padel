@@ -81,4 +81,16 @@ async function cleanupDuplicateCourts() {
   }
 }
 
-cleanupDuplicateCourts()
+// Solo ejecutar si se invoca directamente como script CLI
+// Previene ejecución automática cuando el módulo es importado
+if (require.main === module) {
+  cleanupDuplicateCourts()
+    .then(() => {
+      console.log('✅ Limpieza completada')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('❌ Error fatal:', error)
+      process.exit(1)
+    })
+}

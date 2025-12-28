@@ -6,6 +6,7 @@ import { updateBookingSchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
+import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
@@ -107,6 +108,11 @@ export async function PUT(
     const body = await request.json()
     const validatedData = updateBookingSchema.parse(body)
 
+    // Obtener la reserva original para invalidar el caché de la fecha anterior (si cambió)
+    const originalBooking = await bookingService.getBookingById(bookingId)
+    const originalCourtId = originalBooking.data?.courtId
+    const originalDate = originalBooking.data?.bookingDate ? new Date(originalBooking.data.bookingDate) : null
+
     // Actualizar reserva
     const result = await bookingService.updateBooking(
       bookingId,
@@ -119,6 +125,22 @@ export async function PUT(
       const statusCode = result.error?.includes('No encontrada') ? 404 :
                         result.error?.includes('permisos') ? 403 : 400
       return NextResponse.json(result, { status: statusCode })
+    }
+
+    // Invalidar caché de reservas
+    if (result.data) {
+      const newDate = new Date(result.data.bookingDate)
+      
+      // Invalidar caché de la fecha nueva
+      clearBookingsCache(result.data.courtId, newDate)
+      
+      // Si cambió la fecha o cancha, invalidar también la fecha anterior
+      if ((originalDate && originalDate.getTime() !== newDate.getTime()) || 
+          (originalCourtId && originalCourtId !== result.data.courtId)) {
+        if (originalCourtId && originalDate) {
+          clearBookingsCache(originalCourtId, originalDate)
+        }
+      }
     }
 
     // Emitir evento SSE para actualizaciones en tiempo real
@@ -192,6 +214,11 @@ export async function DELETE(
       )
     }
 
+    // Obtener la reserva antes de cancelar para invalidar el caché
+    const originalBooking = await bookingService.getBookingById(bookingId)
+    const originalCourtId = originalBooking.data?.courtId
+    const originalDate = originalBooking.data?.bookingDate ? new Date(originalBooking.data.bookingDate) : null
+
     // Eliminar reserva (soft delete)
     const result = await bookingService.cancelBooking(
       bookingId,
@@ -204,6 +231,15 @@ export async function DELETE(
       const statusCode = result.error?.includes('No encontrada') ? 404 :
                         result.error?.includes('permisos') ? 403 : 400
       return NextResponse.json(result, { status: statusCode })
+    }
+
+    // Invalidar caché de reservas
+    if (result.data) {
+      const bookingDate = new Date(result.data.bookingDate)
+      clearBookingsCache(result.data.courtId, bookingDate)
+    } else if (originalCourtId && originalDate) {
+      // Si no hay datos en el resultado, usar los datos originales
+      clearBookingsCache(originalCourtId, originalDate)
     }
 
     // Emitir eventos SSE para actualizaciones en tiempo real

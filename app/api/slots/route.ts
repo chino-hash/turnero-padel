@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Fuerza ejecución en Node y evita optimización estática en Vercel
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-import { getCourtById, checkCourtAvailability } from '../../../lib/services/courts'
+import { getCourtById, checkMultipleSlotsAvailability } from '../../../lib/services/courts'
 import { auth } from '@/lib/auth'
 import { getAvailableSlots } from '@/lib/services/availabilityService'
 import { getDefaultOperatingHours } from '../../../lib/services/system-settings'
@@ -132,36 +132,34 @@ export async function GET(req: NextRequest) {
 
     // Generar slots de forma más eficiente
     const slots = []
-    const availabilityPromises = []
-    
-    // Crear todas las promesas de disponibilidad primero
+    // Preparar todos los slots primero
+    const slotTimes: Array<{ startTime: string; endTime: string }> = []
     for (let h = startHour; h + slotDuration <= endHour; h += slotDuration) {
       const startTime = hourToHHMM(h)
       const endTime = hourToHHMM(h + slotDuration)
-      
-      availabilityPromises.push(
-        checkCourtAvailability(courtId, requestedDate, startTime, endTime)
-          .then(isAvailable => ({
-            id: `${courtId}--${dateStr}--${startTime}`,
-            startTime,
-            endTime,
-            timeRange: `${startTime} - ${endTime}`,
-            isAvailable,
-            price: finalPrice,
-            finalPrice,
-            pricePerPerson,
-            courtId,
-            date: dateStr
-          }))
-      )
+      slotTimes.push({ startTime, endTime })
     }
     
-    // Ejecutar todas las consultas de disponibilidad en paralelo
-    const settled = await Promise.allSettled(availabilityPromises)
-    for (const r of settled) {
-      if (r.status === 'fulfilled') {
-        slots.push(r.value)
-      }
+    // Una sola query optimizada para verificar todos los slots a la vez
+    const availabilityMap = await checkMultipleSlotsAvailability(courtId, requestedDate, slotTimes)
+    
+    // Crear los slots con la disponibilidad ya calculada
+    for (const { startTime, endTime } of slotTimes) {
+      const slotKey = `${startTime}-${endTime}`
+      const isAvailable = availabilityMap.get(slotKey) ?? false
+      
+      slots.push({
+        id: `${courtId}--${dateStr}--${startTime}`,
+        startTime,
+        endTime,
+        timeRange: `${startTime} - ${endTime}`,
+        isAvailable,
+        price: finalPrice,
+        finalPrice,
+        pricePerPerson,
+        courtId,
+        date: dateStr
+      })
     }
 
     // Aplicar bloqueos virtuales (>7 días) para ADMIN usando reglas recurrentes

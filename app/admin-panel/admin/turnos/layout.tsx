@@ -19,15 +19,6 @@ export default function TurnosLayout({ children }: { children: ReactNode }) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Disponibilidad de canchas (semana)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AdminAvailabilityGrid />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="text-xl">Vista rápida: Ocupados / Libres / Pendientes</CardTitle>
         </CardHeader>
         <CardContent>

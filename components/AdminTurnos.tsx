@@ -2136,7 +2136,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <DialogTitle>Confirmar cierre definitivo</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <p className="text-sm text-gray-700">Este turno se cerrará definitivamente y quedará en modo solo lectura. Confirma para continuar.</p>
+              <p className="text-sm text-[var(--accent-foreground)]">Este turno se cerrará definitivamente y quedará en modo solo lectura. Confirma para continuar.</p>
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} />
                 Acepto el cierre definitivo del turno
@@ -2163,7 +2163,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <DialogTitle>Cancelar turno</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
-              <p className="text-sm text-gray-700">¿Estás seguro de cancelar el turno? Esta acción liberará el horario en el dashboard.</p>
+              <p className="text-sm text-[var(--accent-foreground)]">¿Estás seguro de cancelar el turno? Esta acción liberará el horario en el dashboard.</p>
             </div>
             <DialogFooter className="mt-4">
               <Button variant="outline" onClick={() => setCancelBookingId(null)}>No</Button>

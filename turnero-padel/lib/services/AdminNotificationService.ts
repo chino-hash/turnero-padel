@@ -33,7 +33,7 @@ export async function createNotification(
         severity: params.severity || 'info',
         title: params.title,
         message: params.message,
-        metadata: params.metadata || null,
+        metadata: params.metadata ?? undefined,
       },
     });
 

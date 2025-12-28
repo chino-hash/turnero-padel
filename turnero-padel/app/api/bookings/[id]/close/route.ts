@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
 import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { eventEmitters } from '@/lib/sse-events'
+import type { UpdateBookingInput } from '@/lib/validations/booking'
 
 export const runtime = 'nodejs'
 
@@ -95,9 +96,7 @@ export async function POST(
 
     // Actualizar estado a COMPLETED (o solo agregar closedAt si ya está COMPLETED)
     // Si ya está COMPLETED pero sin closedAt, el repository lo agregará automáticamente
-    const updateData = current.data.status === 'COMPLETED' && !current.data.closedAt
-      ? { status: 'COMPLETED' } // Forzar actualización para que se agregue closedAt
-      : { status: 'COMPLETED' }
+    const updateData: UpdateBookingInput = { status: 'COMPLETED' }
     
     const result = await bookingService.updateBooking(
       bookingId,

@@ -1,4 +1,7 @@
+'use client'
+
 import { useEffect, useRef, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { EventType, SSEEvent } from '../lib/sse-events'
 
 interface UseRealTimeUpdatesOptions {
@@ -9,19 +12,39 @@ interface UseRealTimeUpdatesOptions {
   onConnect?: () => void
   onDisconnect?: () => void
   onError?: (error: Event) => void
+  enabled?: boolean // Permite deshabilitar la conexión
 }
 
 export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
+  const { data: session, status } = useSession()
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const maxReconnectAttempts = 10
   const baseReconnectDelay = 1000
+  const isAuthenticated = status === 'authenticated' && !!session?.user?.id
+  const enabled = options.enabled !== false // Por defecto true, a menos que se especifique false
+  
+  // Usar refs para que las variables estén disponibles en los callbacks
+  const isAuthenticatedRef = useRef(isAuthenticated)
+  const enabledRef = useRef(enabled)
+  
+  // Actualizar refs cuando cambian los valores
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated
+    enabledRef.current = enabled
+  }, [isAuthenticated, enabled])
 
   const connect = useCallback(() => {
     // Verificar si estamos en el navegador
     if (typeof window === 'undefined' || typeof EventSource === 'undefined') {
       console.log('EventSource no disponible en este entorno')
+      return
+    }
+
+    // No conectar si no está autenticado o está deshabilitado
+    if (!enabledRef.current || !isAuthenticatedRef.current) {
+      console.log('SSE no conectado: usuario no autenticado o conexión deshabilitada')
       return
     }
 
@@ -46,10 +69,8 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
     try {
       console.log('Estableciendo conexión SSE...')
       
-      // Crear EventSource con configuración mejorada
-      const eventSource = new EventSource('/api/events', {
-        withCredentials: false // Evitar problemas CORS
-      })
+      // Crear EventSource - las cookies se envían automáticamente en el mismo dominio
+      const eventSource = new EventSource('/api/events')
       eventSourceRef.current = eventSource
       
       eventSource.onopen = () => {
@@ -96,6 +117,16 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
           if (state === EventSource.CONNECTING) {
             // Durante la fase de conexión algunos navegadores disparan error; no contaminar consola
             console.debug('SSE aún conectando, ignorando error transitorio')
+          } else if (state === EventSource.CLOSED) {
+            // Si el estado es CLOSED, podría ser un 401 (no autenticado)
+            // No intentar reconectar si no está autenticado
+            if (!isAuthenticatedRef.current) {
+              console.log('Conexión SSE cerrada: usuario no autenticado')
+              eventSourceRef.current = null
+              return
+            }
+            console.error('Error en conexión SSE:', error, 'ReadyState:', state)
+            options.onError?.(error)
           } else {
             console.error('Error en conexión SSE:', error, 'ReadyState:', state)
             options.onError?.(error)
@@ -103,10 +134,23 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
 
           if (reconnectTimeoutRef.current) return
 
+          // No intentar reconectar si no está autenticado
+          if (!isAuthenticatedRef.current) {
+            eventSourceRef.current = null
+            options.onDisconnect?.()
+            return
+          }
+
           const shouldReconnect = state !== EventSource.OPEN
           if (shouldReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
             const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current), 30000)
             reconnectTimeoutRef.current = setTimeout(() => {
+              // Verificar nuevamente la autenticación antes de reconectar
+              if (!isAuthenticatedRef.current) {
+                eventSourceRef.current = null
+                options.onDisconnect?.()
+                return
+              }
               reconnectAttemptsRef.current++
               try {
                 eventSource.close()
@@ -139,18 +183,21 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
     }
   }, [options])
 
-  // Conectar al montar el componente
+  // Conectar al montar el componente o cuando cambia la autenticación
   useEffect(() => {
-    // Solo conectar si estamos en el navegador
-    if (typeof window !== 'undefined') {
+    // Solo conectar si estamos en el navegador, está habilitado y autenticado
+    if (typeof window !== 'undefined' && enabled && isAuthenticated) {
       connect()
+    } else {
+      // Desconectar si no está autenticado o está deshabilitado
+      disconnect()
     }
 
     // Limpiar al desmontar
     return () => {
       disconnect()
     }
-  }, [connect, disconnect])
+  }, [connect, disconnect, enabled, isAuthenticated])
 
   // Manejar visibilidad de la página para reconectar cuando sea necesario
   useEffect(() => {
@@ -160,7 +207,7 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !eventSourceRef.current) {
+      if (document.visibilityState === 'visible' && !eventSourceRef.current && enabledRef.current && isAuthenticatedRef.current) {
         connect()
       } else if (document.visibilityState === 'hidden') {
         disconnect()
@@ -172,7 +219,7 @@ export function useRealTimeUpdates(options: UseRealTimeUpdatesOptions = {}) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [connect, disconnect])
+  }, [connect, disconnect, enabled, isAuthenticated])
 
   return {
     connect,
