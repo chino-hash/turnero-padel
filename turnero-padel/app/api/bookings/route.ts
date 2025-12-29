@@ -11,10 +11,10 @@ import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
-// GET /api/bookings - Obtener reservas con filtros y paginaci√≥n
+// GET /api/bookings - Obtener reservas con filtros y paginaci+¶n
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticaci√≥n
+    // Verificar autenticaci+¶n
     let session: any = null
     try {
       session = await auth()
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       return rateLimitResult
     }
 
-    // Obtener par√°metros de consulta
+    // Obtener par+Ìmetros de consulta
     const { searchParams } = new URL(request.url)
     const queryParams = {
       page: parseInt(searchParams.get('page') || '1'),
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
     }
 
-    // Validar par√°metros
+    // Validar par+Ìmetros
     const validatedParams = bookingFiltersSchema.parse(queryParams)
 
     // Si no es admin, solo puede ver sus propias reservas
@@ -73,14 +73,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Par√°metros de consulta inv√°lidos',
+          error: 'Par+Ìmetros de consulta inv+Ìlidos',
           details: formatZodErrors(error)
         },
         { status: 400 }
       )
     }
 
-    // Fallback: devolver datos m√≠nimos para no bloquear el panel
+    // Fallback: devolver datos m+°nimos para no bloquear el panel
     try {
       const page = 1
       const limit = 20
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 // POST /api/bookings - Crear nueva reserva
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticaci√≥n
+    // Verificar autenticaci+¶n
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Aplicar rate limiting m√°s estricto para creaci√≥n
+    // Aplicar rate limiting m+Ìs estricto para creaci+¶n
     const rateLimitCheck = withRateLimit(bookingCreateRateLimit)
     const rateLimitResult = await rateLimitCheck(request)
     
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { status: 400 })
     }
 
-    // Invalidar cach√© de reservas para esta fecha y cancha
+    // Invalidar cach+Æ de reservas para esta fecha y cancha
     if (result.data) {
       const bookingDate = new Date(result.data.bookingDate)
       clearBookingsCache(validatedData.courtId, bookingDate)
@@ -164,35 +164,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error('Error in POST /api/bookings:', error)
-    console.error('Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    })
     
     if (error instanceof ZodError) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Datos de reserva inv√°lidos',
+          error: 'Datos de reserva inv+Ìlidos',
           details: formatZodErrors(error)
         },
         { status: 400 }
       )
     }
 
-    // Mejorar mensaje de error para debugging
-    const errorMessage = error instanceof Error ? error.message : 'Error interno del servidor'
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Error interno del servidor',
-        details: errorMessage,
-        // Solo en desarrollo, mostrar m√°s detalles
-        ...(process.env.NODE_ENV === 'development' && {
-          stack: error instanceof Error ? error.stack : undefined
-        })
-      },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     )
   }
