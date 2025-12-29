@@ -11,10 +11,10 @@ import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
-// GET /api/bookings - Obtener reservas con filtros y paginaci+ï¿½n
+// GET /api/bookings - Obtener reservas con filtros y paginaci+¦n
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticaci+ï¿½n
+    // Verificar autenticaci+¦n
     let session: any = null
     try {
       session = await auth()
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       return rateLimitResult
     }
 
-    // Obtener par+ï¿½metros de consulta
+    // Obtener par+ímetros de consulta
     const { searchParams } = new URL(request.url)
     const queryParams = {
       page: parseInt(searchParams.get('page') || '1'),
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       sortOrder: (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc'
     }
 
-    // Validar par+ï¿½metros
+    // Validar par+ímetros
     const validatedParams = bookingFiltersSchema.parse(queryParams)
 
     // Si no es admin, solo puede ver sus propias reservas
@@ -73,14 +73,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Par+ï¿½metros de consulta inv+ï¿½lidos',
+          error: 'Par+ímetros de consulta inv+ílidos',
           details: formatZodErrors(error)
         },
         { status: 400 }
       )
     }
 
-    // Fallback: devolver datos m+ï¿½nimos para no bloquear el panel
+    // Fallback: devolver datos m+¡nimos para no bloquear el panel
     try {
       const page = 1
       const limit = 20
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 // POST /api/bookings - Crear nueva reserva
 export async function POST(request: NextRequest) {
   try {
-    // Verificar autenticaci+ï¿½n
+    // Verificar autenticaci+¦n
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Aplicar rate limiting m+ï¿½s estricto para creaci+ï¿½n
+    // Aplicar rate limiting m+ís estricto para creaci+¦n
     const rateLimitCheck = withRateLimit(bookingCreateRateLimit)
     const rateLimitResult = await rateLimitCheck(request)
     
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result, { status: 400 })
     }
 
-    // Invalidar cach+ï¿½ de reservas para esta fecha y cancha
+    // Invalidar cach+® de reservas para esta fecha y cancha
     if (result.data) {
       const bookingDate = new Date(result.data.bookingDate)
       clearBookingsCache(validatedData.courtId, bookingDate)
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Datos de reserva inv+ï¿½lidos',
+          error: 'Datos de reserva inv+ílidos',
           details: formatZodErrors(error)
         },
         { status: 400 }
