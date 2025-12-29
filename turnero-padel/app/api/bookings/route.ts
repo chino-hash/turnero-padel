@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { bookingService } from "@/lib/services/BookingService"
 import { prisma } from "@/lib/database/neon-config"
@@ -182,5 +182,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
 
