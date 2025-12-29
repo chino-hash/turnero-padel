@@ -7,6 +7,7 @@ import { bookingFiltersSchema, createBookingSchema } from "@/lib/validations/boo
 import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
+import { clearBookingsCache } from '@/lib/services/courts'
 
 export const runtime = 'nodejs'
 
@@ -138,6 +139,12 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
+    }
+
+    // Invalidar caché de reservas para esta fecha y cancha
+    if (result.data) {
+      const bookingDate = new Date(result.data.bookingDate)
+      clearBookingsCache(validatedData.courtId, bookingDate)
     }
 
     // Emitir eventos SSE para actualizaciones en tiempo real

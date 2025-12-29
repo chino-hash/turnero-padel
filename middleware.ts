@@ -21,11 +21,15 @@ export default auth((req) => {
   const isAuthRoute = nextUrl.pathname.startsWith('/api/auth')
   
   // Rutas de API públicas (que no requieren autenticación)
-  const publicApiRoutes = ['/api/courts', '/api/slots', '/api/events']
+  const publicApiRoutes = ['/api/courts', '/api/slots']
   const isPublicApiRoute = publicApiRoutes.some(route => nextUrl.pathname.startsWith(route))
 
-  // Permitir rutas de autenticación y APIs públicas
-  if (isAuthRoute || isPublicApiRoute) {
+  // Rutas de API que requieren autenticación pero deben pasar sin redirección (el endpoint maneja 401)
+  const protectedApiRoutes = ['/api/events']
+  const isProtectedApiRoute = protectedApiRoutes.some(route => nextUrl.pathname.startsWith(route))
+
+  // Permitir rutas de autenticación, APIs públicas y APIs protegidas (sin redirección)
+  if (isAuthRoute || isPublicApiRoute || isProtectedApiRoute) {
     return NextResponse.next()
   }
 

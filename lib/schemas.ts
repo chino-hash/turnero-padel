@@ -30,7 +30,7 @@ export function formatZodError(error: z.ZodError): string {
     .join('; ')
 }
 
-// Helper: parsea JSON con validacion y fallback seguro
+// Helper: parsea JSON con validación y fallback seguro
 export function parseJsonSafely<T>(
   raw: unknown,
   schema: z.ZodSchema<T>,

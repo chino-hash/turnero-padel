@@ -264,7 +264,74 @@ export async function deactivateCourt(id: string): Promise<Court> {
   }
 }
 
-// Verificar disponibilidad de cancha
+// Verificar disponibilidad de cancha (versión optimizada con caché de reservas)
+const bookingsCache = new Map<string, { bookings: Array<{ startTime: string; endTime: string }>; timestamp: number }>()
+const BOOKINGS_CACHE_TTL = 30 * 1000 // 30 segundos
+
+// Obtener todas las reservas de una fecha y cancha (optimizado)
+async function getBookingsForDateAndCourt(
+  courtId: string,
+  date: Date
+): Promise<Array<{ startTime: string; endTime: string }>> {
+  const cacheKey = `${courtId}-${date.toISOString().split('T')[0]}`
+  const cached = bookingsCache.get(cacheKey)
+  
+  if (cached && Date.now() - cached.timestamp < BOOKINGS_CACHE_TTL) {
+    return cached.bookings
+  }
+
+  try {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        courtId,
+        bookingDate: date,
+        status: {
+          not: 'CANCELLED'
+        },
+        deletedAt: null
+      },
+      select: { startTime: true, endTime: true }
+    })
+
+    const result = bookings.map(b => ({ startTime: b.startTime, endTime: b.endTime }))
+    
+    // Guardar en caché
+    bookingsCache.set(cacheKey, {
+      bookings: result,
+      timestamp: Date.now()
+    })
+
+    return result
+  } catch (error) {
+    console.error('Error obteniendo reservas:', error)
+    return []
+  }
+}
+
+// Verificar si un slot específico está disponible
+function isSlotAvailable(
+  bookings: Array<{ startTime: string; endTime: string }>,
+  startTime: string,
+  endTime: string
+): boolean {
+  for (const booking of bookings) {
+    // Verificar si hay conflicto de horarios
+    const bookingStart = booking.startTime
+    const bookingEnd = booking.endTime
+    
+    // Conflictos: el slot se solapa con alguna reserva existente
+    if (
+      (bookingStart <= startTime && bookingEnd > startTime) ||
+      (bookingStart < endTime && bookingEnd >= endTime) ||
+      (bookingStart >= startTime && bookingEnd <= endTime)
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
+// Verificar disponibilidad de cancha (versión individual para compatibilidad)
 export async function checkCourtAvailability(
   courtId: string,
   date: Date,
@@ -272,40 +339,44 @@ export async function checkCourtAvailability(
   endTime: string
 ): Promise<boolean> {
   try {
-    const conflictingBooking = await prisma.booking.findFirst({
-      where: {
-        courtId,
-        bookingDate: date,
-        status: {
-          not: 'CANCELLED'
-        },
-        OR: [
-          {
-            AND: [
-              { startTime: { lte: startTime } },
-              { endTime: { gt: startTime } }
-            ]
-          },
-          {
-            AND: [
-              { startTime: { lt: endTime } },
-              { endTime: { gte: endTime } }
-            ]
-          },
-          {
-            AND: [
-              { startTime: { gte: startTime } },
-              { endTime: { lte: endTime } }
-            ]
-          }
-        ]
-      },
-      select: { id: true }
-    })
-
-    return !conflictingBooking
+    const bookings = await getBookingsForDateAndCourt(courtId, date)
+    return isSlotAvailable(bookings, startTime, endTime)
   } catch (error) {
     console.error('Error verificando disponibilidad:', error)
     throw new Error('Error al verificar disponibilidad')
+  }
+}
+
+// Función optimizada para verificar múltiples slots a la vez
+export async function checkMultipleSlotsAvailability(
+  courtId: string,
+  date: Date,
+  slots: Array<{ startTime: string; endTime: string }>
+): Promise<Map<string, boolean>> {
+  try {
+    // Una sola query para obtener todas las reservas
+    const bookings = await getBookingsForDateAndCourt(courtId, date)
+    
+    // Verificar cada slot en memoria
+    const availabilityMap = new Map<string, boolean>()
+    for (const slot of slots) {
+      const slotKey = `${slot.startTime}-${slot.endTime}`
+      availabilityMap.set(slotKey, isSlotAvailable(bookings, slot.startTime, slot.endTime))
+    }
+    
+    return availabilityMap
+  } catch (error) {
+    console.error('Error verificando disponibilidad múltiple:', error)
+    throw new Error('Error al verificar disponibilidad')
+  }
+}
+
+// Limpiar caché de reservas (útil para invalidar cuando se crean/modifican reservas)
+export function clearBookingsCache(courtId?: string, date?: Date) {
+  if (courtId && date) {
+    const cacheKey = `${courtId}-${date.toISOString().split('T')[0]}`
+    bookingsCache.delete(cacheKey)
+  } else {
+    bookingsCache.clear()
   }
 }

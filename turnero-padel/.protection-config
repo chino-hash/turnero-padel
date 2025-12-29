@@ -1,0 +1,29 @@
+# Configuracion de Proteccion del Frontend
+# Este archivo contiene la configuracion para las herramientas de proteccion
+
+# Archivos protegidos (no modificar sin autorizacion)
+PROTECTED_FILES=(
+    "components/TurneroApp.tsx"
+    "components/MisTurnos.tsx"
+    "app/(protected)/dashboard/page.tsx"
+    "app/(protected)/layout.tsx"
+    "components/ui/**/*.tsx"
+    "hooks/useAuth.ts"
+    "lib/auth.ts"
+    "middleware.ts"
+)
+
+# Archivos permitidos para modificacion
+ALLOWED_FILES=(
+    "app/(admin)/**/*.tsx"
+    "components/Admin*.tsx"
+    "components/admin/**/*.tsx"
+    "api/admin/**/*.ts"
+)
+
+# Configuracion de notificaciones
+NOTIFY_ON_PROTECTED_CHANGES=true
+REQUIRE_APPROVAL_FOR_PROTECTED=true
+
+# Variables de entorno para override
+# FRONTEND_PROTECTION_OVERRIDE=true (para bypass temporal)

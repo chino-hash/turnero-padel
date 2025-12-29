@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
+const path = require('path')
+
 const nextConfig = {
+  // Configurar el directorio raíz del proyecto para evitar conflictos con múltiples lockfiles
+  outputFileTracingRoot: path.join(__dirname),
   // Remover output: 'standalone' para Vercel - causa problemas de deployment
   serverExternalPackages: ['@prisma/client', 'prisma'],
   // Evitar que el build falle por ESLint en producción
