@@ -1028,7 +1028,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">Hoy</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{currencyPrefix}{filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
               </div>
-              <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/estadisticas">Ver</Link></Button>
+              <Button asChild variant="outline" size="sm"><Link href="/admin-panel/estadisticas">Ver</Link></Button>
             </div>
           </CardContent>
         </Card>

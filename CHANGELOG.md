@@ -7,6 +7,73 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+## [2026-01-XX] - Cambios No Documentados Consolidados
+
+### Agregado
+- **Implementación completa de Mercado Pago**
+  - Provider de Mercado Pago con SDK oficial (`mercadopago@^2.11.0`)
+  - Servicio de reembolsos con validación de límite de 180 días
+  - Validación de webhooks con firma secreta
+  - Cache en memoria para prevenir procesamiento duplicado
+  - Fallback automático a MockPaymentProvider si no está configurado
+- **Panel de Productos Administrativo**
+  - Gestión CRUD completa de productos
+  - Campo de volumen para bebidas (ml/L)
+  - Control de stock con indicadores de color
+  - Filtros por categoría y búsqueda
+  - Estadísticas rápidas (total, activos, stock bajo, valor inventario)
+- **Carrito de Ventas Independiente**
+  - Modal de ventas para compras sin turno
+  - Historial de ventas con filtros y exportación CSV
+  - Sistema separado de extras (para compras sin asociación a turnos)
+- **Sistema de Extras para Turnos**
+  - Modal de extras con búsqueda por barra de texto
+  - Asignación de extras a jugadores específicos o todos
+  - Integración con resumen financiero de turnos
+- **Script de Limpieza de Canchas**
+  - Identificación y desactivación automática de canchas duplicadas
+  - Normalización de nombres (Cancha 1, A, a → "cancha 1")
+  - Selección inteligente de cancha canónica
+
+### Cambiado
+- **Búsqueda de Extras**
+  - Reemplazado Select dropdown por barra de búsqueda con Input
+  - Filtrado en tiempo real mientras se escribe
+- **Estilos y Tamaños de Turnos**
+  - Tamaños consistentes: cards `p-6`, iconos `w-4/w-5/w-6`, botones `size="sm"`
+  - Colores diferenciados por sección (Fijos: púrpura, Confirmados: verde, etc.)
+  - Resumen financiero con colores dinámicos según estado
+- **Rutas de Estadísticas**
+  - Redirigida `/admin-panel/admin/estadisticas` (datos mock) → `/admin-panel/estadisticas` (datos reales)
+  - Unificación en una sola ruta con datos dinámicos desde API
+
+### Mejorado
+- **Panel de Productos**
+  - Sincronización con modal de extras de turnos
+  - Fallback a productos predefinidos si la API falla
+  - Indicadores visuales de stock y estado
+- **Documentación**
+  - Creado documento completo de cambios no documentados (`docs/CAMBIOS_NO_DOCUMENTADOS_2026.md`)
+  - Aclaración de diferencia entre carrito de ventas y extras
+
+### Archivos Modificados
+- `lib/services/payments/MercadoPagoProvider.ts` - Provider principal
+- `lib/services/payments/MercadoPagoRefundService.ts` - Servicio de reembolsos
+- `app/admin-panel/admin/productos/page.tsx` - Panel de productos y ventas
+- `app/admin-panel/admin/ventas/page.tsx` - Historial de ventas
+- `components/AdminTurnos.tsx` - Modal de extras con búsqueda
+- `app/admin-panel/admin/estadisticas/page.tsx` - Redirección a ruta con datos reales
+- `cleanup-courts.js` - Script de limpieza de canchas duplicadas
+
+### Variables de Entorno Agregadas
+- `MERCADOPAGO_ACCESS_TOKEN` - Token de acceso de Mercado Pago
+- `MERCADOPAGO_WEBHOOK_SECRET` - Secret para validación de webhooks
+- `PAYMENT_PROVIDER=mercadopago` - Opcional, para forzar uso de Mercado Pago
+
+---
+
+## [2025-01-XX] - Corrección de Posicionamiento UI
+
 ### Corregido
 - Posicionamiento de títulos y navegación en sección "Mis Turnos"
 - Elementos de UI ocultos por navbar fijo con z-index alto
@@ -120,4 +187,4 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ---
 
 **Mantenido por:** Equipo de Desarrollo  
-**Última actualización:** Enero 2025
+**Última actualización:** Enero 2026

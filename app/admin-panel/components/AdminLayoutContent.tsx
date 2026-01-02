@@ -83,9 +83,9 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               </Link>
 
               <Link
-                href="/admin-panel/admin/estadisticas"
-                className={linkClass("/admin-panel/admin/estadisticas")}
-                aria-current={pathname.startsWith("/admin-panel/admin/estadisticas") ? "page" : undefined}
+                href="/admin-panel/estadisticas"
+                className={linkClass("/admin-panel/estadisticas")}
+                aria-current={pathname.startsWith("/admin-panel/estadisticas") ? "page" : undefined}
                 data-testid="admin-stats-link"
               >
                 <BarChart3 className="w-5 h-5" />
