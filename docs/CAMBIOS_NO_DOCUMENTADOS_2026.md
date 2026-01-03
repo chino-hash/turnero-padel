@@ -417,3 +417,4 @@ node cleanup-courts.js
 **Mantenido por:** Equipo de Desarrollo  
 **Última revisión:** Enero 2026
 
+
