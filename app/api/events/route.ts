@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { addConnection, removeConnection, type SSEEvent } from '../../../lib/sse-events'
 import { auth } from '../../../lib/auth'
 import { getAuthConfig } from '../../../lib/config/env'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -12,6 +13,19 @@ export async function GET(request: NextRequest) {
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 })
   }
+
+  // Construir usuario para validación de permisos
+  const user: PermissionsUser = {
+    id: session.user.id,
+    email: session.user.email || null,
+    role: session.user.role || 'USER',
+    isAdmin: session.user.isAdmin || false,
+    isSuperAdmin: session.user.isSuperAdmin || false,
+    tenantId: session.user.tenantId || null,
+  }
+
+  const isSuperAdmin = await isSuperAdminUser(user)
+  const userTenantId = await getUserTenantIdSafe(user)
   // Configurar headers para SSE con mejores prácticas
   const responseHeaders = new Headers({
     'Content-Type': 'text/event-stream',
@@ -50,8 +64,8 @@ export async function GET(request: NextRequest) {
           }
         }, 20000)
         
-        // Agregar esta conexión a la lista de conexiones activas
-        addConnection(controller)
+        // Agregar esta conexión a la lista de conexiones activas con información de tenant
+        addConnection(controller, userTenantId, isSuperAdmin, session.user.id)
         
         // Limpiar al cerrar la conexión
         const cleanup = () => {

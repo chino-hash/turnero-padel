@@ -51,7 +51,7 @@ const getEnvAdmins = (): string[] => {
   return removeDuplicates(filteredEmails)
 }
 
-// Obtener administradores desde base de datos
+// Obtener administradores desde base de datos (deprecated - usar funciones específicas por tenant)
 const getDbAdmins = async (): Promise<string[]> => {
   const prisma = await getPrisma()
   if (!prisma) {
@@ -69,6 +69,118 @@ const getDbAdmins = async (): Promise<string[]> => {
   } catch (error) {
     console.error('Error obteniendo administradores de BD:', error)
     return []
+  }
+}
+
+/**
+ * Verifica si un email es super admin (tenantId null en AdminWhitelist o SUPER_ADMIN_EMAILS)
+ */
+export const isSuperAdmin = async (email: string): Promise<boolean> => {
+  if (!email) return false
+  
+  // Primero verificar en variables de entorno (más rápido y no requiere BD)
+  try {
+    const { getSuperAdminConfig } = await import('./config/env')
+    const superAdminConfig = getSuperAdminConfig()
+    const superAdminEmails = superAdminConfig.emails || []
+    if (superAdminEmails.map(e => e.toLowerCase()).includes(email.toLowerCase())) {
+      return true
+    }
+  } catch (error) {
+    // Si hay error al leer config, continuar con verificación en BD
+  }
+  
+  const prisma = await getPrisma()
+  if (!prisma) {
+    // Fallback: verificar en variables de entorno directamente
+    const superAdminEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
+    return superAdminEmails.includes(email.toLowerCase())
+  }
+  
+  try {
+    const admin = await prisma.adminWhitelist.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        tenantId: null, // Super admin tiene tenantId null
+        role: 'SUPER_ADMIN',
+        isActive: true,
+      },
+    })
+    
+    return !!admin
+  } catch (error) {
+    console.error('Error verificando super admin:', error)
+    return false
+  }
+}
+
+/**
+ * Verifica si un email es admin de un tenant específico
+ */
+export const isAdminForTenant = async (email: string, tenantId: string): Promise<boolean> => {
+  if (!email || !tenantId) return false
+  
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return false
+  }
+  
+  try {
+    const admin = await prisma.adminWhitelist.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        tenantId: tenantId,
+        role: 'ADMIN',
+        isActive: true,
+      },
+    })
+    
+    return !!admin
+  } catch (error) {
+    console.error('Error verificando admin de tenant:', error)
+    return false
+  }
+}
+
+/**
+ * Verifica si un usuario puede acceder a un tenant específico
+ * - Super admin puede acceder a todos
+ * - Admin de tenant solo puede acceder a su tenant
+ * - User solo puede acceder a su tenant
+ */
+export const canAccessTenant = async (userEmail: string, tenantId: string): Promise<boolean> => {
+  if (!userEmail || !tenantId) return false
+  
+  // Super admin puede acceder a todos
+  const isSuper = await isSuperAdmin(userEmail)
+  if (isSuper) {
+    return true
+  }
+  
+  const prisma = await getPrisma()
+  if (!prisma) {
+    return false
+  }
+  
+  try {
+    // Verificar si el usuario pertenece al tenant
+    const user = await prisma.user.findFirst({
+      where: {
+        email: userEmail.toLowerCase(),
+        tenantId: tenantId,
+        isActive: true,
+      },
+    })
+    
+    if (user) {
+      return true
+    }
+    
+    // Verificar si es admin del tenant
+    return await isAdminForTenant(userEmail, tenantId)
+  } catch (error) {
+    console.error('Error verificando acceso a tenant:', error)
+    return false
   }
 }
 
@@ -114,11 +226,13 @@ export const isAdminEmailSync = (email: string): boolean => {
   return envAdmins.includes(normalizedEmail)
 }
 
-// Agregar nuevo administrador (solo administradores pueden hacer esto)
+// Agregar nuevo administrador (solo super admins o admins del tenant pueden hacer esto)
 export const addAdmin = async (
   newAdminEmail: string, 
   addedByEmail: string, 
-  notes?: string
+  notes?: string,
+  tenantId?: string | null,
+  role: 'ADMIN' | 'SUPER_ADMIN' = 'ADMIN'
 ): Promise<{ success: boolean; message: string }> => {
   const prisma = await getPrisma()
   if (!prisma) {
@@ -126,17 +240,35 @@ export const addAdmin = async (
   }
   
   try {
-    // Verificar que quien agrega sea administrador
-    const isAuthorized = await isAdminEmail(addedByEmail)
-    if (!isAuthorized) {
-      return { success: false, message: 'No tienes permisos para agregar administradores' }
+    // Verificar permisos
+    if (tenantId) {
+      // Verificar si es admin del tenant o super admin
+      const isAdmin = await isAdminForTenant(addedByEmail, tenantId)
+      const isSuper = await isSuperAdmin(addedByEmail)
+      if (!isAdmin && !isSuper) {
+        return { success: false, message: 'No tienes permisos para agregar administradores a este tenant' }
+      }
+      // Solo super admin puede crear SUPER_ADMIN
+      if (role === 'SUPER_ADMIN' && !isSuper) {
+        return { success: false, message: 'Solo super admins pueden crear otros super admins' }
+      }
+    } else {
+      // Solo super admin puede agregar super admins (tenantId null)
+      const isSuper = await isSuperAdmin(addedByEmail)
+      if (!isSuper) {
+        return { success: false, message: 'Solo super admins pueden crear otros super admins' }
+      }
+      role = 'SUPER_ADMIN' // Forzar SUPER_ADMIN si tenantId es null
     }
     
     const normalizedEmail = newAdminEmail.toLowerCase().trim()
     
     // Verificar que el email no esté ya en la lista
-    const existing = await prisma.adminWhitelist.findUnique({
-      where: { email: normalizedEmail }
+    const existing = await prisma.adminWhitelist.findFirst({
+      where: { 
+        email: normalizedEmail,
+        tenantId: tenantId !== undefined ? (tenantId || null) : undefined
+      }
     })
     
     if (existing) {
@@ -145,9 +277,10 @@ export const addAdmin = async (
       } else {
         // Reactivar administrador existente
         await prisma.adminWhitelist.update({
-          where: { email: normalizedEmail },
+          where: { id: existing.id },
           data: { 
             isActive: true, 
+            role: role,
             addedBy: addedByEmail,
             notes: notes || 'Reactivado',
             updatedAt: new Date()
@@ -165,6 +298,8 @@ export const addAdmin = async (
     await prisma.adminWhitelist.create({
       data: {
         email: normalizedEmail,
+        tenantId: tenantId || null,
+        role: role,
         addedBy: addedByEmail,
         notes: notes || 'Agregado por administrador',
         isActive: true
@@ -175,7 +310,7 @@ export const addAdmin = async (
     adminCache = null
     
     // Log de auditoría
-    console.log(`🔐 Nuevo administrador agregado: ${normalizedEmail} por ${addedByEmail}`)
+    console.log(`🔐 Nuevo administrador agregado: ${normalizedEmail} por ${addedByEmail} (tenant: ${tenantId || 'global'}, role: ${role})`)
     
     return { success: true, message: 'Administrador agregado exitosamente' }
     
@@ -185,10 +320,11 @@ export const addAdmin = async (
   }
 }
 
-// Remover administrador (solo administradores pueden hacer esto)
+// Remover administrador (solo super admins o admins del tenant pueden hacer esto)
 export const removeAdmin = async (
   adminEmailToRemove: string, 
-  removedByEmail: string
+  removedByEmail: string,
+  tenantId?: string | null
 ): Promise<{ success: boolean; message: string }> => {
   const prisma = await getPrisma()
   if (!prisma) {
@@ -196,19 +332,23 @@ export const removeAdmin = async (
   }
   
   try {
-    // Verificar que quien remueve sea administrador
-    const isAuthorized = await isAdminEmail(removedByEmail)
-    if (!isAuthorized) {
-      return { success: false, message: 'No tienes permisos para remover administradores' }
+    // Verificar permisos
+    if (tenantId) {
+      // Verificar si es admin del tenant o super admin
+      const isAdmin = await isAdminForTenant(removedByEmail, tenantId)
+      const isSuper = await isSuperAdmin(removedByEmail)
+      if (!isAdmin && !isSuper) {
+        return { success: false, message: 'No tienes permisos para remover administradores de este tenant' }
+      }
+    } else {
+      // Solo super admin puede remover super admins
+      const isSuper = await isSuperAdmin(removedByEmail)
+      if (!isSuper) {
+        return { success: false, message: 'Solo super admins pueden remover otros super admins' }
+      }
     }
     
     const normalizedEmail = adminEmailToRemove.toLowerCase().trim()
-    
-    // No permitir remover administradores principales (de env)
-    const envAdmins = getEnvAdmins()
-    if (envAdmins.includes(normalizedEmail)) {
-      return { success: false, message: 'No se pueden remover administradores principales' }
-    }
     
     // No permitir auto-remoción
     if (normalizedEmail === removedByEmail.toLowerCase().trim()) {
@@ -219,6 +359,7 @@ export const removeAdmin = async (
     const updated = await prisma.adminWhitelist.updateMany({
       where: { 
         email: normalizedEmail,
+        tenantId: tenantId !== undefined ? (tenantId || null) : undefined,
         isActive: true 
       },
       data: { 
@@ -235,7 +376,7 @@ export const removeAdmin = async (
     adminCache = null
     
     // Log de auditoría
-    console.log(`🔐 Administrador removido: ${normalizedEmail} por ${removedByEmail}`)
+    console.log(`🔐 Administrador removido: ${normalizedEmail} por ${removedByEmail} (tenant: ${tenantId || 'global'})`)
     
     return { success: true, message: 'Administrador removido exitosamente' }
     
@@ -274,10 +415,33 @@ export const listAdmins = async (): Promise<{
   }
 }
 
-// Determinar rol del usuario
+// Determinar rol del usuario (deprecated - usar getUserRole con tenantId)
 export const determineUserRole = async (email: string): Promise<'admin' | 'user'> => {
   const isAdmin = await isAdminEmail(email)
   return isAdmin ? 'admin' : 'user'
+}
+
+/**
+ * Determina el rol completo del usuario (SUPER_ADMIN, ADMIN, USER)
+ */
+export const getUserRole = async (email: string, tenantId?: string | null): Promise<'SUPER_ADMIN' | 'ADMIN' | 'USER'> => {
+  if (!email) return 'USER'
+  
+  // Verificar si es super admin
+  const isSuper = await isSuperAdmin(email)
+  if (isSuper) {
+    return 'SUPER_ADMIN'
+  }
+  
+  // Si hay tenantId, verificar si es admin del tenant
+  if (tenantId) {
+    const isAdmin = await isAdminForTenant(email, tenantId)
+    if (isAdmin) {
+      return 'ADMIN'
+    }
+  }
+  
+  return 'USER'
 }
 
 // Log de acceso administrativo

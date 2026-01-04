@@ -9,6 +9,7 @@ export default async function TurneroAppServer() {
   // La autenticación se maneja en el layout, pero obtenemos datos del usuario
   const user = session?.user
   const isAdmin = session?.user?.isAdmin || false
+  const isSuperAdmin = session?.user?.isSuperAdmin || false
 
   async function handleSignOut() {
     'use server'
@@ -27,7 +28,8 @@ export default async function TurneroAppServer() {
               </h1>
               <p className="text-sm text-gray-600">
                 Bienvenido, {user?.name || user?.email}
-                {isAdmin && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Admin</span>}
+                {isSuperAdmin && <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">Super Admin</span>}
+                {isAdmin && !isSuperAdmin && <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">Admin</span>}
               </p>
             </div>
             <form action={handleSignOut}>

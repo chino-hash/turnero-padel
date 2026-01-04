@@ -259,3 +259,5 @@ vercel inspect [deployment-url]
 **Última revisión:** Enero 2026
 
 
+
+

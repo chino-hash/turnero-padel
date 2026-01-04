@@ -5,6 +5,8 @@ import { withRateLimit, bookingCreateRateLimit } from '@/lib/rate-limit'
 import { bookingReportSchema, bookingFiltersSchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 export const runtime = 'nodejs'
 
@@ -38,12 +40,47 @@ export async function GET(request: NextRequest) {
       groupBy: searchParams.get('groupBy') || 'day'
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     // Validar parámetros
     const validatedParams = bookingFiltersSchema.parse(queryParams)
 
     // Los usuarios normales solo pueden ver sus propias estadísticas
-    if (session.user.role !== 'ADMIN' && validatedParams.userId !== session.user.id) {
+    if (!isSuperAdmin && user.role !== 'ADMIN' && validatedParams.userId !== session.user.id) {
       validatedParams.userId = session.user.id
+    }
+
+    // Si se filtra por userId, validar que pertenece al tenant accesible (excepto super admin)
+    if (validatedParams.userId && !isSuperAdmin) {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: validatedParams.userId },
+        select: { tenantId: true }
+      })
+
+      if (!targetUser) {
+        return NextResponse.json(
+          { success: false, error: 'Usuario no encontrado' },
+          { status: 404 }
+        )
+      }
+
+      if (userTenantId && targetUser.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para ver estadísticas de este usuario' },
+          { status: 403 }
+        )
+      }
     }
 
     // Obtener estadísticas
@@ -90,8 +127,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+
     // Solo administradores pueden generar reportes
-    if (session.user.role !== 'ADMIN') {
+    if (!user.isAdmin && !isSuperAdmin) {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden generar reportes' },
         { status: 403 }

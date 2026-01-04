@@ -206,6 +206,7 @@ export class BookingRepository {
       limit,
       courtId,
       userId,
+      tenantId,
       status,
       paymentStatus,
       dateFrom,
@@ -218,6 +219,7 @@ export class BookingRepository {
     const where: Prisma.BookingWhereInput = {
       // Excluir soft deleted (si implementamos deletedAt)
       // deletedAt: null,
+      ...(tenantId && { tenantId }), // Filtro multi-tenant
       ...(courtId && { courtId }),
       ...(userId && { userId }),
       ...(status && { status }),

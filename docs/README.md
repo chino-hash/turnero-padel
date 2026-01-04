@@ -7,6 +7,10 @@ Bienvenido a la documentación técnica del sistema de turnos para canchas de pa
 ```
 docs/
 ├── README.md                           # Este archivo - Índice principal
+├── MULTITENANT_COMPLETE.md            # ⭐ Documentación completa multitenant
+├── ROLLBACK_MULTITENANT.md            # Guía de rollback multitenant
+├── REVISION_APIS_MULTITENANT.md       # Revisión de APIs multitenant
+├── REVISION_SUPER_ADMIN_PANEL.md      # Revisión del panel super admin
 ├── DOCUMENTATION-STANDARDS.md          # Estándares de documentación
 ├── FRONTEND_PROTECTION_POLICIES.md     # Políticas de protección del frontend
 ├── frontend-interfaces-report.md       # Reporte detallado de interfaces del frontend
@@ -32,6 +36,15 @@ Esta documentación tiene como objetivo:
 - **Documentar decisiones técnicas** y patrones utilizados
 - **Proporcionar referencias rápidas** para el equipo de desarrollo
 - **Establecer estándares** de calidad y mejores prácticas
+
+## 🏢 Documentación Multitenant
+
+El sistema utiliza una arquitectura multitenant. Para información completa, consulta:
+
+- **[Documentación Completa Multitenant](./MULTITENANT_COMPLETE.md)** - ⭐ Guía completa del sistema multitenant, incluyendo arquitectura, modelo de datos, migración, rollback, testing y operación
+- **[Rollback Multitenant](./ROLLBACK_MULTITENANT.md)** - Guía para revertir la migración multitenant si es necesario
+- **[Revisión APIs Multitenant](./REVISION_APIS_MULTITENANT.md)** - Detalle de todas las APIs actualizadas para soportar multitenancy
+- **[Revisión Panel Super Admin](./REVISION_SUPER_ADMIN_PANEL.md)** - Documentación del panel de super administración
 
 ## 🖥️ Documentación de Interfaces del Frontend
 

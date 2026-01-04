@@ -22,6 +22,10 @@
 
 ## Documentación Técnica Específica
 
+- **[Arquitectura Multitenant](./MULTITENANT_COMPLETE.md)** - ⭐ Documentación completa del sistema multitenant
+- [Rollback Multitenant](./ROLLBACK_MULTITENANT.md) - Guía de rollback de la migración multitenant
+- [Revisión APIs Multitenant](./REVISION_APIS_MULTITENANT.md) - Revisión de APIs actualizadas
+- [Revisión Panel Super Admin](./REVISION_SUPER_ADMIN_PANEL.md) - Revisión del panel de super administración
 - [Implementación de Horarios Reservados](./documentacion-implementacion-horarios-reservados.md)
 - [Corrección de Posicionamiento - Sección Turnos](./documentacion-implementacion-posicionamiento-turnos.md)
 - [Resumen de Cambios Técnicos](./resumen-cambios-tecnicos.md)

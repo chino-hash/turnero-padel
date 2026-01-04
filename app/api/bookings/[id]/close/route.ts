@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
 import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { eventEmitters } from '@/lib/sse-events'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 export const runtime = 'nodejs'
 
@@ -27,9 +29,20 @@ export async function POST(
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+
     // Solo admins pueden cerrar definitivamente
-    const isAdmin = String(session.user.role).toUpperCase() === 'ADMIN'
-    if (!isAdmin) {
+    if (!user.isAdmin && !isSuperAdmin) {
       return NextResponse.json(
         { success: false, error: 'Permisos insuficientes para cerrar reservas' },
         { status: 403 }
@@ -48,6 +61,33 @@ export async function POST(
         { success: false, error: 'ID de reserva requerido' },
         { status: 400 }
       )
+    }
+
+    const userTenantId = await getUserTenantIdSafe(user)
+    
+    // Validar permisos cross-tenant antes de obtener la reserva
+    let bookingTenantId = userTenantId
+    if (!isSuperAdmin) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { tenantId: true }
+      })
+
+      if (!booking) {
+        return NextResponse.json(
+          { success: false, error: 'Reserva no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      bookingTenantId = booking.tenantId
+
+      if (userTenantId && booking.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para cerrar esta reserva' },
+          { status: 403 }
+        )
+      }
     }
 
     // Obtener la reserva con pricing
@@ -109,7 +149,7 @@ export async function POST(
         action: 'closed',
         booking: result.data,
         message: `Reserva ${bookingId} cerrada definitivamente`
-      })
+      }, bookingTenantId)
     }
 
     return NextResponse.json(result)

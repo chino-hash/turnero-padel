@@ -94,6 +94,12 @@ DATABASE_URL=postgresql://usuario:password@host:5432/database?sslmode=require
 # Administradores del sistema
 ADMIN_EMAILS=admin1@email.com,admin2@email.com
 
+# Super Administradores (Multitenant)
+SUPER_ADMIN_EMAILS=superadmin@email.com
+
+# Encriptación de credenciales (Multitenant)
+CREDENTIAL_ENCRYPTION_KEY=tu-clave-secreta-de-32-caracteres-minimo
+
 # Configuración opcional
 NODE_ENV=development
 ```
@@ -127,10 +133,17 @@ DATABASE_URL=postgresql://usuario:password@localhost:5432/turnero_padel
 
 ## 🎯 Funcionalidades Principales
 
+### 🏢 Arquitectura Multitenant
+- **Múltiples clientes** - Sistema multitenant para gestionar múltiples clubs
+- **Aislamiento de datos** - Datos completamente aislados por tenant
+- **Roles granulares** - Super Admin, Admin de Tenant, y Usuario
+- **Panel Super Admin** - Gestión centralizada de todos los tenants
+- **Credenciales por tenant** - Integración de Mercado Pago por tenant
+
 ### ✅ Sistema de Autenticación
 - **OAuth con Google** - Login seguro y rápido
 - **Gestión de sesiones** - Persistencia automática
-- **Roles de usuario** - Administradores y usuarios regulares
+- **Roles de usuario** - Super Admin, Administradores y usuarios regulares
 - **Protección de rutas** - Middleware de autenticación
 
 ### ✅ Gestión de Canchas
@@ -267,6 +280,7 @@ npm start
 - **[Troubleshooting](docs/guides/troubleshooting.md)** - Solución de problemas
 
 ### 🏗️ Arquitectura
+- **[Arquitectura Multitenant](docs/MULTITENANT_COMPLETE.md)** - ⭐ Documentación completa multitenant
 - **[Arquitectura del Sistema](docs/architecture/system-architecture.md)** - Visión general
 - **[Arquitectura de Componentes](docs/architecture/component-architecture.md)** - Estructura frontend
 - **[Flujos de API](docs/architecture/api-flows.md)** - Endpoints y datos

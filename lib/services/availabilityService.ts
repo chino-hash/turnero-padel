@@ -1,6 +1,6 @@
 import { prisma } from '../database/neon-config'
 
-export async function getAvailableSlots(courtId: string, dateFrom: string, dateTo: string, userRole: 'ADMIN' | 'USER') {
+export async function getAvailableSlots(courtId: string, dateFrom: string, dateTo: string, userRole: 'ADMIN' | 'USER', tenantId?: string | null) {
   const from = new Date(`${dateFrom}T00:00:00`)
   const to = new Date(`${dateTo}T00:00:00`)
   const today = new Date()
@@ -8,13 +8,19 @@ export async function getAvailableSlots(courtId: string, dateFrom: string, dateT
   const threshold = new Date(today)
   threshold.setDate(threshold.getDate() + 7)
 
+  // Construir filtros WHERE con tenantId
+  const bookingWhere: any = {
+    courtId,
+    bookingDate: { gte: from, lte: to },
+    status: { not: 'CANCELLED' }
+  }
+  if (tenantId) {
+    bookingWhere.tenantId = tenantId
+  }
+
   // 1) Instancias reales (Bookings) en todo el rango, excluyendo canceladas
   const bookings = await prisma.booking.findMany({
-    where: {
-      courtId,
-      bookingDate: { gte: from, lte: to },
-      status: { not: 'CANCELLED' }
-    },
+    where: bookingWhere,
     select: { bookingDate: true, startTime: true, endTime: true }
   })
 
@@ -24,23 +30,31 @@ export async function getAvailableSlots(courtId: string, dateFrom: string, dateT
     const adminStart = new Date(Math.max(threshold.getTime(), from.getTime()))
     const adminEnd = to
 
+    // Construir filtros WHERE para recurring bookings con tenantId
+    const recurringWhere: any = {
+      courtId,
+      status: 'ACTIVE',
+      OR: [
+        { endsAt: null },
+        { endsAt: { gte: adminStart } }
+      ],
+      startsAt: { lte: adminEnd }
+    }
+    if (tenantId) {
+      recurringWhere.tenantId = tenantId
+    }
+
     // cargar reglas ACTIVE y excepciones SKIP en rango
     const rules = await prisma.recurringBooking.findMany({
-      where: {
-        courtId,
-        status: 'ACTIVE',
-        OR: [
-          { endsAt: null },
-          { endsAt: { gte: adminStart } }
-        ],
-        startsAt: { lte: adminEnd }
-      },
+      where: recurringWhere,
       select: { id: true, weekday: true, startTime: true, endTime: true }
     })
 
+    // Para excepciones, necesitamos filtrar por recurringId que pertenezca al tenant
+    const recurringIds = rules.map(r => r.id)
     const exceptions = await prisma.recurringBookingException.findMany({
       where: {
-        recurring: { courtId },
+        recurringId: { in: recurringIds },
         date: { gte: adminStart, lte: adminEnd },
         type: 'SKIP'
       },

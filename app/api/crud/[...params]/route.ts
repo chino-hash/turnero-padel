@@ -6,6 +6,7 @@ import { auth } from '../../../../lib/auth';
 import { config as authOptions } from '../../../../lib/auth';
 import { eventEmitters } from '../../../../lib/sse-events';
 import { revalidateTag } from 'next/cache';
+import { canAccessTenant, type User as PermissionsUser } from '../../../../lib/utils/permissions';
 
 // Modelos permitidos para operaciones CRUD
 const ALLOWED_MODELS = [
@@ -19,10 +20,35 @@ const ALLOWED_MODELS = [
   'adminWhitelist'
 ];
 
-// Verificar permisos de administrador
-async function checkAdminPermission() {
+// Obtener sesión y usuario
+async function getSessionAndUser() {
   const session = await auth();
-  return session?.user?.role === 'ADMIN';
+  if (!session?.user) {
+    return { session: null, user: null };
+  }
+  
+  const user: PermissionsUser = {
+    id: session.user.id || undefined,
+    email: session.user.email || null,
+    role: session.user.role || 'USER',
+    isAdmin: session.user.isAdmin || false,
+    isSuperAdmin: session.user.isSuperAdmin || false,
+    tenantId: session.user.tenantId || null,
+  };
+  
+  return { session, user };
+}
+
+// Verificar permisos de administrador (ADMIN o SUPER_ADMIN)
+async function checkAdminPermission() {
+  const { user } = await getSessionAndUser();
+  return user ? (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') : false;
+}
+
+// Verificar permisos de super administrador
+async function checkSuperAdminPermission() {
+  const { user } = await getSessionAndUser();
+  return user ? (user.role === 'SUPER_ADMIN') : false;
 }
 
 // Validar modelo
@@ -63,6 +89,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     validateModel(model);
 
+    // Obtener sesión y usuario
+    const { user } = await getSessionAndUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     // Verificar permisos para modelos sensibles
     if (['user', 'payment', 'adminWhitelist'].includes(model)) {
       const hasPermission = await checkAdminPermission();
@@ -74,8 +109,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // Para AdminWhitelist y Tenant, solo SUPER_ADMIN puede acceder
+    if (['adminWhitelist'].includes(model)) {
+      const isSuperAdmin = await checkSuperAdminPermission();
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Se requieren permisos de Super Administrador' },
+          { status: 403 }
+        );
+      }
+    }
+
     const url = new URL(request.url);
     const searchParams = url.searchParams;
+    
+    // Obtener tenantId del header si está disponible (para super admin especificar tenant)
+    const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
     
     // Opciones de consulta
     const options: any = {};
@@ -118,11 +167,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (id) {
       // Obtener un registro específico
       const service = getService(model);
-      result = await service.readById(id, options);
+      result = await service.readById(id, crudOptions);
     } else if (search && searchFields.length > 0) {
       // Búsqueda de texto
       const service = getService(model);
-      result = await service.search(search, searchFields, options);
+      result = await service.search(search, searchFields, crudOptions);
     } else {
       // Fast-path para SystemSetting por key (evita filtros de soft delete)
       if (model === 'systemSetting' && searchParams.get('key')) {
@@ -184,6 +233,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     validateModel(model);
 
+    // Obtener sesión y usuario
+    const { user } = await getSessionAndUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     // Verificar permisos para modelos sensibles
     if (['user', 'payment', 'adminWhitelist'].includes(model)) {
       const hasPermission = await checkAdminPermission();
@@ -195,11 +253,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
+    // Para AdminWhitelist, solo SUPER_ADMIN puede crear
+    if (['adminWhitelist'].includes(model)) {
+      const isSuperAdmin = await checkSuperAdminPermission();
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Se requieren permisos de Super Administrador' },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
+    // Obtener tenantId del header si está disponible
+    const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
+    
+    // Preparar opciones para CrudService
+    const crudOptions = {
+      user: user,
+      tenantId: tenantIdFromHeader || body.tenantId,
+      userRole: user.role,
+      userId: user.id
+    };
+    
     const service = getService(model);
-    const result = await service.create(body, validationRules);
+    const result = await service.create(body, validationRules, crudOptions);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -247,6 +327,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     validateModel(model);
 
+    // Obtener sesión y usuario
+    const { user } = await getSessionAndUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     // Verificar permisos para modelos sensibles
     if (['user', 'payment', 'adminWhitelist'].includes(model)) {
       const hasPermission = await checkAdminPermission();
@@ -258,11 +347,33 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
     }
 
+    // Para AdminWhitelist, solo SUPER_ADMIN puede actualizar
+    if (['adminWhitelist'].includes(model)) {
+      const isSuperAdmin = await checkSuperAdminPermission();
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Se requieren permisos de Super Administrador' },
+          { status: 403 }
+        );
+      }
+    }
+
     const body = await request.json();
     const validationRules = getValidationRules(model);
     
+    // Obtener tenantId del header si está disponible
+    const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
+    
+    // Preparar opciones para CrudService
+    const crudOptions = {
+      user: user,
+      tenantId: tenantIdFromHeader,
+      userRole: user.role,
+      userId: user.id
+    };
+    
     const service = getService(model);
-    const result = await service.update(id, body, validationRules);
+    const result = await service.update(id, body, validationRules, crudOptions);
     
     if (!result.success) {
       return NextResponse.json(result, { status: 400 });
@@ -318,6 +429,15 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     validateModel(model);
 
+    // Obtener sesión y usuario
+    const { user } = await getSessionAndUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     // Verificar permisos de administrador
     const hasPermission = await checkAdminPermission();
     if (!hasPermission) {
@@ -327,15 +447,37 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
+    // Para AdminWhitelist, solo SUPER_ADMIN puede eliminar
+    if (model === 'adminWhitelist') {
+      const isSuperAdmin = await checkSuperAdminPermission();
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { success: false, error: 'Se requieren permisos de Super Administrador' },
+          { status: 403 }
+        );
+      }
+    }
+
     const url = new URL(request.url);
     const hard = url.searchParams.get('hard') === 'true';
+    
+    // Obtener tenantId del header si está disponible
+    const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
+    
+    // Preparar opciones para CrudService
+    const crudOptions = {
+      user: user,
+      tenantId: tenantIdFromHeader,
+      userRole: user.role,
+      userId: user.id
+    };
     
     let result;
     const service = getService(model);
     if (hard) {
-      result = await service.hardDelete(id);
+      result = await service.hardDelete(id, crudOptions);
     } else {
-      result = await service.delete(id);
+      result = await service.delete(id, crudOptions);
     }
     
     if (!result.success) {

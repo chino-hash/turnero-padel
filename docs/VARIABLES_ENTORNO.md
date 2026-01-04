@@ -33,7 +33,12 @@ DATABASE_URL=postgresql://usuario:password@host:puerto/database
 
 ### Administración
 ```bash
-# Lista de emails de administradores (separados por comas)
+# Lista de emails de super administradores globales (separados por comas)
+# Los super admins pueden gestionar todos los tenants
+SUPER_ADMIN_EMAILS=superadmin1@example.com,superadmin2@example.com
+
+# Lista de emails de administradores por tenant (deprecated - usar AdminWhitelist en BD)
+# Esta variable se mantiene para compatibilidad, pero se recomienda usar AdminWhitelist
 ADMIN_EMAILS=admin1@example.com,admin2@example.com
 ```
 
@@ -79,6 +84,13 @@ NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 ```bash
 # Habilitar análisis de bundle
 ANALYZE=true
+```
+
+### Encriptación de Credenciales (Multitenancy)
+```bash
+# Clave de encriptación para credenciales sensibles (32 bytes en hexadecimal, 64 caracteres)
+# Generar con: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+CREDENTIAL_ENCRYPTION_KEY=tu_clave_hexadecimal_de_64_caracteres_aqui_1234567890abcdef1234567890abcdef
 ```
 
 ### Variables Legacy (Deprecadas)

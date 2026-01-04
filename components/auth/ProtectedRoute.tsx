@@ -33,7 +33,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   }
 
   // No renderizar contenido no autorizado (middleware/layouts manejan redirecciones)
-  if (!session?.user || (requireAdmin && !session.user.isAdmin)) {
+  if (!session?.user || (requireAdmin && !session.user.isAdmin && !session.user.isSuperAdmin)) {
     return null
   }
 

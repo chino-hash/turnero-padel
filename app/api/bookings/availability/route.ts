@@ -41,6 +41,42 @@ export async function GET(request: NextRequest) {
     // Validar parámetros
     const validatedParams = checkAvailabilitySchema.parse(queryParams)
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
+    // Validar que la cancha pertenece al tenant accesible
+    if (!isSuperAdmin && validatedParams.courtId) {
+      const { prisma } = await import('@/lib/database/neon-config')
+      const court = await prisma.court.findUnique({
+        where: { id: validatedParams.courtId },
+        select: { tenantId: true }
+      })
+
+      if (!court) {
+        return NextResponse.json(
+          { success: false, error: 'Cancha no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      if (userTenantId && court.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para verificar disponibilidad en esta cancha' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Verificar disponibilidad
     const result = await bookingService.checkAvailability({
       courtId: validatedParams.courtId,
@@ -96,6 +132,19 @@ export async function POST(request: NextRequest) {
       return rateLimitResult
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     // Obtener y validar datos del cuerpo
     const body = await request.json()
     const { courtId, date, duration = 90 } = body
@@ -105,6 +154,29 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'ID de cancha y fecha son requeridos' },
         { status: 400 }
       )
+    }
+
+    // Validar que la cancha pertenece al tenant accesible
+    if (!isSuperAdmin) {
+      const { prisma } = await import('@/lib/database/neon-config')
+      const court = await prisma.court.findUnique({
+        where: { id: courtId },
+        select: { tenantId: true }
+      })
+
+      if (!court) {
+        return NextResponse.json(
+          { success: false, error: 'Cancha no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      if (userTenantId && court.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para obtener slots de esta cancha' },
+          { status: 403 }
+        )
+      }
     }
 
     // Validar formato de fecha

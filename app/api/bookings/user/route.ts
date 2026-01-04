@@ -10,6 +10,9 @@ export async function GET() {
       return NextResponse.json([])
     }
 
+    // Esta API solo obtiene las reservas del usuario autenticado
+    // No necesita validación cross-tenant adicional ya que el usuario solo puede ver sus propias reservas
+    // El servicio getUserBookings ya filtra por userId
     const bookings = await getUserBookings(session.user.id)
     return NextResponse.json(bookings ?? [])
   } catch (_) {

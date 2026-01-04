@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../../lib/database/neon-config'
 import { auth } from '../../../../lib/auth'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../../lib/utils/permissions'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -8,15 +9,36 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session || (!session.user?.isAdmin && !session.user?.isSuperAdmin)) {
       return NextResponse.json({ success: false, error: 'Permisos insuficientes' }, { status: 403 })
     }
+
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     const url = new URL(req.url)
     const key = url.searchParams.get('key')
     if (!key) {
       return NextResponse.json({ success: false, error: 'key requerido' }, { status: 400 })
     }
-    const item = await prisma.systemSetting.findFirst({ where: { key } })
+
+    // Construir where con filtro de tenantId si no es super admin
+    const where: any = { key }
+    if (!isSuperAdmin && userTenantId) {
+      where.tenantId = userTenantId
+    }
+
+    const item = await prisma.systemSetting.findFirst({ where })
     if (!item) {
       return NextResponse.json({ success: false, error: 'No encontrado' }, { status: 404 })
     }

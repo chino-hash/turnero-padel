@@ -303,14 +303,16 @@ export function getModelSchema(model: string, operation: 'create' | 'update'): a
 
 // Validación de permisos por modelo
 export const modelPermissions = {
+  Tenant: { read: 'SUPER_ADMIN', create: 'SUPER_ADMIN', update: 'SUPER_ADMIN', delete: 'SUPER_ADMIN' },
   User: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   Court: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   Booking: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' },
   BookingPlayer: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' },
   Payment: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
-  SystemSetting: { read: 'ADMIN', create: 'SUPER_ADMIN', update: 'SUPER_ADMIN', delete: 'SUPER_ADMIN' },
+  SystemSetting: { read: 'ADMIN', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   Producto: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
-  AdminWhitelist: { read: 'SUPER_ADMIN', create: 'SUPER_ADMIN', update: 'SUPER_ADMIN', delete: 'SUPER_ADMIN' }
+  AdminWhitelist: { read: 'ADMIN', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
+  RecurringBooking: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' }
 };
 
 // Función para validar permisos de modelo

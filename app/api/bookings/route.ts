@@ -8,6 +8,7 @@ import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
 import { clearBookingsCache } from '@/lib/services/courts'
+import { canAccessTenant, getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 
@@ -57,9 +58,50 @@ export async function GET(request: NextRequest) {
     // Validar parámetros
     const validatedParams = bookingFiltersSchema.parse(queryParams)
 
-    // Si no es admin, solo puede ver sus propias reservas
-    if (session.user.role !== 'ADMIN' && !validatedParams.userId) {
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
+    // Si no es admin ni super admin, solo puede ver sus propias reservas
+    if (!isSuperAdmin && user.role !== 'ADMIN' && !validatedParams.userId) {
       validatedParams.userId = session.user.id
+    }
+
+    // Si se filtra por userId, validar que pertenece al tenant accesible (excepto super admin)
+    if (validatedParams.userId && !isSuperAdmin) {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: validatedParams.userId },
+        select: { tenantId: true }
+      })
+
+      if (!targetUser) {
+        return NextResponse.json(
+          { success: false, error: 'Usuario no encontrado' },
+          { status: 404 }
+        )
+      }
+
+      // Validar que el usuario target pertenece al tenant accesible
+      if (userTenantId && targetUser.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tiene permisos para ver reservas de este usuario' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Agregar tenantId al filtro (seguridad en múltiples capas)
+    if (!isSuperAdmin && userTenantId) {
+      validatedParams.tenantId = userTenantId
     }
 
     // Obtener reservas
@@ -134,6 +176,49 @@ export async function POST(request: NextRequest) {
       userId: session.user.id // Asegurar que use el ID del usuario autenticado
     })
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
+    // Validar que el courtId pertenece al tenant del usuario (excepto super admin)
+    if (!isSuperAdmin && validatedData.courtId) {
+      const court = await prisma.court.findUnique({
+        where: { id: validatedData.courtId },
+        select: { tenantId: true, isActive: true }
+      })
+
+      if (!court) {
+        return NextResponse.json(
+          { success: false, error: 'Cancha no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      if (!court.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'La cancha no está activa' },
+          { status: 400 }
+        )
+      }
+
+      // Validar que la cancha pertenece al tenant del usuario
+      if (userTenantId && court.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tiene permisos para crear reservas en esta cancha' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Crear reserva usando el servicio optimizado
     const result = await bookingService.createBooking(validatedData, session.user.id)
 
@@ -152,14 +237,14 @@ export async function POST(request: NextRequest) {
       action: 'created',
       booking: result.data,
       message: `Nueva reserva creada para ${validatedData.bookingDate} ${validatedData.startTime}-${validatedData.endTime}`
-    })
+    }, userTenantId)
     
     eventEmitters.slotsUpdated({
       action: 'availability_changed',
       courtId: validatedData.courtId,
       date: validatedData.bookingDate,
       message: `Disponibilidad actualizada para ${validatedData.bookingDate}`
-    })
+    }, userTenantId)
 
     return NextResponse.json(result, { status: 201 })
   } catch (error) {

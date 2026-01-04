@@ -42,32 +42,38 @@ model Session {
 }
 
 model User {
-  id                String    @id @default(cuid())
+  id                String             @id @default(cuid())
+  tenantId          String
   name              String?
-  email             String    @unique
+  email             String
   emailVerified     DateTime?
   image             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   fullName          String?
   phone             String?
-  role              Role      @default(USER)
-  isActive          Boolean   @default(true)
+  role              Role               @default(USER)
+  isActive          Boolean            @default(true)
   lastLogin         DateTime?
-  preferences       String    @default("{}")
+  preferences       String             @default("{}")
   deletedAt         DateTime?
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   accounts          Account[]
   bookings          Booking[]
   recurringBookings RecurringBooking[]
-  paymentsProcessed Payment[] @relation("ProcessedBy")
-  closedBookings    Booking[] @relation("ClosedBy")
+  paymentsProcessed Payment[]          @relation("ProcessedBy")
+  closedBookings    Booking[]          @relation("ClosedBy")
   sessions          Session[]
 
+  @@unique([email, tenantId])
   @@index([email])
+  @@index([tenantId])
+  @@index([email, tenantId])
   @@index([role])
   @@index([isActive])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([tenantId, isActive])
 }
 
 model VerificationToken {
@@ -78,40 +84,78 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model Tenant {
+  id                    String    @id @default(cuid())
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  name                  String
+  slug                  String    @unique
+  isActive              Boolean   @default(true)
+  subscriptionPlan      String?
+  subscriptionExpiresAt DateTime?
+  settings              String    @default("{}")
+
+  // Credenciales de Mercado Pago (encriptadas)
+  mercadoPagoAccessToken   String? @db.Text
+  mercadoPagoPublicKey     String? @db.Text
+  mercadoPagoWebhookSecret String? @db.Text
+  mercadoPagoEnabled       Boolean @default(false)
+  mercadoPagoEnvironment   String? @default("sandbox")
+
+  users             User[]
+  courts            Court[]
+  bookings          Booking[]
+  payments          Payment[]
+  recurringBookings RecurringBooking[]
+  products          Producto[]
+  systemSettings    SystemSetting[]
+  admins            AdminWhitelist[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([mercadoPagoEnabled])
+}
+
 model Court {
-  id              String    @id @default(cuid())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  name            String
-  description     String?
-  basePrice       Int
-  priceMultiplier Float     @default(1.0)
-  features        String
-  isActive        Boolean   @default(true)
-  operatingHours  String    @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
-  deletedAt       DateTime?
-  bookings        Booking[]
+  id                String             @id @default(cuid())
+  tenantId          String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  name              String
+  description       String?
+  basePrice         Int
+  priceMultiplier   Float              @default(1.0)
+  features          String
+  isActive          Boolean            @default(true)
+  operatingHours    String             @default("{\"start\": \"00:00\", \"end\": \"23:00\", \"slot_duration\": 90}")
+  deletedAt         DateTime?
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  bookings          Booking[]
   recurringBookings RecurringBooking[]
 
+  @@index([tenantId])
   @@index([isActive])
   @@index([name])
   @@index([deletedAt])
+  @@index([tenantId, isActive])
+  @@index([tenantId, name])
 }
 
 model Booking {
-  id                 String          @id @default(cuid())
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  id                 String            @id @default(cuid())
+  tenantId           String
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   courtId            String
   userId             String
   bookingDate        DateTime
   startTime          String
   endTime            String
-  durationMinutes    Int             @default(90)
+  durationMinutes    Int               @default(90)
   totalPrice         Int
-  depositAmount      Int             @default(0)
-  status             BookingStatus   @default(PENDING)
-  paymentStatus      PaymentStatus   @default(PENDING)
+  depositAmount      Int               @default(0)
+  status             BookingStatus     @default(PENDING)
+  paymentStatus      PaymentStatus     @default(PENDING)
   paymentMethod      PaymentMethod?
   notes              String?
   cancelledAt        DateTime?
@@ -119,19 +163,25 @@ model Booking {
   closedAt           DateTime?
   closedById         String?
   deletedAt          DateTime?
-  court              Court           @relation(fields: [courtId], references: [id])
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  closedBy           User?           @relation("ClosedBy", fields: [closedById], references: [id])
+  expiresAt          DateTime?
+  tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  court              Court             @relation(fields: [courtId], references: [id])
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  closedBy           User?             @relation("ClosedBy", fields: [closedById], references: [id])
   players            BookingPlayer[]
   payments           Payment[]
   extras             BookingExtra[]
   recurringId        String?
   recurringBooking   RecurringBooking? @relation(fields: [recurringId], references: [id])
 
-  @@unique([courtId, bookingDate, startTime, endTime])
+  @@unique([tenantId, courtId, bookingDate, startTime, endTime])
+  @@index([tenantId])
   @@index([courtId, bookingDate])
+  @@index([tenantId, courtId, bookingDate])
   @@index([userId, bookingDate])
+  @@index([tenantId, userId, bookingDate])
   @@index([status, bookingDate])
+  @@index([tenantId, status, bookingDate])
   @@index([paymentStatus])
   @@index([bookingDate, startTime])
   @@index([createdAt])
@@ -139,10 +189,14 @@ model Booking {
   @@index([closedAt])
   @@index([closedById])
   @@index([courtId, status, bookingDate])
+  @@index([tenantId, courtId, status, bookingDate])
   @@index([courtId, bookingDate, status, paymentStatus], map: "idx_booking_complex_search")
+  @@index([tenantId, courtId, bookingDate, status, paymentStatus])
   @@index([courtId, bookingDate, startTime, endTime], map: "idx_booking_time_range")
   @@index([status, paymentStatus, createdAt], map: "idx_booking_status_reports")
   @@index([recurringId])
+  @@index([expiresAt])
+  @@index([tenantId, expiresAt])
 }
 
 model BookingPlayer {
@@ -173,6 +227,7 @@ model BookingPlayer {
 
 model Payment {
   id              String         @id @default(cuid())
+  tenantId        String
   createdAt       DateTime       @default(now())
   bookingId       String
   playerId        String?
@@ -185,10 +240,12 @@ model Payment {
   status          String         @default("completed")
   deletedAt       DateTime?
   updatedAt       DateTime       @updatedAt
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   booking         Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   player          BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
   processedBy     User?          @relation("ProcessedBy", fields: [processedById], references: [id])
 
+  @@index([tenantId])
   @@index([bookingId])
   @@index([playerId])
   @@index([processedById])
@@ -198,53 +255,69 @@ model Payment {
   @@index([createdAt])
   @@index([referenceNumber])
   @@index([deletedAt])
+  @@index([tenantId, createdAt])
   @@index([createdAt, status, paymentMethod, amount], map: "idx_payment_reports")
+  @@index([tenantId, createdAt, status, paymentMethod, amount])
   @@index([paymentMethod, paymentType, createdAt], map: "idx_payment_analytics")
+  @@index([tenantId, paymentMethod, paymentType, createdAt])
 }
 
 model SystemSetting {
   id          String   @id @default(cuid())
+  tenantId    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  key         String   @unique
+  key         String
   value       String
   description String?
   category    String   @default("general")
   isPublic    Boolean  @default(false)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([key, tenantId])
+  @@index([tenantId])
+  @@index([key])
+  @@index([tenantId, key])
+  @@index([tenantId, category])
 }
 
 model Producto {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int            @id @default(autoincrement())
+  tenantId  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
   nombre    String
   precio    Float
-  stock     Int      @default(0)
+  stock     Int            @default(0)
   categoria String
-  activo    Boolean  @default(true)
+  activo    Boolean        @default(true)
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   extras    BookingExtra[]
 
+  @@index([tenantId])
   @@index([categoria])
   @@index([activo])
+  @@index([tenantId, categoria])
+  @@index([tenantId, activo])
 }
 
 model BookingExtra {
-  id            String         @id @default(cuid())
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   bookingId     String
   playerId      String?
   productoId    Int
-  quantity      Int            @default(1)
+  quantity      Int       @default(1)
   unitPrice     Float
   totalPrice    Float
-  assignedToAll Boolean        @default(false)
+  assignedToAll Boolean   @default(false)
   notes         String?
   deletedAt     DateTime?
 
-  booking       Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  player        BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  producto      Producto       @relation(fields: [productoId], references: [id])
+  booking  Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  player   BookingPlayer? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  producto Producto       @relation(fields: [productoId], references: [id])
 
   @@index([bookingId])
   @@index([playerId])
@@ -254,20 +327,29 @@ model BookingExtra {
 
 model AdminWhitelist {
   id        String   @id @default(cuid())
+  tenantId  String? // null = super admin global
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  email     String   @unique
+  email     String
+  role      Role     @default(ADMIN)
   isActive  Boolean  @default(true)
   addedBy   String?
   notes     String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@unique([email, tenantId])
   @@index([email])
+  @@index([tenantId])
   @@index([isActive])
+  @@index([role])
+  @@index([tenantId, isActive])
+  @@index([email, tenantId, isActive])
 }
 
 enum Role {
   USER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum BookingStatus {
@@ -295,26 +377,31 @@ enum PaymentType {
   REFUND
   ADJUSTMENT
 }
+
 model RecurringBooking {
-  id          String         @id @default(cuid())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  courtId     String
-  userId      String
-  weekday     Int            // 0 (domingo) - 6 (sábado)
-  startTime   String
-  endTime     String
-  status      RecurringStatus @default(ACTIVE)
-  startsAt    DateTime
-  endsAt      DateTime?
-  notes       String?
+  id        String          @id @default(cuid())
+  tenantId  String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  courtId   String
+  userId    String
+  weekday   Int // 0 (domingo) - 6 (sábado)
+  startTime String
+  endTime   String
+  status    RecurringStatus @default(ACTIVE)
+  startsAt  DateTime
+  endsAt    DateTime?
+  notes     String?
 
-  court       Court          @relation(fields: [courtId], references: [id])
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookings    Booking[]
-  exceptions  RecurringBookingException[]
+  tenant     Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  court      Court                       @relation(fields: [courtId], references: [id])
+  user       User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings   Booking[]
+  exceptions RecurringBookingException[]
 
+  @@index([tenantId])
   @@index([courtId, weekday, startTime, status])
+  @@index([tenantId, courtId, weekday, startTime, status])
 }
 
 enum RecurringStatus {
@@ -329,15 +416,15 @@ enum ExceptionType {
 }
 
 model RecurringBookingException {
-  id          Int             @id @default(autoincrement())
-  createdAt   DateTime        @default(now())
+  id          Int           @id @default(autoincrement())
+  createdAt   DateTime      @default(now())
   recurringId String
-  date        DateTime        // solo fecha (UTC normalizado)
+  date        DateTime // solo fecha (UTC normalizado)
   type        ExceptionType
   reason      String?
   newPrice    Float?
 
-  recurring   RecurringBooking @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+  recurring RecurringBooking @relation(fields: [recurringId], references: [id], onDelete: Cascade)
 
   @@index([recurringId, date])
 }

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/database/neon-config'
 import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { eventEmitters } from '@/lib/sse-events'
 import { BookingService } from '@/lib/services/BookingService'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 
@@ -27,14 +28,34 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'IDs requeridos' }, { status: 400 })
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     const booking = await prisma.booking.findFirst({
       where: { id: bookingId, deletedAt: null },
-      select: { id: true, userId: true }
+      select: { id: true, userId: true, tenantId: true }
     })
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Reserva no encontrada' }, { status: 404 })
     }
-    if (session.user.role !== 'ADMIN' && booking.userId !== session.user.id) {
+
+    // Validar permisos cross-tenant
+    if (!isSuperAdmin && userTenantId && booking.tenantId !== userTenantId) {
+      return NextResponse.json({ success: false, error: 'No tienes permisos para actualizar esta reserva' }, { status: 403 })
+    }
+
+    // Validar permisos: USER solo puede actualizar sus propias reservas, ADMIN puede actualizar de su tenant
+    if (!user.isAdmin && !isSuperAdmin && booking.userId !== session.user.id) {
       return NextResponse.json({ success: false, error: 'No tienes permisos para actualizar esta reserva' }, { status: 403 })
     }
 
@@ -64,7 +85,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       action: 'extras_removed',
       bookingId,
       extraId: result.id,
-    })
+    }, booking.tenantId)
 
     // Devolver la reserva completa con pricing actualizado
     const service = new BookingService(prisma)

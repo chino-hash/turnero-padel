@@ -6,6 +6,7 @@ import { eventEmitters } from '@/lib/sse-events'
 import { createBookingExtraSchema } from '@/lib/validations/extras'
 import { ZodError } from 'zod'
 import { BookingService } from '@/lib/services/BookingService'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 
@@ -29,16 +30,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'ID de reserva requerido' }, { status: 400 })
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     const booking = await prisma.booking.findFirst({
       where: { id: bookingId, deletedAt: null },
-      select: { id: true, userId: true }
+      select: { id: true, userId: true, tenantId: true }
     })
 
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Reserva no encontrada' }, { status: 404 })
     }
 
-    if (session.user.role !== 'ADMIN' && booking.userId !== session.user.id) {
+    // Validar permisos cross-tenant
+    if (!isSuperAdmin && userTenantId && booking.tenantId !== userTenantId) {
+      return NextResponse.json({ success: false, error: 'No tienes permisos para ver esta reserva' }, { status: 403 })
+    }
+
+    // Validar permisos: USER solo puede ver sus propias reservas, ADMIN puede ver de su tenant
+    if (!user.isAdmin && !isSuperAdmin && booking.userId !== session.user.id) {
       return NextResponse.json({ success: false, error: 'No tienes permisos para ver esta reserva' }, { status: 403 })
     }
 
@@ -86,25 +106,53 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'playerId es requerido si no se asigna a todos' }, { status: 400 })
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     // Verificar reserva y permisos
     const booking = await prisma.booking.findFirst({
       where: { id: bookingId, deletedAt: null },
-      select: { id: true, userId: true }
+      select: { id: true, userId: true, tenantId: true }
     })
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Reserva no encontrada' }, { status: 404 })
     }
-    if (session.user.role !== 'ADMIN' && booking.userId !== session.user.id) {
+
+    // Validar permisos cross-tenant
+    if (!isSuperAdmin && userTenantId && booking.tenantId !== userTenantId) {
+      return NextResponse.json({ success: false, error: 'No tienes permisos para actualizar esta reserva' }, { status: 403 })
+    }
+
+    // Validar permisos: USER solo puede actualizar sus propias reservas, ADMIN puede actualizar de su tenant
+    if (!user.isAdmin && !isSuperAdmin && booking.userId !== session.user.id) {
       return NextResponse.json({ success: false, error: 'No tienes permisos para actualizar esta reserva' }, { status: 403 })
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // Validar que el producto pertenece al mismo tenant
       const producto = await tx.producto.findFirst({
         where: { id: payload.productoId, activo: true },
+        select: { id: true, precio: true, stock: true, tenantId: true }
       })
       if (!producto) {
         throw new Error('Producto no encontrado o inactivo')
       }
+
+      // Validar que el producto pertenece al mismo tenant que la reserva
+      if (!isSuperAdmin && userTenantId && producto.tenantId !== booking.tenantId) {
+        throw new Error('El producto no pertenece al mismo tenant que la reserva')
+      }
+
       if (producto.stock < payload.quantity) {
         throw new Error('Stock insuficiente')
       }
@@ -138,7 +186,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       action: 'extras_added',
       bookingId,
       extraId: result.id,
-    })
+    }, booking.tenantId)
 
     // Devolver la reserva completa con pricing actualizado
     const service = new BookingService(prisma)

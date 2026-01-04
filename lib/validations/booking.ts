@@ -120,6 +120,7 @@ export const bookingFiltersSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(10),
   courtId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
+  tenantId: z.string().cuid().optional(), // Filtro multi-tenant
   status: z.enum(['PENDING', 'CONFIRMED', 'ACTIVE', 'COMPLETED', 'CANCELLED']).optional(),
   paymentStatus: z.enum(['PENDING', 'DEPOSIT_PAID', 'FULLY_PAID']).optional(),
   dateFrom: z.string().optional(),

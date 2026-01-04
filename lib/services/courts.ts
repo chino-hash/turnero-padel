@@ -123,10 +123,15 @@ function canonicalCourtName(name: string): string {
 }
 
 // Obtener todas las canchas activas
-export async function getCourts(): Promise<Court[]> {
+export async function getCourts(tenantId?: string): Promise<Court[]> {
   try {
+    const whereClause: any = { isActive: true }
+    if (tenantId) {
+      whereClause.tenantId = tenantId
+    }
+    
     const courts = await prisma.court.findMany({
-      where: { isActive: true },
+      where: whereClause,
       orderBy: { name: 'asc' }
     })
     // Deduplicar por nombre canónico
@@ -160,9 +165,15 @@ export async function getCourts(): Promise<Court[]> {
 }
 
 // Obtener todas las canchas (para administraci�n)
-export async function getAllCourts(): Promise<Court[]> {
+export async function getAllCourts(tenantId?: string): Promise<Court[]> {
   try {
+    const whereClause: any = {}
+    if (tenantId) {
+      whereClause.tenantId = tenantId
+    }
+    
     const courts = await prisma.court.findMany({
+      where: whereClause,
       orderBy: { name: 'asc' }
     })
     return courts.map(transformCourtData)

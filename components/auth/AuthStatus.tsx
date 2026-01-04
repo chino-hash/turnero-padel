@@ -68,12 +68,13 @@ export function AuthStatus({ showRetryButton = true, className = '' }: AuthStatu
   }
 
   if (isAuthenticated && user) {
+    const roleLabel = user.isSuperAdmin ? ' (Super Admin)' : user.isAdmin ? ' (Admin)' : ''
     return (
       <div className={`flex items-center gap-2 text-sm text-green-600 ${className}`}>
         <CheckCircle className="h-4 w-4" />
         <span>
           Conectado como {user.name || user.email}
-          {user.isAdmin && ' (Admin)'}
+          {roleLabel}
         </span>
       </div>
     )

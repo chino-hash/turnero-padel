@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { z } from 'zod'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 const schema = z.object({
   courtId: z.string().min(1),
@@ -16,15 +17,64 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth()
-  if (!session?.user?.role || session.user.role !== 'ADMIN') {
+  if (!session?.user) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  // Construir usuario para validación de permisos
+  const user: PermissionsUser = {
+    id: session.user.id,
+    email: session.user.email || null,
+    role: session.user.role || 'USER',
+    isAdmin: session.user.isAdmin || false,
+    isSuperAdmin: session.user.isSuperAdmin || false,
+    tenantId: session.user.tenantId || null,
+  }
+
+  const isSuperAdmin = await isSuperAdminUser(user)
+
+  if (!user.isAdmin && !isSuperAdmin) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
+
   const body = await req.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: 'Datos inválidos', details: parsed.error.issues }, { status: 400 })
   }
   const { courtId, userId, weekday, startTime, endTime, startsAt, endsAt, notes } = parsed.data
+
+  // Validar que la cancha pertenece al tenant accesible
+  if (!isSuperAdmin) {
+    const userTenantId = await getUserTenantIdSafe(user)
+    const court = await prisma.court.findUnique({
+      where: { id: courtId },
+      select: { tenantId: true }
+    })
+
+    if (!court) {
+      return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
+    }
+
+    if (userTenantId && court.tenantId !== userTenantId) {
+      return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes en esta cancha' }, { status: 403 })
+    }
+
+    // Validar que el usuario pertenece al tenant accesible
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true }
+    })
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+    }
+
+    if (userTenantId && targetUser.tenantId !== userTenantId) {
+      return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes para este usuario' }, { status: 403 })
+    }
+  }
+
   try {
     const rule = await prisma.recurringBooking.create({
       data: {

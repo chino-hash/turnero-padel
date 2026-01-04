@@ -7,6 +7,8 @@ import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
 import { clearBookingsCache } from '@/lib/services/courts'
+import { canAccessTenant, getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 export const runtime = 'nodejs'
 
@@ -47,6 +49,18 @@ export async function GET(
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+
     // Obtener reserva
     const result = await bookingService.getBookingById(bookingId)
 
@@ -54,13 +68,32 @@ export async function GET(
       return NextResponse.json(result, { status: 404 })
     }
 
-    // Verificar permisos: admin (mayúsculas/minúsculas) o propietario pueden ver la reserva
-    const isAdmin = String(session.user.role).toUpperCase() === 'ADMIN'
-    if (!isAdmin && result.data?.userId !== session.user.id) {
-      return NextResponse.json(
-        { success: false, error: 'No tienes permisos para ver esta reserva' },
-        { status: 403 }
-      )
+    // Verificar permisos cross-tenant
+    if (result.data) {
+      // Obtener tenantId de la reserva (desde el court o desde el user)
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { tenantId: true, courtId: true, userId: true }
+      })
+
+      if (booking?.tenantId && !isSuperAdmin) {
+        const userTenantId = await getUserTenantIdSafe(user)
+        if (userTenantId && booking.tenantId !== userTenantId) {
+          return NextResponse.json(
+            { success: false, error: 'No tienes permisos para ver esta reserva' },
+            { status: 403 }
+          )
+        }
+      }
+
+      // Verificar permisos: USER solo puede ver sus propias reservas, ADMIN puede ver de su tenant
+      const isAdmin = user.role === 'ADMIN' || isSuperAdmin
+      if (!isAdmin && result.data?.userId !== session.user.id) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para ver esta reserva' },
+          { status: 403 }
+        )
+      }
     }
 
     return NextResponse.json(result)
@@ -104,12 +137,66 @@ export async function PUT(
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
     // Obtener y validar datos del cuerpo
     const body = await request.json()
     const validatedData = updateBookingSchema.parse(body)
 
-    // Obtener la reserva original para invalidar el caché de la fecha anterior (si cambió)
+    // Obtener la reserva original para validar permisos y invalidar el caché
     const originalBooking = await bookingService.getBookingById(bookingId)
+    if (!originalBooking.success || !originalBooking.data) {
+      return NextResponse.json(originalBooking, { status: 404 })
+    }
+
+    // Validar permisos cross-tenant antes de actualizar
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { tenantId: true, courtId: true, userId: true }
+    })
+
+    if (booking?.tenantId && !isSuperAdmin) {
+      if (userTenantId && booking.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para actualizar esta reserva' },
+          { status: 403 }
+        )
+      }
+    }
+
+    // Si se cambia courtId, validar que pertenece al tenant
+    if (validatedData.courtId && validatedData.courtId !== booking?.courtId && !isSuperAdmin) {
+      const newCourt = await prisma.court.findUnique({
+        where: { id: validatedData.courtId },
+        select: { tenantId: true, isActive: true }
+      })
+
+      if (!newCourt) {
+        return NextResponse.json(
+          { success: false, error: 'Cancha no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      if (userTenantId && newCourt.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para cambiar a esta cancha' },
+          { status: 403 }
+        )
+      }
+    }
+
     const originalCourtId = originalBooking.data?.courtId
     const originalDate = originalBooking.data?.bookingDate ? new Date(originalBooking.data.bookingDate) : null
 
@@ -145,11 +232,12 @@ export async function PUT(
 
     // Emitir evento SSE para actualizaciones en tiempo real
     if (result.data) {
+      const bookingTenantId = booking?.tenantId || userTenantId
       eventEmitters.bookingsUpdated({
         action: 'updated',
         booking: result.data,
         message: `Reserva ${bookingId} actualizada`
-      })
+      }, bookingTenantId)
 
       // Si se cambió la fecha/hora, actualizar disponibilidad
       if (validatedData.bookingDate || validatedData.startTime || validatedData.endTime) {
@@ -158,7 +246,7 @@ export async function PUT(
           courtId: result.data.courtId,
           date: result.data.bookingDate,
           message: `Disponibilidad actualizada para ${result.data.bookingDate}`
-        })
+        }, bookingTenantId)
       }
     }
 
@@ -214,8 +302,40 @@ export async function DELETE(
       )
     }
 
-    // Obtener la reserva antes de cancelar para invalidar el caché
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
+    // Obtener la reserva antes de cancelar para validar permisos e invalidar el caché
     const originalBooking = await bookingService.getBookingById(bookingId)
+    if (!originalBooking.success || !originalBooking.data) {
+      return NextResponse.json(originalBooking, { status: 404 })
+    }
+
+    // Validar permisos cross-tenant antes de cancelar
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { tenantId: true, courtId: true, userId: true }
+    })
+
+    if (booking?.tenantId && !isSuperAdmin) {
+      if (userTenantId && booking.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para cancelar esta reserva' },
+          { status: 403 }
+        )
+      }
+    }
+
     const originalCourtId = originalBooking.data?.courtId
     const originalDate = originalBooking.data?.bookingDate ? new Date(originalBooking.data.bookingDate) : null
 
@@ -244,18 +364,19 @@ export async function DELETE(
 
     // Emitir eventos SSE para actualizaciones en tiempo real
     if (result.data) {
+      const bookingTenantId = booking?.tenantId || userTenantId
       eventEmitters.bookingsUpdated({
         action: 'cancelled',
         booking: result.data,
         message: `Reserva ${bookingId} cancelada`
-      })
+      }, bookingTenantId)
 
       eventEmitters.slotsUpdated({
         action: 'availability_changed',
         courtId: result.data.courtId,
         date: result.data.bookingDate,
         message: `Disponibilidad actualizada para ${result.data.bookingDate}`
-      })
+      }, bookingTenantId)
     }
 
     return NextResponse.json(result)

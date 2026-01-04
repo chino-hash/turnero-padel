@@ -2,16 +2,28 @@ import { prisma } from '../database/neon-config'
 
 function ymd(d: Date) { return new Date(d).toISOString().split('T')[0] }
 
-export async function generateRecurringInstances() {
+/**
+ * Genera instancias de reservas recurrentes para los próximos 7 días
+ * @param tenantId - ID del tenant (opcional). Si se proporciona, solo genera instancias para ese tenant
+ */
+export async function generateRecurringInstances(tenantId?: string | null) {
   const today = new Date(); today.setHours(0,0,0,0)
   const end = new Date(today); end.setDate(end.getDate() + 7)
 
+  // Construir filtro base
+  const whereClause: any = {
+    status: 'ACTIVE',
+    OR: [{ endsAt: null }, { endsAt: { gte: today } }],
+    startsAt: { lte: end }
+  }
+
+  // Si se proporciona tenantId, filtrar por tenant
+  if (tenantId) {
+    whereClause.tenantId = tenantId
+  }
+
   const rules = await prisma.recurringBooking.findMany({
-    where: {
-      status: 'ACTIVE',
-      OR: [{ endsAt: null }, { endsAt: { gte: today } }],
-      startsAt: { lte: end }
-    }
+    where: whereClause
   })
 
   const exceptions = await prisma.recurringBookingException.findMany({
@@ -37,6 +49,7 @@ export async function generateRecurringInstances() {
       const override = overrideMap.get(key)
       const totalPrice = override?.newPrice ? Math.round(override.newPrice) : undefined
       toCreate.push({
+        tenantId: r.tenantId,
         courtId: r.courtId,
         userId: r.userId,
         bookingDate: info.date,

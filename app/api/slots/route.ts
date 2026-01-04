@@ -9,6 +9,8 @@ import { getDefaultOperatingHours } from '../../../lib/services/system-settings'
 import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'
 import { OperatingHoursSchema, parseJsonSafely } from '../../../lib/schemas'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 // Esquema de validación para los parámetros de entrada
 const slotsQuerySchema = z.object({
@@ -93,6 +95,46 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
+    // Validar permisos cross-tenant antes de obtener la cancha
+    let user: PermissionsUser | null = null
+    let userTenantId: string | null = null
+    let isSuperAdmin = false
+
+    if (session?.user) {
+      user = {
+        id: session.user.id,
+        email: session.user.email || null,
+        role: session.user.role || 'USER',
+        isAdmin: session.user.isAdmin || false,
+        isSuperAdmin: session.user.isSuperAdmin || false,
+        tenantId: session.user.tenantId || null,
+      }
+      isSuperAdmin = await isSuperAdminUser(user)
+      userTenantId = await getUserTenantIdSafe(user)
+    }
+
+    // Validar que la cancha pertenece al tenant accesible (si hay usuario autenticado)
+    if (user && !isSuperAdmin) {
+      const court = await prisma.court.findUnique({
+        where: { id: courtId },
+        select: { tenantId: true, isActive: true }
+      })
+
+      if (!court) {
+        return NextResponse.json({ 
+          error: 'Cancha no encontrada',
+          courtId 
+        }, { status: 404 })
+      }
+
+      if (userTenantId && court.tenantId !== userTenantId) {
+        return NextResponse.json({ 
+          error: 'No tienes permisos para acceder a esta cancha',
+          courtId 
+        }, { status: 403 })
+      }
+    }
+
     const court = await getCourtById(courtId)
     if (!court) {
       return NextResponse.json({ 
@@ -165,7 +207,7 @@ export async function GET(req: NextRequest) {
     // Aplicar bloqueos virtuales (>7 días) para ADMIN usando reglas recurrentes
     if (userRole === 'ADMIN') {
       try {
-        const { virtualBlocks, thresholdDate } = await getAvailableSlots(courtId, dateStr, dateStr, userRole)
+        const { virtualBlocks, thresholdDate } = await getAvailableSlots(courtId, dateStr, dateStr, userRole, userTenantId)
         if (dateStr > thresholdDate && virtualBlocks.length > 0) {
           const blockSet = new Set(virtualBlocks.filter(v => v.date === dateStr).map(v => `${v.startTime} - ${v.endTime}`))
           for (const s of slots) {

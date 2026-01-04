@@ -11,10 +11,13 @@ import { NextResponse } from "next/server"
 export default auth((req) => {
   const { nextUrl } = req
   const isLoggedIn = !!req.auth
-  const isAdmin = req.auth?.user?.isAdmin || false
+  const user = req.auth?.user
+  const isAdmin = user?.isAdmin || false
+  const isSuperAdmin = user?.isSuperAdmin || false
+  const userTenantId = user?.tenantId || null
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots', '/dashboard']
+  const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots']
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
 
   // Rutas de API de autenticación
@@ -56,18 +59,54 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(redirectUrl, nextUrl))
   }
 
-  // Rutas de administrador
+  // Rutas de super admin (solo SUPER_ADMIN puede acceder)
+  const superAdminRoutes = ['/super-admin']
+  const isSuperAdminRoute = superAdminRoutes.some(route => nextUrl.pathname.startsWith(route))
+
+  if (isSuperAdminRoute) {
+    if (!isSuperAdmin) {
+      const errorUrl = new URL('/auth/error', nextUrl)
+      errorUrl.searchParams.set('error', 'AccessDenied')
+      return NextResponse.redirect(errorUrl)
+    }
+    // Super admin puede acceder, agregar header con tenant-id si es necesario
+    const response = NextResponse.next()
+    if (userTenantId) {
+      response.headers.set('x-tenant-id', userTenantId)
+    }
+    return response
+  }
+
+  // Rutas de administrador (compatibilidad con rutas antiguas)
   const adminRoutes = ['/admin', '/admin-panel']
   const isAdminRoute = adminRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Si trata de acceder a ruta de admin sin ser admin, redirigir con error
-  if (isAdminRoute && !isAdmin) {
+  if (isAdminRoute && !isAdmin && !isSuperAdmin) {
     const errorUrl = new URL('/auth/error', nextUrl)
     errorUrl.searchParams.set('error', 'AccessDenied')
     return NextResponse.redirect(errorUrl)
   }
 
-  return NextResponse.next()
+  // NOTA: La validación de tenant slug se hace en las rutas API/handlers, no aquí
+  // porque el middleware se ejecuta en edge runtime donde Prisma no está disponible.
+  // Las rutas individuales validarán el tenant usando las funciones de lib/tenant/context
+
+  // Agregar header x-tenant-id si el usuario tiene tenantId
+  const response = NextResponse.next()
+  if (userTenantId) {
+    response.headers.set('x-tenant-id', userTenantId)
+  }
+  
+  // Extraer tenant slug del path si existe y agregarlo como header para uso en las rutas
+  const pathParts = nextUrl.pathname.split('/').filter(Boolean)
+  const reservedPaths = ['api', 'auth', 'login', 'dashboard', 'admin', 'admin-panel', 'super-admin', '_next', 'favicon.ico', 'test', 'demo']
+  
+  if (pathParts.length > 0 && !reservedPaths.includes(pathParts[0].toLowerCase())) {
+    response.headers.set('x-tenant-slug', pathParts[0])
+  }
+  
+  return response
 })
 
 export const config = {

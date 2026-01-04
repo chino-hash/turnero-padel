@@ -6,6 +6,8 @@ import { updateBookingPlayerPaymentSchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 export const runtime = 'nodejs'
 
@@ -46,6 +48,44 @@ export async function PATCH(
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+
+    // Validar permisos cross-tenant y obtener tenantId del booking
+    let bookingTenantId = userTenantId
+    if (!isSuperAdmin) {
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { tenantId: true }
+      })
+
+      if (!booking) {
+        return NextResponse.json(
+          { success: false, error: 'Reserva no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      bookingTenantId = booking.tenantId
+
+      if (userTenantId && booking.tenantId !== userTenantId) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permisos para actualizar esta reserva' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Validar datos del cuerpo
     const body = await request.json()
     const validated = updateBookingPlayerPaymentSchema.parse(body)
@@ -70,7 +110,7 @@ export async function PATCH(
         action: 'player_payment_updated',
         booking: result.data,
         message: `Pago de jugador actualizado en reserva ${bookingId}`
-      })
+      }, bookingTenantId)
     }
 
     return NextResponse.json(result)

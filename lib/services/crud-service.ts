@@ -19,9 +19,27 @@ import {
   searchSchema,
   bulkOperationSchema 
 } from '../validations/schemas';
+import { 
+  canAccessTenant, 
+  canPerformOperation, 
+  getUserTenantIdSafe,
+  type User as PermissionsUser 
+} from '../utils/permissions';
 
 type ModelName = keyof PrismaClient;
 type ModelDelegate = PrismaClient[ModelName];
+
+// Modelos que tienen campo tenantId y requieren filtrado
+const MODELS_WITH_TENANT_ID = new Set([
+  'User',
+  'Court',
+  'Booking',
+  'Payment',
+  'SystemSetting',
+  'Producto',
+  'RecurringBooking',
+  'AdminWhitelist'
+]);
 
 interface CrudOptions {
   include?: any;
@@ -30,6 +48,8 @@ interface CrudOptions {
   where?: any;
   userRole?: string;
   userId?: string;
+  user?: PermissionsUser | null; // Usuario con tenantId y rol para validación de permisos
+  tenantId?: string | null; // TenantId explícito (opcional, se obtiene del user si no se proporciona)
 }
 
 interface PaginationOptions {
@@ -79,15 +99,90 @@ export class CrudService<T = any> {
   private model: ModelDelegate;
   private modelName: string;
   private prisma: any;
+  private hasTenantId: boolean;
 
   constructor(prismaInstance: any, modelName: string) {
     this.modelName = modelName;
     this.model = prismaInstance[modelName];
     this.prisma = prismaInstance;
+    this.hasTenantId = MODELS_WITH_TENANT_ID.has(modelName);
     
     if (!this.model) {
       throw new Error(`Modelo ${modelName} no encontrado`);
     }
+  }
+
+  /**
+   * Obtiene el tenantId para filtrar, considerando permisos de super admin
+   */
+  private async getTenantIdForFilter(options: CrudOptions): Promise<string | null> {
+    // Si el modelo no tiene tenantId, no hay nada que filtrar
+    if (!this.hasTenantId) {
+      return null;
+    }
+
+    // Si se proporciona tenantId explícito, validarlo si hay usuario
+    if (options.tenantId) {
+      if (options.user) {
+        const canAccess = await canAccessTenant(options.user, options.tenantId);
+        if (!canAccess) {
+          throw new ValidationError(
+            'No tiene permisos para acceder a este tenant',
+            'tenantId',
+            'TENANT_ACCESS_DENIED'
+          );
+        }
+      }
+      return options.tenantId;
+    }
+
+    // Si hay un usuario, obtener su tenantId (si no es super admin)
+    if (options.user) {
+      // Verificar si es super admin - si lo es, no filtrar (retorna null)
+      const { isSuperAdminUser } = await import('../utils/permissions');
+      const isSuper = await isSuperAdminUser(options.user);
+      if (isSuper) {
+        return null; // Super admin puede ver todos los tenants
+      }
+
+      // Si no es super admin, obtener su tenantId
+      const userTenantId = await getUserTenantIdSafe(options.user);
+      return userTenantId;
+    }
+
+    return null;
+  }
+
+  /**
+   * Construye el filtro where con tenantId si es necesario
+   */
+  private async buildWhereWithTenant(
+    baseWhere: any,
+    options: CrudOptions,
+    operation: 'read' | 'create' | 'update' | 'delete' = 'read'
+  ): Promise<any> {
+    const tenantId = await this.getTenantIdForFilter(options);
+    
+    // Si no hay tenantId para filtrar (super admin o modelo sin tenantId), retornar baseWhere
+    if (!tenantId) {
+      return baseWhere;
+    }
+
+    // Caso especial para AdminWhitelist: permitir ver super admins (tenantId null) y admins del tenant
+    if (this.modelName === 'AdminWhitelist') {
+      return {
+        ...baseWhere,
+        OR: [
+          { tenantId: tenantId },
+          { tenantId: null }
+        ]
+      };
+    }
+
+    return {
+      ...baseWhere,
+      tenantId
+    };
   }
 
   // Helper para convertir errores al formato ApiResponse
@@ -254,9 +349,25 @@ export class CrudService<T = any> {
       const schema = getModelSchema(this.modelName, 'create');
       const validatedData = validateSchema(schema, sanitizedData);
 
+      // Obtener tenantId para el nuevo registro
+      const tenantId = await this.getTenantIdForFilter(options);
+      if (this.hasTenantId && !tenantId && !validatedData.tenantId) {
+        // Si el modelo requiere tenantId pero no se proporcionó, es un error
+        // (excepto para AdminWhitelist que puede tener tenantId null)
+        if (this.modelName !== 'AdminWhitelist') {
+          throw new ValidationError(
+            'tenantId es requerido para crear este recurso',
+            'tenantId',
+            'REQUIRED_TENANT_ID'
+          );
+        }
+      }
+
       // Agregar metadatos de auditoría
       const createData = {
         ...validatedData,
+        // Agregar tenantId si el modelo lo requiere y no está en los datos
+        ...(this.hasTenantId && !validatedData.tenantId && tenantId && { tenantId }),
         ...(options.userId && { createdBy: options.userId }),
         createdAt: new Date(),
         updatedAt: new Date()
@@ -309,34 +420,39 @@ export class CrudService<T = any> {
       // Filtrar registros eliminados por defecto (soft delete) cuando aplica
       const baseWhere = { ...(options.where || {}) };
       const softDeleteWhere = { ...baseWhere, deletedAt: null };
+      
+      // Agregar filtro de tenantId si es necesario
+      const finalWhere = await this.buildWhereWithTenant(softDeleteWhere, options, 'read');
+      
       let result: any[] = []
       let total = 0
       try {
         const [res, cnt] = await Promise.all([
           (this.model as any).findMany({
-            where: softDeleteWhere,
+            where: finalWhere,
             include: options.include,
             select: options.select,
             orderBy,
             skip,
             take
           }),
-          (this.model as any).count({ where: softDeleteWhere })
+          (this.model as any).count({ where: finalWhere })
         ])
         result = res
         total = cnt
       } catch (e: any) {
-        // Fallback para modelos sin campo deletedAt
+        // Fallback para modelos sin campo deletedAt - también aplicar tenantId
+        const finalWhereFallback = await this.buildWhereWithTenant(baseWhere, options, 'read');
         const [res, cnt] = await Promise.all([
           (this.model as any).findMany({
-            where: baseWhere,
+            where: finalWhereFallback,
             include: options.include,
             select: options.select,
             orderBy,
             skip,
             take
           }),
-          (this.model as any).count({ where: baseWhere })
+          (this.model as any).count({ where: finalWhereFallback })
         ])
         result = res
         total = cnt
@@ -386,10 +502,13 @@ export class CrudService<T = any> {
       }
 
       // Incluir filtro de soft delete
-      const where = {
+      const baseWhere = {
         id,
         deletedAt: null
       };
+
+      // Agregar filtro de tenantId si es necesario
+      const where = await this.buildWhereWithTenant(baseWhere, options, 'read');
 
       const result = await (this.model as any).findFirst({
         where,
@@ -399,6 +518,18 @@ export class CrudService<T = any> {
 
       if (!result) {
         throw new NotFoundError(this.modelName, id);
+      }
+
+      // Validar que el usuario puede acceder al recurso encontrado (si tiene tenantId)
+      if (this.hasTenantId && options.user && result.tenantId) {
+        const canAccess = await canAccessTenant(options.user, result.tenantId);
+        if (!canAccess) {
+          throw new ValidationError(
+            'No tiene permisos para acceder a este recurso',
+            'tenantId',
+            'TENANT_ACCESS_DENIED'
+          );
+        }
       }
 
       return createSuccessResponse(`${this.modelName} encontrado exitosamente`, result);
@@ -434,12 +565,27 @@ export class CrudService<T = any> {
       }
 
       // Verificar si el registro existe y no está eliminado
+      const baseWhere = { id, deletedAt: null };
+      const where = await this.buildWhereWithTenant(baseWhere, options, 'update');
+      
       const existingRecord = await (this.model as any).findFirst({
-        where: { id, deletedAt: null }
+        where
       });
       
       if (!existingRecord) {
         throw new NotFoundError(this.modelName, id);
+      }
+
+      // Validar que el usuario puede acceder al recurso (si tiene tenantId)
+      if (this.hasTenantId && options.user && existingRecord.tenantId) {
+        const canAccess = await canAccessTenant(options.user, existingRecord.tenantId);
+        if (!canAccess) {
+          throw new ValidationError(
+            'No tiene permisos para actualizar este recurso',
+            'tenantId',
+            'TENANT_ACCESS_DENIED'
+          );
+        }
       }
 
       // Sanitizar y validar datos
@@ -491,12 +637,27 @@ export class CrudService<T = any> {
       }
 
       // Verificar que el registro existe y no está eliminado
+      const baseWhere = { id, deletedAt: null };
+      const where = await this.buildWhereWithTenant(baseWhere, options, 'delete');
+      
       const existingRecord = await (this.model as any).findFirst({
-        where: { id, deletedAt: null }
+        where
       });
 
       if (!existingRecord) {
         throw new NotFoundError(this.modelName, id);
+      }
+
+      // Validar que el usuario puede acceder al recurso (si tiene tenantId)
+      if (this.hasTenantId && options.user && existingRecord.tenantId) {
+        const canAccess = await canAccessTenant(options.user, existingRecord.tenantId);
+        if (!canAccess) {
+          throw new ValidationError(
+            'No tiene permisos para eliminar este recurso',
+            'tenantId',
+            'TENANT_ACCESS_DENIED'
+          );
+        }
       }
 
       const result = await (this.model as any).update({
@@ -568,12 +729,27 @@ export class CrudService<T = any> {
       }
 
       // Verificar que el registro existe y está eliminado
+      const baseWhere = { id, deletedAt: { not: null } };
+      const where = await this.buildWhereWithTenant(baseWhere, options, 'update');
+      
       const existingRecord = await (this.model as any).findFirst({
-        where: { id, deletedAt: { not: null } }
+        where
       });
 
       if (!existingRecord) {
         throw new NotFoundError(`${this.modelName} eliminado`, id);
+      }
+
+      // Validar que el usuario puede acceder al recurso (si tiene tenantId)
+      if (this.hasTenantId && options.user && existingRecord.tenantId) {
+        const canAccess = await canAccessTenant(options.user, existingRecord.tenantId);
+        if (!canAccess) {
+          throw new ValidationError(
+            'No tiene permisos para restaurar este recurso',
+            'tenantId',
+            'TENANT_ACCESS_DENIED'
+          );
+        }
       }
 
       const result = await (this.model as any).update({
@@ -602,17 +778,19 @@ export class CrudService<T = any> {
         }
       }
 
+      // Agregar filtro de tenantId si es necesario
+      const finalWhere = await this.buildWhereWithTenant({ deletedAt: null, ...where }, options, 'read');
+      const finalWhereFallback = await this.buildWhereWithTenant(where, options, 'read');
+
       let count = 0
       try {
         count = await (this.model as any).count({
-          where: {
-            deletedAt: null,
-            ...where
-          }
+          where: finalWhere
         })
       } catch (e: any) {
+        // Fallback para modelos sin campo deletedAt
         count = await (this.model as any).count({
-          where
+          where: finalWhereFallback
         })
       }
 
@@ -656,14 +834,20 @@ export class CrudService<T = any> {
         }
       }));
 
+      const baseWhereWithSearch = {
+        OR: searchConditions,
+        ...options.where
+      };
+      const whereWithDeleted = { deletedAt: null, ...baseWhereWithSearch };
+      
+      // Agregar filtro de tenantId si es necesario
+      const finalWhere = await this.buildWhereWithTenant(whereWithDeleted, options, 'read');
+      const finalWhereFallback = await this.buildWhereWithTenant(baseWhereWithSearch, options, 'read');
+
       let result: any[] = []
       try {
         result = await (this.model as any).findMany({
-          where: {
-            deletedAt: null,
-            OR: searchConditions,
-            ...options.where
-          },
+          where: finalWhere,
           take: 50,
           orderBy: options.orderBy || { createdAt: 'desc' },
           include: options.include,
@@ -672,10 +856,7 @@ export class CrudService<T = any> {
       } catch (e: any) {
         // Fallback para modelos sin deletedAt
         result = await (this.model as any).findMany({
-          where: {
-            OR: searchConditions,
-            ...options.where
-          },
+          where: finalWhereFallback,
           take: 50,
           orderBy: options.orderBy || { createdAt: 'desc' },
           include: options.include,
@@ -886,9 +1067,15 @@ export class CrudService<T = any> {
         }
       }
 
-      const total = await (this.model as any).count();
+      // Construir filtros con tenantId si es necesario
+      const baseWhere = {};
+      const whereWithDeleted = { deletedAt: null };
+      const finalBaseWhere = await this.buildWhereWithTenant(baseWhere, options, 'read');
+      const finalWhereWithDeleted = await this.buildWhereWithTenant(whereWithDeleted, options, 'read');
+
+      const total = await (this.model as any).count({ where: finalBaseWhere });
       const active = await (this.model as any).count({
-        where: { deletedAt: null }
+        where: finalWhereWithDeleted
       });
       const deleted = total - active;
 
@@ -896,22 +1083,26 @@ export class CrudService<T = any> {
       const recentDate = new Date();
       recentDate.setDate(recentDate.getDate() - 7);
       
+      const recentWhere = await this.buildWhereWithTenant({
+        createdAt: { gte: recentDate },
+        deletedAt: null
+      }, options, 'read');
+      
       const recent = await (this.model as any).count({
-        where: {
-          createdAt: { gte: recentDate },
-          deletedAt: null
-        }
+        where: recentWhere
       });
 
       // Obtener registros del último mes
       const monthDate = new Date();
       monthDate.setMonth(monthDate.getMonth() - 1);
       
+      const lastMonthWhere = await this.buildWhereWithTenant({
+        createdAt: { gte: monthDate },
+        deletedAt: null
+      }, options, 'read');
+      
       const lastMonth = await (this.model as any).count({
-        where: {
-          createdAt: { gte: monthDate },
-          deletedAt: null
-        }
+        where: lastMonthWhere
       });
 
       const stats = {

@@ -25,6 +25,7 @@ export function useAuth() {
   const user = session?.user || null
   const isAuthenticated = !!session?.user
   const isAdmin = session?.user?.isAdmin || false
+  const isSuperAdmin = session?.user?.isSuperAdmin || false
 
   const handleSignIn = async () => {
     console.log('🔐 useAuth: Iniciando proceso de login')
@@ -47,6 +48,7 @@ export function useAuth() {
     loading,
     isAuthenticated,
     isAdmin,
+    isSuperAdmin,
     signIn: handleSignIn,
     signOut: handleSignOut,
     // Mantener compatibilidad con código existente

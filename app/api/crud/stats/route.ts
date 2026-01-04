@@ -39,6 +39,15 @@ function getService(model: string) {
 // GET - Obtener estadísticas
 export async function GET(request: NextRequest) {
   try {
+    // Obtener sesión y usuario
+    const { user } = await getSessionAndUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      );
+    }
+
     // Verificar permisos de administrador
     const hasPermission = await checkAdminPermission();
     if (!hasPermission) {
@@ -51,6 +60,17 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const model = url.searchParams.get('model');
     const type = url.searchParams.get('type') || 'general';
+    
+    // Obtener tenantId del header si está disponible
+    const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
+    
+    // Preparar opciones para CrudService
+    const crudOptions = {
+      user: user,
+      tenantId: tenantIdFromHeader,
+      userRole: user.role,
+      userId: user.id
+    };
 
     let result;
 
@@ -66,18 +86,18 @@ export async function GET(request: NextRequest) {
       const service = getService(model);
       switch (type) {
         case 'table':
-          result = await service.getTableStats({ userRole: 'ADMIN' });
+          result = await service.getTableStats(crudOptions);
           break;
         case 'count':
           const where = {};
-          result = await service.count(where, { userRole: 'ADMIN' });
+          result = await service.count(where, crudOptions);
           break;
         default:
           // Estadísticas generales del modelo
           const [tableStats, totalCount, activeCount] = await Promise.all([
-            service.getTableStats({ userRole: 'ADMIN' }),
-            service.count({}, { userRole: 'ADMIN' }),
-            service.count({ deletedAt: null }, { userRole: 'ADMIN' })
+            service.getTableStats(crudOptions),
+            service.count({}, crudOptions),
+            service.count({ deletedAt: null }, crudOptions)
           ]);
 
           result = {
@@ -101,8 +121,8 @@ export async function GET(request: NextRequest) {
         try {
           const service = getService(modelName);
           const [totalCount, activeCount] = await Promise.all([
-            service.count({}, { userRole: 'ADMIN' }),
-            service.count({ deletedAt: null }, { userRole: 'ADMIN' })
+            service.count({}, crudOptions),
+            service.count({ deletedAt: null }, crudOptions)
           ]);
 
           stats[modelName] = {
@@ -199,13 +219,13 @@ export async function POST(request: NextRequest) {
 
         switch (operation) {
           case 'count':
-            result = await service.count(filters);
+            result = await service.count(filters, crudOptions);
             break;
           case 'read':
-            result = await service.read();
+            result = await service.read(crudOptions);
             break;
           case 'stats':
-            result = await service.getTableStats();
+            result = await service.getTableStats(crudOptions);
             break;
           default:
             result = {

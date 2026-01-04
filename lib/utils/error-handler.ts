@@ -51,10 +51,15 @@ export interface SuccessResponse<T = any> {
 export type ApiResponse<T = any> = SuccessResponse<T> | ErrorResponse;
 
 // Función principal para manejar errores
-export function handleError(error: unknown): ErrorResponse {
+export function handleError(error: unknown, tenantId?: string | null): ErrorResponse {
   const timestamp = new Date().toISOString();
   
-  console.error('Error capturado:', error);
+  // Log con tenantId si está disponible
+  if (tenantId) {
+    console.error(`[Tenant: ${tenantId}] Error capturado:`, error);
+  } else {
+    console.error('Error capturado:', error);
+  }
 
   // Errores personalizados
   if (error instanceof ValidationError) {
@@ -470,11 +475,12 @@ export function sanitizeInput(data: any): any {
 }
 
 // Función para log de errores
-export function logError(error: unknown, context?: string) {
+export function logError(error: unknown, context?: string, tenantId?: string | null) {
   const timestamp = new Date().toISOString();
   const errorInfo = {
     timestamp,
     context,
+    tenantId: tenantId || undefined,
     error: error instanceof Error ? {
       name: error.name,
       message: error.message,
@@ -486,6 +492,7 @@ export function logError(error: unknown, context?: string) {
   
   // Aquí podrías enviar el error a un servicio de logging externo
   // como Sentry, LogRocket, etc.
+  // Nota: Incluir tenantId en el contexto para mejor trazabilidad
 }
 
 // Middleware para manejo de errores en API routes

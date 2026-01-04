@@ -6,6 +6,8 @@ import { bulkUpdateBookingsSchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { eventEmitters } from '@/lib/sse-events'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { prisma } from '@/lib/database/neon-config'
 
 export const runtime = 'nodejs'
 
@@ -21,8 +23,20 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    
     // Solo administradores pueden realizar operaciones bulk
-    if (session.user.role !== 'ADMIN') {
+    if (!user.isAdmin && !isSuperAdmin) {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden realizar operaciones masivas' },
         { status: 403 }
@@ -42,6 +56,36 @@ export async function PATCH(request: NextRequest) {
     const validatedData = bulkUpdateBookingsSchema.parse(body)
 
     const { bookingIds, updates } = validatedData
+
+    // Validar que todas las reservas pertenecen al tenant accesible (excepto super admin)
+    if (!isSuperAdmin && bookingIds.length > 0) {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (userTenantId) {
+        const bookings = await prisma.booking.findMany({
+          where: { id: { in: bookingIds } },
+          select: { id: true, tenantId: true }
+        })
+
+        // Verificar que todas las reservas pertenecen al tenant del usuario
+        const invalidBookings = bookings.filter(b => b.tenantId !== userTenantId)
+        if (invalidBookings.length > 0) {
+          return NextResponse.json(
+            { success: false, error: `No tienes permisos para modificar ${invalidBookings.length} reserva(s)` },
+            { status: 403 }
+          )
+        }
+
+        // Verificar que no hay reservas que no existen
+        const foundIds = new Set(bookings.map(b => b.id))
+        const missingIds = bookingIds.filter(id => !foundIds.has(id))
+        if (missingIds.length > 0) {
+          return NextResponse.json(
+            { success: false, error: `${missingIds.length} reserva(s) no encontrada(s)` },
+            { status: 404 }
+          )
+        }
+      }
+    }
 
     let eventAction: string
     let eventMessage: string
@@ -76,7 +120,7 @@ export async function PATCH(request: NextRequest) {
       bookings: bookingIds, // Usar los IDs de las reservas actualizadas
       message: eventMessage,
       userId: session.user.id
-    })
+    }, userTenantId)
 
     // Si se cancelaron reservas, actualizar disponibilidad de slots
     // Nota: No tenemos acceso directo a los datos de las reservas aquí,
@@ -89,7 +133,7 @@ export async function PATCH(request: NextRequest) {
         courtId: 'all', // Indicar que múltiples canchas pueden estar afectadas
         date: 'multiple', // Indicar que múltiples fechas pueden estar afectadas
         message: 'Disponibilidad actualizada por cancelaciones masivas'
-      })
+      }, userTenantId)
     }
 
     return NextResponse.json({
@@ -133,8 +177,20 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    
     // Solo administradores pueden realizar eliminaciones masivas
-    if (session.user.role !== 'ADMIN') {
+    if (!user.isAdmin && !isSuperAdmin) {
       return NextResponse.json(
         { success: false, error: 'Solo administradores pueden realizar eliminaciones masivas' },
         { status: 403 }
@@ -164,6 +220,36 @@ export async function DELETE(request: NextRequest) {
         { success: false, error: 'No se pueden eliminar más de 50 reservas a la vez' },
         { status: 400 }
       )
+    }
+
+    // Validar que todas las reservas pertenecen al tenant accesible (excepto super admin)
+    if (!isSuperAdmin && bookingIds.length > 0) {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (userTenantId) {
+        const bookings = await prisma.booking.findMany({
+          where: { id: { in: bookingIds } },
+          select: { id: true, tenantId: true }
+        })
+
+        // Verificar que todas las reservas pertenecen al tenant del usuario
+        const invalidBookings = bookings.filter(b => b.tenantId !== userTenantId)
+        if (invalidBookings.length > 0) {
+          return NextResponse.json(
+            { success: false, error: `No tienes permisos para eliminar ${invalidBookings.length} reserva(s)` },
+            { status: 403 }
+          )
+        }
+
+        // Verificar que no hay reservas que no existen
+        const foundIds = new Set(bookings.map(b => b.id))
+        const missingIds = bookingIds.filter(id => !foundIds.has(id))
+        if (missingIds.length > 0) {
+          return NextResponse.json(
+            { success: false, error: `${missingIds.length} reserva(s) no encontrada(s)` },
+            { status: 404 }
+          )
+        }
+      }
     }
 
     // Eliminar reservas masivamente (cancelar)

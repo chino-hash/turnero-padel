@@ -2,10 +2,11 @@
 
 import { ReactNode } from "react"
 import Link from "next/link"
-import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home } from "lucide-react"
+import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home, Building2 } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
 import { useRouter, usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 
 interface AdminLayoutContentProps {
   children: ReactNode
@@ -15,6 +16,8 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
   const { isDarkMode, setIsDarkMode } = useAppState()
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const isSuperAdmin = session?.user?.isSuperAdmin || false
   const baseClasses = "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
   const darkClasses = "text-gray-300 hover:text-blue-400 hover:bg-gray-700"
   const lightClasses = "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
@@ -111,6 +114,18 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                 <Trophy className="w-5 h-5" />
                 <div>Torneo</div>
               </Link>
+
+              {isSuperAdmin && (
+                <Link
+                  href="/super-admin"
+                  className={linkClass("/super-admin")}
+                  aria-current={pathname.startsWith("/super-admin") ? "page" : undefined}
+                  data-testid="super-admin-link"
+                >
+                  <Building2 className="w-5 h-5" />
+                  <div>Super Admin</div>
+                </Link>
+              )}
             </nav>
 
             {/* Información del usuario y toggle de modo oscuro */}

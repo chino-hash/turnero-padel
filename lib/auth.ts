@@ -11,22 +11,44 @@ import { env, isDevelopment, isProduction, getAuthConfig } from "./config/env"
 import type { NextAuthConfig } from "next-auth"
 
 // Importación dinámica de admin-system para evitar problemas en el middleware
-const getIsAdmin = async (email: string): Promise<boolean> => {
+const getUserRoleAndTenant = async (email: string): Promise<{ role: 'USER' | 'ADMIN' | 'SUPER_ADMIN', tenantId: string | null }> => {
   try {
     // Solo importar admin-system cuando no estamos en el middleware
-    if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
-      const { isAdminEmail } = await import('./admin-system')
-      return await isAdminEmail(email)
+    if (typeof window === 'undefined') {
+      const { getUserRole } = await import('./admin-system')
+      
+      // Obtener usuario de la base de datos para obtener tenantId
+      // Usar findFirst porque email ahora es parte de un índice compuesto (email, tenantId)
+      const { prisma } = await import('@/lib/database/neon-config')
+      const user = await prisma.user.findFirst({
+        where: { email: email.toLowerCase() },
+        select: { id: true, tenantId: true }
+      })
+      
+      const tenantId = user?.tenantId || null
+      
+      // Obtener rol
+      const role = await getUserRole(email, tenantId)
+      
+      return { role, tenantId }
     }
     
-    // Fallback simple para producción/middleware
-    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
-    return adminEmails.includes(email)
+    // Fallback simple para middleware (no ideal, pero necesario)
+    const superAdminEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
+    const emailLower = email.toLowerCase()
+    
+    if (superAdminEmails.includes(emailLower)) {
+      return { role: 'SUPER_ADMIN', tenantId: null }
+    }
+    if (adminEmails.includes(emailLower)) {
+      return { role: 'ADMIN', tenantId: null }
+    }
+    return { role: 'USER', tenantId: null }
   } catch (error) {
-    console.error('Error checking admin status:', error)
-    // Fallback a verificación simple por variable de entorno
-    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || []
-    return adminEmails.includes(email)
+    console.error('Error checking user role:', error)
+    // Fallback a USER
+    return { role: 'USER', tenantId: null }
   }
 }
 
@@ -111,10 +133,12 @@ export const config = {
           return false
         }
 
-        // Verificar si es administrador para logging
-        const isAdminResult = await getIsAdmin(user.email!)
-        console.log(`✅ SignIn exitoso para ${user.email} (Admin: ${isAdminResult})`)
-        logAdminAccessSafe(user.email!, true, 'google', isAdminResult ? 'admin_login' : 'user_login')
+        // Verificar rol y tenantId para logging
+        const { role, tenantId } = await getUserRoleAndTenant(user.email!)
+        const isSuperAdmin = role === 'SUPER_ADMIN'
+        const isAdmin = role === 'ADMIN' || isSuperAdmin
+        console.log(`✅ SignIn exitoso para ${user.email} (Role: ${role}, Tenant: ${tenantId || 'N/A'})`)
+        logAdminAccessSafe(user.email!, true, 'google', isSuperAdmin ? 'super_admin_login' : isAdmin ? 'admin_login' : 'user_login')
 
         return true
       } catch (error) {
@@ -126,30 +150,39 @@ export const config = {
     async jwt({ token, user, account, trigger }) {
       // Verificar si es un nuevo sign-in o actualización
       if (account && user) {
-        // Verificar si el email está en la lista de administradores
-        const isAdminResult = await getIsAdmin(user.email!)
+        // Obtener rol y tenantId
+        const { role, tenantId } = await getUserRoleAndTenant(user.email!)
+        const isSuperAdmin = role === 'SUPER_ADMIN'
+        const isAdmin = role === 'ADMIN' || isSuperAdmin
         
-        // Log del acceso de administrador
-        if (isAdminResult) {
-          logAdminAccessSafe(user.email!, true, 'google', 'login')
+        // Log del acceso
+        if (isSuperAdmin || isAdmin) {
+          logAdminAccessSafe(user.email!, true, 'google', isSuperAdmin ? 'super_admin_login' : 'admin_login')
         }
         
-        // Asignar rol basado en si es admin o no
-        token.role = isAdminResult ? 'ADMIN' : 'USER'
-        token.isAdmin = isAdminResult
+        // Asignar datos al token
+        token.role = role
+        token.isAdmin = isAdmin
+        token.isSuperAdmin = isSuperAdmin
+        token.tenantId = tenantId
         token.email = user.email
         token.name = user.name
         token.picture = user.image
       }
       
-      // Renovar información de admin en cada actualización de token
+      // Renovar información en cada actualización de token
       if (trigger === 'update' && token.email) {
         try {
-          const isAdminResult = await getIsAdmin(token.email as string)
-          token.role = isAdminResult ? 'ADMIN' : 'USER'
-          token.isAdmin = isAdminResult
+          const { role, tenantId } = await getUserRoleAndTenant(token.email as string)
+          const isSuperAdmin = role === 'SUPER_ADMIN'
+          const isAdmin = role === 'ADMIN' || isSuperAdmin
+          
+          token.role = role
+          token.isAdmin = isAdmin
+          token.isSuperAdmin = isSuperAdmin
+          token.tenantId = tenantId
         } catch (error) {
-          console.error('Error verificando estado de admin:', error)
+          console.error('Error verificando estado de usuario:', error)
           // Mantener el estado anterior en caso de error
         }
       }
@@ -161,8 +194,10 @@ export const config = {
       // Propagar datos del token a la sesión (compatible con middleware/edge)
       if (session.user) {
         session.user.id = (token.sub as string) || session.user.id
-        session.user.role = (token.role as 'ADMIN' | 'USER') || 'USER'
+        session.user.role = (token.role as 'USER' | 'ADMIN' | 'SUPER_ADMIN') || 'USER'
         session.user.isAdmin = Boolean(token.isAdmin)
+        session.user.isSuperAdmin = Boolean(token.isSuperAdmin)
+        session.user.tenantId = (token.tenantId as string | null) || null
       }
 
       return session
@@ -175,8 +210,10 @@ export const config = {
   events: {
     async signIn({ user, isNewUser }) {
       if (isNewUser) {
-        const isAdminResult = await getIsAdmin(user.email!)
-        logAdminAccessSafe(user.email!, true, 'google', `new_user_${isAdminResult ? 'admin' : 'user'}`)
+        const { role } = await getUserRoleAndTenant(user.email!)
+        const isSuperAdmin = role === 'SUPER_ADMIN'
+        const isAdmin = role === 'ADMIN' || isSuperAdmin
+        logAdminAccessSafe(user.email!, true, 'google', `new_user_${isSuperAdmin ? 'super_admin' : isAdmin ? 'admin' : 'user'}`)
       }
     },
     async signOut() {
@@ -210,13 +247,17 @@ declare module "next-auth" {
       name?: string | null
       email?: string | null
       image?: string | null
-      role: 'USER' | 'ADMIN'
+      role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
       isAdmin: boolean
+      isSuperAdmin: boolean
+      tenantId?: string | null
     }
   }
 
   interface User {
-    role: 'USER' | 'ADMIN'
+    role: 'USER' | 'ADMIN' | 'SUPER_ADMIN'
     isAdmin: boolean
+    isSuperAdmin: boolean
+    tenantId?: string | null
   }
 }

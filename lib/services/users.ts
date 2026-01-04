@@ -55,8 +55,9 @@ export async function getUserById(id: string): Promise<User | null> {
 // Obtener usuario por email
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
-    const user = await prisma.user.findUnique({
-      where: { email }
+    // Usar findFirst porque email ahora es parte de un índice compuesto (email, tenantId)
+    const user = await prisma.user.findFirst({
+      where: { email: email.toLowerCase() }
     })
     return user ? transformUserData(user) : null
   } catch (error) {

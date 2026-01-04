@@ -144,6 +144,7 @@ export function useAuthWithRetry(options: AuthRetryOptions = {}) {
     retryAuth,
     isAuthenticated: status === 'authenticated' && !!session,
     isAdmin: session?.user?.isAdmin || false,
+    isSuperAdmin: session?.user?.isSuperAdmin || false,
     user: session?.user
   }
 }

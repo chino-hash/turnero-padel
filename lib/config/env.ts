@@ -70,8 +70,12 @@ const envSchema = z.object({
   // ========================================================================
   // ADMINISTRACIÓN
   // ========================================================================
+  SUPER_ADMIN_EMAILS: emailListSchema
+    .optional()
+    .describe('Lista de emails de super administradores globales separados por comas'),
   ADMIN_EMAILS: emailListSchema
-    .describe('Lista de emails de administradores separados por comas'),
+    .optional()
+    .describe('Lista de emails de administradores separados por comas (deprecated - usar AdminWhitelist en BD)'),
   
   // ========================================================================
   // VARIABLES OPCIONALES
@@ -112,6 +116,12 @@ const envSchema = z.object({
   // Desarrollo
   ANALYZE: z.string().optional()
     .describe('Habilitar análisis de bundle (true/false)'),
+  
+  // Encriptación de Credenciales
+  CREDENTIAL_ENCRYPTION_KEY: z.string()
+    .regex(/^[0-9a-fA-F]{64}$/, 'Debe ser una clave hexadecimal de 64 caracteres (32 bytes)')
+    .optional()
+    .describe('Clave de encriptación para credenciales sensibles (32 bytes en hexadecimal)'),
 })
 
 // ============================================================================
@@ -141,6 +151,7 @@ function validateEnv() {
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || 'dummy-client-id',
       GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || 'dummy-client-secret',
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/turnero',
+      SUPER_ADMIN_EMAILS: process.env.SUPER_ADMIN_EMAILS,
       ADMIN_EMAILS: process.env.ADMIN_EMAILS || 'admin@example.com',
       TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
       PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL,
@@ -155,6 +166,7 @@ function validateEnv() {
       SENTRY_DSN: process.env.SENTRY_DSN,
       NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
       ANALYZE: process.env.ANALYZE,
+      CREDENTIAL_ENCRYPTION_KEY: process.env.CREDENTIAL_ENCRYPTION_KEY,
     }
 
     const reParsed = envSchema.safeParse(defaults)
@@ -245,13 +257,21 @@ export const getAuthConfig = () => ({
  * Configuración de administradores
  */
 export const getAdminConfig = () => ({
-  emails: env.ADMIN_EMAILS
+  emails: env.ADMIN_EMAILS || [],
+  superAdminEmails: env.SUPER_ADMIN_EMAILS || [],
 })
 
 /**
  * @deprecated Usar getAdminConfig().emails en su lugar
  */
-export const getAdminEmails = () => env.ADMIN_EMAILS
+export const getAdminEmails = () => env.ADMIN_EMAILS || []
+
+/**
+ * Configuración de super administradores
+ */
+export const getSuperAdminConfig = () => ({
+  emails: env.SUPER_ADMIN_EMAILS || [],
+})
 
 /**
  * Configuración de notificaciones
@@ -283,6 +303,14 @@ export const getAnalyticsConfig = () => ({
   }
 })
 
+/**
+ * Configuración de encriptación
+ */
+export const getEncryptionConfig = () => ({
+  key: env.CREDENTIAL_ENCRYPTION_KEY,
+  isConfigured: Boolean(env.CREDENTIAL_ENCRYPTION_KEY),
+})
+
 // ============================================================================
 // LOGGING DE CONFIGURACIÓN (Solo en desarrollo)
 // ============================================================================
@@ -293,7 +321,8 @@ if (isDevelopment) {
     baseUrl: env.NEXTAUTH_URL,
     database: env.DATABASE_URL ? '✅ Configurada' : '❌ No configurada',
     google: env.GOOGLE_CLIENT_ID ? '✅ Configurado' : '❌ No configurado',
-    admins: env.ADMIN_EMAILS.length,
+    admins: env.ADMIN_EMAILS?.length || 0,
+    superAdmins: env.SUPER_ADMIN_EMAILS?.length || 0,
   })
 }
 
