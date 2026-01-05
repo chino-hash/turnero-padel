@@ -425,7 +425,16 @@ export const listAdmins = async (tenantId?: string | null): Promise<Array<{
       orderBy: { createdAt: 'desc' }
     })
     
-    return dbAdmins
+    // Cast del tipo ya que AdminWhitelist solo debería tener ADMIN o SUPER_ADMIN
+    return dbAdmins as Array<{
+      email: string
+      role: 'ADMIN' | 'SUPER_ADMIN'
+      tenantId: string | null
+      isActive: boolean
+      addedBy: string | null
+      notes: string | null
+      createdAt: Date
+    }>
   } catch (error) {
     console.error('Error listando administradores:', error)
     return []
