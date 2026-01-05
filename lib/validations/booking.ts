@@ -88,7 +88,7 @@ export const updateBookingSchema = z.object({
   cancellationReason: z.string().max(500, {
     message: 'La razón de cancelación no puede exceder 500 caracteres'
   }).optional(),
-  courtId: z.string().uuid('ID de cancha inválido').optional(),
+  courtId: z.string().cuid('ID de cancha inválido').optional(),
   players: z.array(z.object({
     id: z.string().cuid().optional(),
     playerName: z.string().min(2).max(100),
