@@ -34,6 +34,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
     
     // Solo administradores pueden realizar operaciones bulk
     if (!user.isAdmin && !isSuperAdmin) {
@@ -59,7 +60,6 @@ export async function PATCH(request: NextRequest) {
 
     // Validar que todas las reservas pertenecen al tenant accesible (excepto super admin)
     if (!isSuperAdmin && bookingIds.length > 0) {
-      const userTenantId = await getUserTenantIdSafe(user)
       if (userTenantId) {
         const bookings = await prisma.booking.findMany({
           where: { id: { in: bookingIds } },
