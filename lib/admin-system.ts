@@ -387,31 +387,48 @@ export const removeAdmin = async (
 }
 
 // Listar todos los administradores (para panel de admin)
-export const listAdmins = async (): Promise<{
-  envAdmins: string[]
-  dbAdmins: Array<{
-    email: string
-    isActive: boolean
-    addedBy: string | null
-    notes: string | null
-    createdAt: Date
-  }>
-}> => {
+export const listAdmins = async (tenantId?: string | null): Promise<Array<{
+  email: string
+  role: 'ADMIN' | 'SUPER_ADMIN'
+  tenantId: string | null
+  isActive: boolean
+  addedBy: string | null
+  notes: string | null
+  createdAt: Date
+}>> => {
   const prisma = await getPrisma()
   if (!prisma) {
-    return { envAdmins: getEnvAdmins(), dbAdmins: [] }
+    return []
   }
   
   try {
-    const envAdmins = getEnvAdmins()
+    // Construir filtro where
+    const where: any = {}
+    
+    if (tenantId !== undefined) {
+      // Si se especifica tenantId, filtrar por él (null = solo super admins)
+      where.tenantId = tenantId
+    }
+    // Si tenantId es undefined, no filtrar (todos los admins)
+    
     const dbAdmins = await prisma.adminWhitelist.findMany({
+      where,
+      select: {
+        email: true,
+        role: true,
+        tenantId: true,
+        isActive: true,
+        addedBy: true,
+        notes: true,
+        createdAt: true
+      },
       orderBy: { createdAt: 'desc' }
     })
     
-    return { envAdmins, dbAdmins }
+    return dbAdmins
   } catch (error) {
     console.error('Error listando administradores:', error)
-    return { envAdmins: getEnvAdmins(), dbAdmins: [] }
+    return []
   }
 }
 
