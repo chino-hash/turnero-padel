@@ -175,8 +175,23 @@ export async function createBooking(data: CreateBookingData): Promise<BookingWit
       throw new Error('La cancha no está disponible en el horario seleccionado')
     }
 
+    // Obtener tenantId de la cancha
+    const court = await prisma.court.findUnique({
+      where: { id: data.courtId },
+      select: { tenantId: true }
+    })
+
+    if (!court) {
+      throw new Error('Cancha no encontrada')
+    }
+
+    if (!court.tenantId) {
+      throw new Error('La cancha no tiene un tenant asociado')
+    }
+
     const booking = await prisma.booking.create({
       data: {
+        tenantId: court.tenantId,
         courtId: data.courtId,
         userId: data.userId,
         bookingDate: data.bookingDate,
