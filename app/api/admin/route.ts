@@ -66,9 +66,9 @@ export async function POST(request: NextRequest) {
     const result = await addAdmin(
       email,
       addedBy || session.user.email || 'Sistema',
-      (role as Role) || 'ADMIN',
+      notes || `Administrador agregado por ${session.user.email}`,
       tenantId || (session.user.isSuperAdmin ? null : session.user.tenantId || undefined),
-      notes || `Administrador agregado por ${session.user.email}`
+      (role as 'ADMIN' | 'SUPER_ADMIN') || 'ADMIN'
     )
 
     return NextResponse.json({
