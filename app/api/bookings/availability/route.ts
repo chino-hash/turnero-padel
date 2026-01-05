@@ -5,6 +5,7 @@ import { withRateLimit, bookingReadRateLimit } from '@/lib/rate-limit'
 import { checkAvailabilitySchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 
