@@ -1,13 +1,27 @@
 import { NextRequest } from 'next/server'
 import { auth } from '../../../../lib/auth'
 import { addConnection, removeConnection, type SSEEvent } from '../../../../lib/sse-events'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export async function GET(request: NextRequest) {
   // Verificar autenticación
   const session = await auth()
-  if (!session) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 })
   }
+
+  // Construir usuario para validación de permisos
+  const user: PermissionsUser = {
+    id: session.user.id,
+    email: session.user.email || null,
+    role: session.user.role || 'USER',
+    isAdmin: session.user.isAdmin || false,
+    isSuperAdmin: session.user.isSuperAdmin || false,
+    tenantId: session.user.tenantId || null,
+  }
+
+  const isSuperAdmin = await isSuperAdminUser(user)
+  const userTenantId = await getUserTenantIdSafe(user)
 
   // Configurar headers para SSE
   const responseHeaders = new Headers({
@@ -24,7 +38,7 @@ export async function GET(request: NextRequest) {
     start(controller) {
       streamController = controller
       // Agregar conexión al set
-      addConnection(controller)
+      addConnection(controller, userTenantId, isSuperAdmin, session.user.id)
       
       // Enviar evento inicial
       const initialEvent: SSEEvent = {
