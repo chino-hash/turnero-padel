@@ -1,5 +1,5 @@
 import { unstable_cache as cache } from 'next/cache'
-import { prisma } from '../prisma'
+import { prisma } from '../database/neon-config'
 
 // Claves en SystemSetting utilizadas para horarios por defecto
 const KEY_OPERATING_START = 'operating_hours_start'
@@ -8,12 +8,32 @@ const KEY_SLOT_DURATION = 'default_slot_duration'
 
 // Obtiene y cachea los horarios por defecto desde SystemSetting
 export const getDefaultOperatingHours = cache(
-  async () => {
+  async (tenantId?: string | null) => {
     try {
+      // Si no hay tenantId, devolver valores por defecto hardcodeados
+      if (!tenantId) {
+        return { start: '08:00', end: '23:00', slot_duration: 90 }
+      }
+
       const [startSetting, endSetting, durationSetting] = await Promise.all([
-        prisma.systemSetting.findUnique({ where: { key: KEY_OPERATING_START } }),
-        prisma.systemSetting.findUnique({ where: { key: KEY_OPERATING_END } }),
-        prisma.systemSetting.findUnique({ where: { key: KEY_SLOT_DURATION } }),
+        prisma.systemSetting.findFirst({ 
+          where: { 
+            key: KEY_OPERATING_START,
+            tenantId: tenantId
+          } 
+        }),
+        prisma.systemSetting.findFirst({ 
+          where: { 
+            key: KEY_OPERATING_END,
+            tenantId: tenantId
+          } 
+        }),
+        prisma.systemSetting.findFirst({ 
+          where: { 
+            key: KEY_SLOT_DURATION,
+            tenantId: tenantId
+          } 
+        }),
       ])
 
       const start = startSetting?.value || '08:00'

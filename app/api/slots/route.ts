@@ -143,8 +143,15 @@ export async function GET(req: NextRequest) {
       }, { status: 404 })
     }
 
+    // Obtener tenantId del court (obtener desde la base de datos si es necesario)
+    const courtDb = await prisma.court.findUnique({
+      where: { id: courtId },
+      select: { tenantId: true }
+    })
+    const tenantId = courtDb?.tenantId || userTenantId
+
     // Parsear + validar operating hours de la cancha con fallback seguro (desde SystemSetting)
-    const defaultOperatingHours = await getDefaultOperatingHours()
+    const defaultOperatingHours = await getDefaultOperatingHours(tenantId)
     const parsedHours = parseJsonSafely(court.operatingHours ?? null, OperatingHoursSchema, defaultOperatingHours)
     if (!parsedHours.ok) {
       console.warn('OperatingHours inválido, usando fallback:', parsedHours.error)
