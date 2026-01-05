@@ -12,6 +12,7 @@ export interface CreateCourtData {
     end: string
     slot_duration: number
   }
+  tenantId?: string
 }
 
 export interface UpdateCourtData {
@@ -220,8 +221,13 @@ export async function getCourtById(id: string): Promise<Court | null> {
 // Crear nueva cancha
 export async function createCourt(data: CreateCourtData): Promise<Court> {
   try {
+    if (!data.tenantId) {
+      throw new Error('tenantId es requerido para crear una cancha')
+    }
+
     const court = await prisma.court.create({
       data: {
+        tenantId: data.tenantId,
         name: data.name,
         description: data.description,
         basePrice: Math.round(data.basePrice * 100),
