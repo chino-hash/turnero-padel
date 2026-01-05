@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       action: 'created',
       court: court,
       message: `Nueva cancha creada: ${court.name}`
-    }, court.tenantId || userTenantId)
+    }, data.tenantId || userTenantId)
     
     return NextResponse.json(court, { status: 201 })
   } catch (error) {
