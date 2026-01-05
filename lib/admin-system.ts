@@ -83,7 +83,7 @@ export const isSuperAdmin = async (email: string): Promise<boolean> => {
     const { getSuperAdminConfig } = await import('./config/env')
     const superAdminConfig = getSuperAdminConfig()
     const superAdminEmails = superAdminConfig.emails || []
-    if (superAdminEmails.map(e => e.toLowerCase()).includes(email.toLowerCase())) {
+    if (superAdminEmails.map((e: string) => e.toLowerCase()).includes(email.toLowerCase())) {
       return true
     }
   } catch (error) {
