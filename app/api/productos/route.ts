@@ -178,7 +178,7 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session) {
       return NextResponse.json(
         {
           success: false,
@@ -188,8 +188,32 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Construir usuario para validación de permisos
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+
+    if (!user.isAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No autorizado'
+        },
+        { status: 401 }
+      )
+    }
+
+    const userTenantId = await getUserTenantIdSafe(user)
+
     const body = await request.json()
-    const { id, nombre, precio, stock, categoria, activo } = body
+    const { id, nombre, precio, stock, categoria, activo, tenantId } = body
 
     // Validaciones
     if (!id || !nombre || !precio || stock === undefined || !categoria) {
