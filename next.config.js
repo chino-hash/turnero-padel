@@ -12,6 +12,15 @@ const nextConfig = {
   },
   experimental: {
     forceSwcTransforms: true,
+    // Reducir el tamaño del middleware excluyendo dependencias pesadas
+    outputFileTracingExcludes: {
+      '*': [
+        'node_modules/@swc/core*/**',
+        'node_modules/@esbuild/**',
+        'node_modules/webpack/**',
+        'node_modules/rollup/**',
+      ],
+    },
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
