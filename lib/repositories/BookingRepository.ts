@@ -320,11 +320,22 @@ export class BookingRepository {
   // Crear reserva con transacción
   async create(data: BookingCreateInput): Promise<BookingWithRelations> {
     return await this.prisma.$transaction(async (tx) => {
+      // Obtener tenantId de la cancha
+      const court = await tx.court.findUnique({
+        where: { id: data.courtId },
+        select: { tenantId: true }
+      });
+
+      if (!court) {
+        throw new Error('Cancha no encontrada');
+      }
+
       // Crear la reserva
       const booking = await tx.booking.create({
         data: {
           courtId: data.courtId,
           userId: data.userId,
+          tenantId: court.tenantId,
           bookingDate: data.bookingDate,
           startTime: data.startTime,
           endTime: data.endTime,
