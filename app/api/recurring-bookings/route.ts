@@ -44,9 +44,12 @@ export async function POST(req: NextRequest) {
   }
   const { courtId, userId, weekday, startTime, endTime, startsAt, endsAt, notes } = parsed.data
 
+  const userTenantId = await getUserTenantIdSafe(user)
+  
   // Validar que la cancha pertenece al tenant accesible
+  let tenantId: string | null = null
+  
   if (!isSuperAdmin) {
-    const userTenantId = await getUserTenantIdSafe(user)
     const court = await prisma.court.findUnique({
       where: { id: courtId },
       select: { tenantId: true }
@@ -59,6 +62,8 @@ export async function POST(req: NextRequest) {
     if (userTenantId && court.tenantId !== userTenantId) {
       return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes en esta cancha' }, { status: 403 })
     }
+
+    tenantId = court.tenantId
 
     // Validar que el usuario pertenece al tenant accesible
     const targetUser = await prisma.user.findUnique({
@@ -73,6 +78,18 @@ export async function POST(req: NextRequest) {
     if (userTenantId && targetUser.tenantId !== userTenantId) {
       return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes para este usuario' }, { status: 403 })
     }
+  } else {
+    // Super admin: obtener tenantId de la cancha
+    const court = await prisma.court.findUnique({
+      where: { id: courtId },
+      select: { tenantId: true }
+    })
+
+    if (!court) {
+      return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
+    }
+
+    tenantId = court.tenantId
   }
 
   try {
@@ -86,7 +103,8 @@ export async function POST(req: NextRequest) {
         startsAt: new Date(`${startsAt}T00:00:00`),
         endsAt: endsAt ? new Date(`${endsAt}T00:00:00`) : null,
         status: 'ACTIVE',
-        notes
+        notes,
+        tenantId: tenantId!
       }
     })
     return NextResponse.json({ success: true, data: { id: rule.id } })
