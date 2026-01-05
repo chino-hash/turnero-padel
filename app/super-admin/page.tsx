@@ -6,8 +6,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
-import { Button } from '../../../components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
+import { Button } from '../../components/ui/button'
 import { Building2, Plus, Edit, CheckCircle, XCircle } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 
