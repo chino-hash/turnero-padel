@@ -19,12 +19,15 @@ export default auth((req) => {
   // Rutas públicas que no requieren autenticación
   const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots']
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
+  
+  // Rutas de club (públicas, no requieren autenticación)
+  const isClubRoute = nextUrl.pathname.startsWith('/club/')
 
   // Rutas de API de autenticación
   const isAuthRoute = nextUrl.pathname.startsWith('/api/auth')
   
   // Rutas de API públicas (que no requieren autenticación)
-  const publicApiRoutes = ['/api/courts', '/api/slots']
+  const publicApiRoutes = ['/api/courts', '/api/slots', '/api/tenants/public']
   const isPublicApiRoute = publicApiRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Rutas de API que requieren autenticación pero deben pasar sin redirección (el endpoint maneja 401)
@@ -41,8 +44,8 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Si no está logueado y no es ruta pública, redirigir a login
-  if (!isLoggedIn && !isPublicRoute) {
+  // Si no está logueado y no es ruta pública ni ruta de club, redirigir a login
+  if (!isLoggedIn && !isPublicRoute && !isClubRoute) {
     // Solo agregar callbackUrl si no es la página principal para evitar bucles
     const loginUrl = new URL('/login', nextUrl)
     if (nextUrl.pathname !== '/') {
@@ -57,6 +60,18 @@ export default auth((req) => {
     // Evitar redirección a la página principal para prevenir bucles
     const redirectUrl = callbackUrl && callbackUrl !== '/login' && callbackUrl !== '/' ? callbackUrl : '/dashboard'
     return NextResponse.redirect(new URL(redirectUrl, nextUrl))
+  }
+
+  // Si el usuario está logueado pero no tiene tenantId y trata de acceder al dashboard
+  // (y no viene de un club), redirigir a la landing page para que seleccione un club
+  if (isLoggedIn && !userTenantId && !isSuperAdmin && nextUrl.pathname === '/dashboard') {
+    // Verificar si viene tenantSlug en la URL (significa que viene de un club)
+    const tenantSlug = nextUrl.searchParams.get('tenantSlug')
+    if (!tenantSlug) {
+      // No viene de un club, redirigir a landing page
+      return NextResponse.redirect(new URL('/', nextUrl))
+    }
+    // Si viene tenantSlug, dejar que continúe (el callback jwt lo procesará)
   }
 
   // Rutas de super admin (solo SUPER_ADMIN puede acceder)

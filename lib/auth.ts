@@ -150,8 +150,155 @@ export const config = {
     async jwt({ token, user, account, trigger }) {
       // Verificar si es un nuevo sign-in o actualización
       if (account && user) {
-        // Obtener rol y tenantId
-        const { role, tenantId } = await getUserRoleAndTenant(user.email!)
+        let finalTenantId: string | null = null
+        let tenantSlug: string | null = null
+        
+        // Intentar obtener tenantSlug de la cookie primero (más confiable durante OAuth)
+        try {
+          const { getTenantSlug, clearTenantSlug } = await import('./utils/tenant-slug-storage')
+          tenantSlug = await getTenantSlug()
+          
+          // Si se obtuvo de la cookie, limpiarla después de usarla
+          if (tenantSlug) {
+            await clearTenantSlug()
+          }
+        } catch (error) {
+          console.error('Error obteniendo tenantSlug de cookie:', error)
+        }
+        
+        // Si no se obtuvo de la cookie, intentar del callbackUrl
+        if (!tenantSlug) {
+          const callbackUrl = (token.callbackUrl as string) || (account.callbackUrl as string) || ''
+          if (callbackUrl) {
+            try {
+              const url = new URL(callbackUrl, 'http://localhost')
+              tenantSlug = url.searchParams.get('tenantSlug')
+            } catch {
+              // Si callbackUrl no es una URL válida, intentar extraer manualmente
+              const match = callbackUrl.match(/tenantSlug=([^&]+)/)
+              if (match) {
+                tenantSlug = decodeURIComponent(match[1])
+              }
+            }
+          }
+        }
+        
+        // Si viene tenantSlug, obtener tenantId y crear/actualizar usuario
+        if (tenantSlug) {
+          try {
+            const { getTenantFromSlug } = await import('./tenant/context')
+            const tenant = await getTenantFromSlug(tenantSlug)
+            
+            if (!tenant) {
+              console.error(`❌ Tenant con slug "${tenantSlug}" no existe`)
+              throw new Error(`Tenant no encontrado: ${tenantSlug}`)
+            }
+            
+            if (!tenant.isActive) {
+              console.error(`❌ Tenant con slug "${tenantSlug}" está inactivo`)
+              throw new Error(`Tenant inactivo: ${tenantSlug}`)
+            }
+            
+            finalTenantId = tenant.id
+            
+            // Crear o actualizar usuario con el tenantId
+            const { ensureUserExists } = await import('./services/users')
+            await ensureUserExists(
+              user.email!,
+              user.name || null,
+              user.image || null,
+              tenant.id
+            )
+            
+            console.log(`✅ Usuario ${user.email} creado/actualizado con tenantId: ${tenant.id}`)
+          } catch (error: any) {
+            console.error('❌ Error procesando tenantSlug:', error)
+            // Si hay error con tenantSlug, lanzar error para rechazar el login
+            throw error
+          }
+        } else {
+          // Si NO viene tenantSlug, buscar un tenant "default" para asignar temporalmente
+          // El superadmin puede mover el usuario al tenant correcto desde /super-admin
+          try {
+            const { prisma } = await import('@/lib/database/neon-config')
+            const defaultTenant = await prisma.tenant.findFirst({
+              where: {
+                slug: 'default',
+                isActive: true
+              }
+            })
+            
+            if (defaultTenant) {
+              finalTenantId = defaultTenant.id
+              // Crear usuario con tenant default
+              const { ensureUserExists } = await import('./services/users')
+              await ensureUserExists(
+                user.email!,
+                user.name || null,
+                user.image || null,
+                defaultTenant.id
+              )
+              console.log(`✅ Usuario ${user.email} creado con tenant default (${defaultTenant.id})`)
+            } else {
+              // Si no existe tenant default, buscar el primer tenant activo como fallback
+              // Esto permite que usuarios puedan hacer login incluso sin tenant default
+              try {
+                const firstActiveTenant = await prisma.tenant.findFirst({
+                  where: { isActive: true },
+                  orderBy: { createdAt: 'asc' }
+                })
+                
+                if (firstActiveTenant) {
+                  finalTenantId = firstActiveTenant.id
+                  const { ensureUserExists } = await import('./services/users')
+                  await ensureUserExists(
+                    user.email!,
+                    user.name || null,
+                    user.image || null,
+                    firstActiveTenant.id
+                  )
+                  console.log(`✅ Usuario ${user.email} creado con primer tenant activo (${firstActiveTenant.id}) como fallback`)
+                } else {
+                  // Si no hay tenants activos, no crear usuario
+                  // El usuario debe ser creado por el superadmin desde /super-admin
+                  console.log(`ℹ️ Usuario ${user.email} hizo login sin tenantSlug y no hay tenants activos - no se creará usuario`)
+                  // No asignar tenantId, el middleware redirigirá a la landing page
+                }
+              } catch (fallbackError: any) {
+                console.error('❌ Error buscando tenant fallback:', fallbackError)
+                // Continuar sin crear usuario
+              }
+            }
+          } catch (error: any) {
+            console.error('❌ Error buscando tenant default:', error)
+            // Continuar sin crear usuario
+          }
+        }
+        
+        // Obtener rol y tenantId (puede ser el que acabamos de asignar o uno existente)
+        const { role, tenantId: existingTenantId } = await getUserRoleAndTenant(user.email!)
+        
+        // Si no se obtuvo tenantId del tenantSlug, usar el existente
+        if (!finalTenantId) {
+          finalTenantId = existingTenantId
+        }
+        
+        // Si el usuario ya tiene un tenantId diferente y no es SUPER_ADMIN, validar
+        if (existingTenantId && finalTenantId && existingTenantId !== finalTenantId) {
+          const isSuperAdmin = role === 'SUPER_ADMIN'
+          if (!isSuperAdmin) {
+            console.error(`❌ Usuario ${user.email} intenta acceder a tenant ${finalTenantId} pero pertenece a ${existingTenantId}`)
+            // Rechazar el login - el usuario pertenece a otro tenant
+            throw new Error(`No tienes permiso para acceder a este club. Tu cuenta está asociada a otro club.`)
+          }
+        }
+        
+        // Si el usuario no tiene tenantId y no es SUPER_ADMIN, permitir login pero sin tenantId
+        // El middleware redirigirá a la landing page para seleccionar un club
+        if (!finalTenantId && role !== 'SUPER_ADMIN') {
+          console.log(`ℹ️ Usuario ${user.email} no tiene tenantId asignado - será redirigido a landing page`)
+        }
+        
         const isSuperAdmin = role === 'SUPER_ADMIN'
         const isAdmin = role === 'ADMIN' || isSuperAdmin
         
@@ -164,7 +311,7 @@ export const config = {
         token.role = role
         token.isAdmin = isAdmin
         token.isSuperAdmin = isSuperAdmin
-        token.tenantId = tenantId
+        token.tenantId = finalTenantId
         token.email = user.email
         token.name = user.name
         token.picture = user.image
