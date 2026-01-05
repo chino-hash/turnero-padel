@@ -126,6 +126,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Obtener tenantId del header si está disponible (para super admin especificar tenant)
     const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;
     
+    // Preparar opciones para CrudService
+    const crudOptions = {
+      user: user,
+      tenantId: tenantIdFromHeader,
+      userRole: user.role,
+      userId: user.id
+    };
+    
     // Opciones de consulta
     const options: any = {};
     
