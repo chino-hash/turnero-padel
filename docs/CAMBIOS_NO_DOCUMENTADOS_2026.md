@@ -128,6 +128,9 @@ PAYMENT_PROVIDER=mercadopago  # Opcional
 ### 📍 Ubicación
 `app/admin-panel/admin/productos/page.tsx` (Modal de ventas)
 
+### ✅ Estado
+**MIGRADO A VERSIÓN PRINCIPAL** - El sistema de ventas está completamente implementado y disponible en la versión principal del proyecto.
+
 ### 🎯 Propósito
 
 **El carrito de ventas está diseñado para personas que compran productos pero NO juegan turnos.**
@@ -148,10 +151,11 @@ PAYMENT_PROVIDER=mercadopago  # Opcional
 - Campo de notas opcional
 
 #### Procesamiento de Ventas
-- Endpoint: `POST /api/productos/venta`
+- Endpoint: `POST /api/ventas`
 - Actualización automática de stock
-- Registro de venta en base de datos
+- Registro de venta en base de datos con soporte multi-tenant
 - Toast de confirmación
+- Validación con Zod schema
 
 #### Historial de Ventas
 - Ruta: `app/admin-panel/admin/ventas/page.tsx`
@@ -416,6 +420,7 @@ node cleanup-courts.js
 
 **Mantenido por:** Equipo de Desarrollo  
 **Última revisión:** Enero 2026
+
 
 
 

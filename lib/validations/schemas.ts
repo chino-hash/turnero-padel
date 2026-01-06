@@ -156,6 +156,16 @@ export const productoCreateSchema = z.object({
 
 export const productoUpdateSchema = productoCreateSchema.partial();
 
+// Esquema para Venta
+export const ventaCreateSchema = z.object({
+  productoId: z.number().int().positive('El ID del producto debe ser un número entero positivo'),
+  quantity: z.number().int().positive('La cantidad debe ser un número entero positivo').max(1000, 'La cantidad máxima es 1000'),
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD'], {
+    message: 'Método de pago inválido'
+  }),
+  notes: z.string().max(500, 'Las notas son demasiado largas').optional()
+});
+
 // Esquema para AdminWhitelist
 export const adminWhitelistCreateSchema = z.object({
   email: emailSchema,
@@ -286,6 +296,9 @@ export const modelSchemas = {
     create: productoCreateSchema,
     update: productoUpdateSchema
   },
+  Venta: {
+    create: ventaCreateSchema
+  },
   AdminWhitelist: {
     create: adminWhitelistCreateSchema,
     update: adminWhitelistUpdateSchema
@@ -311,6 +324,7 @@ export const modelPermissions = {
   Payment: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   SystemSetting: { read: 'ADMIN', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   Producto: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
+  Venta: { read: 'ADMIN', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   AdminWhitelist: { read: 'ADMIN', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   RecurringBooking: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' }
 };

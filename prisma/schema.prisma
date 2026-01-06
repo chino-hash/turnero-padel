@@ -63,6 +63,7 @@ model User {
   recurringBookings RecurringBooking[]
   paymentsProcessed Payment[]          @relation("ProcessedBy")
   closedBookings    Booking[]          @relation("ClosedBy")
+  ventasProcesadas  Venta[]            @relation("ProcessedBy")
   sessions          Session[]
 
   @@unique([email, tenantId])
@@ -293,6 +294,7 @@ model Producto {
   activo    Boolean        @default(true)
   tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   extras    BookingExtra[]
+  ventas    Venta[]
 
   @@index([tenantId])
   @@index([categoria])
@@ -427,4 +429,29 @@ model RecurringBookingException {
   recurring RecurringBooking @relation(fields: [recurringId], references: [id], onDelete: Cascade)
 
   @@index([recurringId, date])
+}
+
+model Venta {
+  id            String         @id @default(cuid())
+  tenantId      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  productoId    Int
+  quantity      Int            @default(1)
+  unitPrice     Float
+  totalPrice    Float
+  paymentMethod PaymentMethod
+  processedById String?
+  notes         String?
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  producto      Producto       @relation(fields: [productoId], references: [id])
+  processedBy   User?          @relation("ProcessedBy", fields: [processedById], references: [id])
+
+  @@index([tenantId])
+  @@index([productoId])
+  @@index([processedById])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
 }

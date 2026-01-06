@@ -11,7 +11,7 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../../components/ui/dialog'
 import { Badge } from '../../../../components/ui/badge'
-import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive } from 'lucide-react'
+import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive, ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { useAppState } from '@/components/providers/AppStateProvider'
@@ -34,6 +34,7 @@ export default function ProductosPage() {
   const [filtroCategoria, setFiltroCategoria] = useState('Todas')
   const [modalAbierto, setModalAbierto] = useState(false)
   const [modalEliminar, setModalEliminar] = useState(false)
+  const [modalVenta, setModalVenta] = useState(false)
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null)
   const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null)
 
@@ -42,6 +43,15 @@ export default function ProductosPage() {
   const [unidadVolumen, setUnidadVolumen] = useState('ml')
   const [categoriaFormulario, setCategoriaFormulario] = useState('')
 
+  // Estados para venta
+  const [productoVenta, setProductoVenta] = useState<number | null>(null)
+  const [cantidadVenta, setCantidadVenta] = useState(1)
+  const [metodoPago, setMetodoPago] = useState<'CASH' | 'CARD' | 'BANK_TRANSFER'>('CASH')
+  const [notasVenta, setNotasVenta] = useState('')
+  const [procesandoVenta, setProcesandoVenta] = useState(false)
+  const [busquedaVenta, setBusquedaVenta] = useState('')
+  const [mostrarListaProductos, setMostrarListaProductos] = useState(false)
+
   const categorias = ['Todas', 'Alquiler', 'Pelotas', 'Toallas', 'Bebidas', 'Snacks', 'Otros']
 
   const productosFiltrados = productos.filter(producto => {
@@ -49,6 +59,19 @@ export default function ProductosPage() {
     const coincideCategoria = filtroCategoria === 'Todas' || producto.categoria === filtroCategoria
     return coincideBusqueda && coincideCategoria
   })
+
+  // Productos disponibles para venta (activos y con stock)
+  const productosDisponibles = productos.filter(p => p.activo && p.stock > 0)
+
+  // Productos filtrados por búsqueda en modal de venta
+  const productosFiltradosVenta = productosDisponibles.filter(p =>
+    p.nombre.toLowerCase().includes(busquedaVenta.toLowerCase()) ||
+    p.categoria.toLowerCase().includes(busquedaVenta.toLowerCase())
+  )
+
+  // Producto seleccionado para venta
+  const productoSeleccionado = productos.find(p => p.id === productoVenta)
+  const precioTotal = productoSeleccionado ? productoSeleccionado.precio * cantidadVenta : 0
 
   const handleEditarProducto = (producto: Producto) => {
     setProductoEditando(producto)
@@ -278,6 +301,71 @@ export default function ProductosPage() {
     }
   }
 
+  const handleAbrirVenta = () => {
+    setProductoVenta(null)
+    setCantidadVenta(1)
+    setMetodoPago('CASH')
+    setNotasVenta('')
+    setBusquedaVenta('')
+    setMostrarListaProductos(false)
+    setModalVenta(true)
+  }
+
+  const handleConfirmarVenta = async () => {
+    if (!productoVenta || cantidadVenta <= 0) {
+      toast.error('Selecciona un producto y una cantidad válida')
+      return
+    }
+
+    const producto = productos.find(p => p.id === productoVenta)
+    if (!producto) {
+      toast.error('Producto no encontrado')
+      return
+    }
+
+    if (producto.stock < cantidadVenta) {
+      toast.error(`Stock insuficiente. Disponible: ${producto.stock}`)
+      return
+    }
+
+    setProcesandoVenta(true)
+
+    try {
+      const response = await fetch('/api/ventas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productoId: productoVenta,
+          quantity: cantidadVenta,
+          paymentMethod: metodoPago,
+          notes: notasVenta || undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast.success(`Venta registrada: ${producto.nombre} x${cantidadVenta} - $${precioTotal.toLocaleString()}`)
+        setModalVenta(false)
+        setProductoVenta(null)
+        setCantidadVenta(1)
+        setMetodoPago('CASH')
+        setNotasVenta('')
+        // Recargar productos para actualizar stock
+        await cargarProductos()
+      } else {
+        toast.error(data.error || 'Error al procesar la venta')
+      }
+    } catch (error) {
+      console.error('Error al procesar venta:', error)
+      toast.error('Error de conexión al procesar la venta')
+    } finally {
+      setProcesandoVenta(false)
+    }
+  }
+
   const getCategoriaColor = (categoria: string) => {
     switch (categoria) {
       case 'Bebidas': return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100'
@@ -302,10 +390,16 @@ export default function ProductosPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
             </div>
-            <Button onClick={handleNuevoProducto} className="flex items-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>Nuevo Producto</span>
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button onClick={handleAbrirVenta} className="flex items-center space-x-2" variant="outline">
+                <ShoppingCart className="w-4 h-4" />
+                <span>Ventas</span>
+              </Button>
+              <Button onClick={handleNuevoProducto} className="flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Nuevo Producto</span>
+              </Button>
+            </div>
           </div>
           <div className="mt-6 flex items-center justify-between">
             <div>
@@ -653,6 +747,174 @@ export default function ProductosPage() {
               >
                 Eliminar
               </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Venta */}
+        <Dialog open={modalVenta} onOpenChange={setModalVenta}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nueva Venta</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {!productoVenta ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="busqueda-producto-venta">Buscar Producto</Label>
+                    <Input
+                      id="busqueda-producto-venta"
+                      type="text"
+                      placeholder="Escribe para buscar producto..."
+                      value={busquedaVenta}
+                      onChange={(e) => {
+                        setBusquedaVenta(e.target.value)
+                        setMostrarListaProductos(true)
+                      }}
+                      onFocus={() => setMostrarListaProductos(true)}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {mostrarListaProductos && (
+                    <div className="space-y-2">
+                      <Label htmlFor="producto-venta">Seleccionar Producto</Label>
+                      {productosFiltradosVenta.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground border border-gray-300 dark:border-gray-600 rounded-md">
+                          {busquedaVenta ? 'No se encontraron productos' : 'No hay productos disponibles'}
+                        </div>
+                      ) : (
+                        <div className="max-h-60 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md">
+                          {productosFiltradosVenta.map(producto => (
+                            <div
+                              key={producto.id}
+                              onClick={() => {
+                                setProductoVenta(producto.id)
+                                setCantidadVenta(1)
+                                setMostrarListaProductos(false)
+                                setBusquedaVenta('')
+                              }}
+                              className="p-3 cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-muted transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium">{producto.nombre}</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {producto.categoria} • Stock: {producto.stock} • ${producto.precio.toLocaleString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Producto Seleccionado</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setProductoVenta(null)
+                        setCantidadVenta(1)
+                        setBusquedaVenta('')
+                        setMostrarListaProductos(true)
+                      }}
+                    >
+                      Cambiar
+                    </Button>
+                  </div>
+                  <div className="p-4 bg-muted rounded-md border border-gray-300 dark:border-gray-600">
+                    <div className="font-medium text-lg">{productoSeleccionado?.nombre}</div>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {productoSeleccionado?.categoria} • Stock: {productoSeleccionado?.stock} • ${productoSeleccionado?.precio.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {productoSeleccionado && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="cantidad-venta">Cantidad</Label>
+                    <Input
+                      id="cantidad-venta"
+                      type="number"
+                      min="1"
+                      max={productoSeleccionado.stock}
+                      value={cantidadVenta}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 1
+                        setCantidadVenta(Math.min(Math.max(1, value), productoSeleccionado.stock))
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Stock disponible: {productoSeleccionado.stock}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="metodo-pago">Método de Pago</Label>
+                    <select
+                      id="metodo-pago"
+                      value={metodoPago}
+                      onChange={(e) => setMetodoPago(e.target.value as 'CASH' | 'CARD' | 'BANK_TRANSFER')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-background text-foreground"
+                    >
+                      <option value="CASH">Efectivo</option>
+                      <option value="CARD">Tarjeta</option>
+                      <option value="BANK_TRANSFER">Transferencia</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notas-venta">Notas (opcional)</Label>
+                    <Input
+                      id="notas-venta"
+                      value={notasVenta}
+                      onChange={(e) => setNotasVenta(e.target.value)}
+                      placeholder="Notas adicionales..."
+                    />
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-md">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-muted-foreground">Precio unitario:</span>
+                      <span className="font-medium">${productoSeleccionado.precio.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-muted-foreground">Cantidad:</span>
+                      <span className="font-medium">{cantidadVenta}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                      <span className="text-lg font-bold">Total:</span>
+                      <span className="text-lg font-bold text-orange-600">${precioTotal.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setModalVenta(false)}
+                  disabled={procesandoVenta}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmarVenta}
+                  disabled={!productoVenta || cantidadVenta <= 0 || procesandoVenta}
+                >
+                  {procesandoVenta ? 'Procesando...' : 'Confirmar Venta'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
