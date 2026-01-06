@@ -9,11 +9,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session || !session.user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'No autorizado. Solo administradores pueden realizar ventas.'
+          error: 'No autorizado. Debes iniciar sesión.'
         },
         { status: 401 }
       )
@@ -26,6 +26,20 @@ export async function POST(request: NextRequest) {
       isAdmin: session.user.isAdmin || false,
       isSuperAdmin: session.user.isSuperAdmin || false,
       tenantId: session.user.tenantId || null,
+    }
+
+    // Verificar si es admin o super admin
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const isAdmin = user.role === 'ADMIN' || user.isAdmin || isSuperAdmin
+
+    if (!isAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No autorizado. Solo administradores pueden realizar ventas.'
+        },
+        { status: 401 }
+      )
     }
 
     const userTenantId = await getUserTenantIdSafe(user)
@@ -144,11 +158,11 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session || !session.user) {
       return NextResponse.json(
         {
           success: false,
-          error: 'No autorizado. Solo administradores pueden ver el historial de ventas.'
+          error: 'No autorizado. Debes iniciar sesión.'
         },
         { status: 401 }
       )
@@ -163,7 +177,20 @@ export async function GET(request: NextRequest) {
       tenantId: session.user.tenantId || null,
     }
 
+    // Verificar si es admin o super admin
     const isSuperAdmin = await isSuperAdminUser(user)
+    const isAdmin = user.role === 'ADMIN' || user.isAdmin || isSuperAdmin
+
+    if (!isAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No autorizado. Solo administradores pueden ver el historial de ventas.'
+        },
+        { status: 401 }
+      )
+    }
+
     const userTenantId = await getUserTenantIdSafe(user)
 
     const { searchParams } = new URL(request.url)
