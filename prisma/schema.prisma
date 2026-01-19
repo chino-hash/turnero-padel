@@ -111,6 +111,7 @@ model Tenant {
   products          Producto[]
   systemSettings    SystemSetting[]
   admins            AdminWhitelist[]
+  ventas            Venta[]
 
   @@index([slug])
   @@index([isActive])
