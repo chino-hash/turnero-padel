@@ -67,6 +67,7 @@ export type BookingCreateInput = {
   bookingDate: Date;
   startTime: string;
   endTime: string;
+  expiresAt?: Date;
   durationMinutes: number;
   totalPrice: number;
   depositAmount?: number;
@@ -339,6 +340,7 @@ export class BookingRepository {
           bookingDate: data.bookingDate,
           startTime: data.startTime,
           endTime: data.endTime,
+          expiresAt: data.expiresAt,
           durationMinutes: data.durationMinutes,
           totalPrice: data.totalPrice,
           depositAmount: data.depositAmount || 0,

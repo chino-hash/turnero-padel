@@ -8,18 +8,24 @@ import { IPaymentProvider, CreatePaymentPreferenceParams, PaymentPreferenceResul
 
 export class MercadoPagoProvider implements IPaymentProvider {
   private client: MercadoPagoConfig;
+  private environment: 'sandbox' | 'production';
 
-  constructor() {
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  constructor(accessToken?: string, environment?: 'sandbox' | 'production') {
+    // Si no se proporciona accessToken, usar variable de entorno (fallback para compatibilidad)
+    const token = accessToken || process.env.MERCADOPAGO_ACCESS_TOKEN;
     
-    if (!accessToken) {
-      throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+    if (!token) {
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado. Proporciona un accessToken o configura la variable de entorno MERCADOPAGO_ACCESS_TOKEN');
     }
 
+    this.environment = environment || (process.env.MERCADOPAGO_ENVIRONMENT as 'sandbox' | 'production') || 'sandbox';
+
     this.client = new MercadoPagoConfig({
-      accessToken: accessToken,
+      accessToken: token,
       options: { timeout: 5000 }
     });
+
+    console.log(`[MercadoPagoProvider] Inicializado con environment: ${this.environment}${accessToken ? ' (credenciales del tenant)' : ' (credenciales globales)'}`);
   }
 
   async createPreference(params: CreatePaymentPreferenceParams): Promise<PaymentPreferenceResult> {
@@ -72,6 +78,8 @@ export class MercadoPagoProvider implements IPaymentProvider {
     }
   }
 }
+
+
 
 
 

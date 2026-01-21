@@ -9,6 +9,7 @@ export interface ProcessRefundParams {
   amount: number; // en centavos
   externalPaymentId: string; // ID del pago en el proveedor externo (ej: MP Payment ID)
   reason: string;
+  tenantId?: string; // ID del tenant (opcional, para usar credenciales del tenant)
 }
 
 export type RefundStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';

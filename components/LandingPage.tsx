@@ -11,6 +11,13 @@ interface Club {
   description?: string | null
 }
 
+const TEST_CLUB: Club = {
+  id: 'test-tenant',
+  name: 'tenant de prueba',
+  slug: 'tenant-de-prueba',
+  description: 'Club de prueba para la landing page',
+}
+
 export default function LandingPage() {
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -55,7 +62,13 @@ export default function LandingPage() {
         }
         const data = await response.json()
         if (data.success) {
-          setClubs(data.data || [])
+          const clubsData: Club[] = data.data || []
+          if (process.env.NODE_ENV !== 'production') {
+            const hasTestClub = clubsData.some((club) => club.slug === TEST_CLUB.slug)
+            setClubs(hasTestClub ? clubsData : [TEST_CLUB, ...clubsData])
+          } else {
+            setClubs(clubsData)
+          }
         } else {
           throw new Error(data.error || 'Error al cargar clubs')
         }
@@ -78,11 +91,11 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#0D0D0D] text-[#F3F4F6] font-['Inter',sans-serif]">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/95 backdrop-blur-sm border-b border-gray-800">
-        <nav className="container mx-auto px-6 py-5 flex justify-between items-center">
+        <nav className="container mx-auto px-4 md:px-6 py-4 flex justify-between items-center">
           <Link href="/" className="text-3xl font-black tracking-tight">
-            Padel<span className="text-[#BEF264]">Listo</span>
+            padel<span className="text-[#BEF264]">book</span>
           </Link>
-          <div className="hidden md:flex space-x-8 items-center">
+          <div className="hidden md:flex items-center gap-6 xl:gap-8">
             <a href="#about" className="text-gray-300 hover:text-[#BEF264] transition-colors font-semibold">
               Sobre Nosotros
             </a>
@@ -114,7 +127,7 @@ export default function LandingPage() {
           </div>
         </nav>
         {mobileMenuOpen && (
-          <div className="md:hidden bg-[#0D0D0D] border-t border-gray-800 px-6 py-4 space-y-3">
+          <div className="md:hidden bg-[#0D0D0D] border-t border-gray-800 px-4 py-4 space-y-3">
             <a href="#about" className="block text-gray-300 hover:text-[#BEF264] transition-colors font-semibold">
               Sobre Nosotros
             </a>
@@ -138,29 +151,29 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <main className="pt-24 md:pt-32">
-        <section className="container mx-auto px-6 mt-8 md:mt-16">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+      <main className="pt-20 md:pt-24">
+        <section className="container mx-auto px-6 mt-4 md:mt-8 min-h-[calc(100vh-88px)]">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div className="lg:w-1/2 text-center lg:text-left animate-fade-in">
-              <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tight">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight tracking-tight">
                 Tu Próximo Partido de Pádel,<br />
                 <span className="bg-gradient-to-r from-[#BEF264] to-[#a1d94f] bg-clip-text text-transparent">
                   a un Solo Tap.
                 </span>
               </h1>
-              <p className="text-xl text-gray-300 mt-6 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. Padel Listo es la app definitiva para jugadores y clubes.
+              <p className="text-lg text-gray-300 mt-4 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. padelbook es la app definitiva para jugadores y clubes.
               </p>
-              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 mt-10">
+              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 mt-8">
                 <Link 
                   href="/login?callbackUrl=/dashboard"
-                  className="bg-[#BEF264] text-[#0D0D0D] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
+                  className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
                 >
                   Reservar Ahora
                 </Link>
                 <a 
                   href="#clubs-list"
-                  className="border-2 border-gray-600 text-white font-bold py-4 px-8 rounded-lg hover:bg-gray-800 hover:border-[#BEF264]/50 transition-all duration-300 text-center"
+                  className="border-2 border-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 hover:border-[#BEF264]/50 transition-all duration-300 text-center"
                 >
                   Soy un Club
                 </a>
@@ -202,8 +215,8 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-[#BEF264]/20 blur-3xl rounded-full"></div>
                 <img 
                   src="https://placehold.co/350x700/1A1A1A/BEF264?text=App+Preview" 
-                  alt="Vista previa de la app Padel Listo" 
-                  className="relative rounded-3xl shadow-2xl border-4 border-[#1A1A1A] shadow-[0_0_20px_rgba(190,242,100,0.3)] transform hover:scale-105 transition-transform duration-300"
+                  alt="Vista previa de la app padelbook" 
+                  className="relative rounded-3xl shadow-2xl border-2 border-[#1A1A1A] shadow-[0_0_20px_rgba(190,242,100,0.3)] transform hover:scale-105 transition-transform duration-300 h-[65vh] md:h-[70vh] lg:h-[72vh] w-auto"
                 />
               </div>
             </div>
@@ -516,7 +529,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
           <div>
             <Link href="/" className="text-2xl font-black text-white tracking-tight mb-4 inline-block">
-              Padel<span className="text-[#BEF264]">Listo</span>
+              padel<span className="text-[#BEF264]">book</span>
             </Link>
             <p className="text-gray-400 mt-4 leading-relaxed">
               La app definitiva para reservar canchas de pádel y conectar con jugadores. Tu próximo partido, a un solo tap.
@@ -561,4 +574,3 @@ export default function LandingPage() {
     </div>
   )
 }
-

@@ -225,7 +225,9 @@ export async function GET(request: NextRequest) {
         where.createdAt.gte = new Date(startDate)
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate)
+        const endDateExclusive = new Date(endDate)
+        endDateExclusive.setDate(endDateExclusive.getDate() + 1)
+        where.createdAt.lt = endDateExclusive
       }
     }
 

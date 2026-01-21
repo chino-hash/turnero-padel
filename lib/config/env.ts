@@ -79,7 +79,7 @@ const envSchema = z.object({
   
   // ========================================================================
   // VARIABLES OPCIONALES
-  // ========================================================================
+  // ============================================================================
   
   // Testing
   TEST_DATABASE_URL: z.string().optional()
@@ -90,6 +90,10 @@ const envSchema = z.object({
     .describe('Indica si se ejecuta en entorno CI/CD'),
   TZ: z.string().optional()
     .describe('Zona horaria para tests'),
+  
+  // Seguridad de Jobs/Cron
+  CRON_SECRET: z.string().optional()
+    .describe('Token secreto para proteger ejecución de cron jobs en producción'),
   
   // Supabase (Legacy - Migración completada)
   SUPABASE_URL: urlSchema.optional()
@@ -167,6 +171,7 @@ function validateEnv() {
       NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
       ANALYZE: process.env.ANALYZE,
       CREDENTIAL_ENCRYPTION_KEY: process.env.CREDENTIAL_ENCRYPTION_KEY,
+      CRON_SECRET: process.env.CRON_SECRET,
     }
 
     const reParsed = envSchema.safeParse(defaults)
@@ -309,6 +314,13 @@ export const getAnalyticsConfig = () => ({
 export const getEncryptionConfig = () => ({
   key: env.CREDENTIAL_ENCRYPTION_KEY,
   isConfigured: Boolean(env.CREDENTIAL_ENCRYPTION_KEY),
+})
+
+/**
+ * Configuración de jobs/cron
+ */
+export const getCronConfig = () => ({
+  secret: env.CRON_SECRET,
 })
 
 // ============================================================================

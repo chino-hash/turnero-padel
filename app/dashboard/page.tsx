@@ -1,7 +1,7 @@
 'use client'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ClientAppStateProvider from '@/components/providers/ClientAppStateProvider'
 
@@ -15,6 +15,20 @@ const PadelBookingPage = dynamic(() => import('@/padel-booking'), {
 })
 
 export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
+        </div>
+      }
+    >
+      <DashboardPageInner />
+    </Suspense>
+  )
+}
+
+function DashboardPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [isValidating, setIsValidating] = useState(false)

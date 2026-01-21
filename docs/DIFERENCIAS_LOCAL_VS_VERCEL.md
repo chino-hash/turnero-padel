@@ -96,6 +96,11 @@
   ```
 - Documentar qué provider se está usando en cada entorno
 
+**Nota importante (multitenant):**
+- En local, puede que NO existan variables `MERCADOPAGO_*` en `.env*` (no se versionan).
+- En producción, usualmente están en Vercel.
+- Si un tenant no tiene credenciales persistidas en DB, el sistema puede caer en fallback a globales (según factory).
+
 ---
 
 ### 4. 🚦 RATE LIMITING - Vercel KV
@@ -159,6 +164,21 @@ async function limitWith(limiter: Ratelimit | null, identifier: string): Promise
 
 **Impacto:**
 - Mínimo, solo afecta el proceso de build
+
+---
+
+### 7. 🪟 Windows - `prisma generate` puede fallar con `EPERM`
+
+**Síntoma:**
+- Error `EPERM: operation not permitted, rename ... query_engine-windows.dll.node.tmp -> ...dll.node`
+
+**Causas típicas:**
+- Archivo bloqueado por antivirus/Defender o por un proceso Node en ejecución.
+
+**Workarounds:**
+- Detener `npm run dev` antes de `npm run build`
+- Reintentar `npm run build`
+- Si el cliente ya está generado, ejecutar `npx next build`
 
 ---
 
@@ -257,6 +277,8 @@ vercel inspect [deployment-url]
 
 **Mantenido por:** Equipo de Desarrollo  
 **Última revisión:** Enero 2026
+
+
 
 
 

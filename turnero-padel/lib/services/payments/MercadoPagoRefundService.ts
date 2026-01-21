@@ -11,17 +11,20 @@ import { randomUUID } from 'crypto';
 export class MercadoPagoRefundService implements IRefundService {
   private client: MercadoPagoConfig;
 
-  constructor() {
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  constructor(accessToken?: string) {
+    // Si no se proporciona accessToken, usar variable de entorno (fallback para compatibilidad)
+    const token = accessToken || process.env.MERCADOPAGO_ACCESS_TOKEN;
     
-    if (!accessToken) {
-      throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+    if (!token) {
+      throw new Error('MERCADOPAGO_ACCESS_TOKEN no está configurado. Proporciona un accessToken o configura la variable de entorno MERCADOPAGO_ACCESS_TOKEN');
     }
 
     this.client = new MercadoPagoConfig({
-      accessToken: accessToken,
+      accessToken: token,
       options: { timeout: 5000 }
     });
+
+    console.log(`[MercadoPagoRefundService] Inicializado${accessToken ? ' con credenciales del tenant' : ' con credenciales globales'}`);
   }
 
   /**

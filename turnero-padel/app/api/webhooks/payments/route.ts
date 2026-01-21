@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { BookingWebhookHandler } from '@/lib/services/payments/BookingWebhookHandler';
+import { prisma } from '@/lib/database/neon-config';
+import { getTenantMercadoPagoCredentials } from '@/lib/services/payments/tenant-credentials';
 
 /**
  * Cache simple en memoria para evitar procesamiento duplicado de webhooks
@@ -49,15 +51,19 @@ function markWebhookAsProcessed(requestId: string): void {
  * Valida la firma de Mercado Pago
  * Mercado Pago envía x-signature y x-request-id en los headers
  * 
- * Mejora implementada: Validación de timestamp para prevenir replay attacks
- * Los webhooks con el mismo request_id no se procesan múltiples veces
+ * @param xSignature - Firma recibida en el header x-signature
+ * @param xRequestId - Request ID recibido en el header x-request-id
+ * @param dataId - ID del dato del webhook
+ * @param webhookSecret - Secret para validar la firma (opcional, usa variable de entorno si no se proporciona)
+ * @returns Resultado de la validación
  */
 function validateMercadoPagoSignature(
   xSignature: string,
   xRequestId: string,
-  dataId: string
+  dataId: string,
+  webhookSecret?: string
 ): { valid: boolean; error?: string } {
-  const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  const secret = webhookSecret || process.env.MERCADOPAGO_WEBHOOK_SECRET;
   
   // Si no hay secret configurado, no validar (modo desarrollo/testing)
   if (!secret) {
@@ -111,18 +117,71 @@ export async function POST(request: NextRequest) {
       const dataId = body.data?.id;
 
       if (signature && requestId && dataId) {
-        const validation = validateMercadoPagoSignature(signature, requestId, dataId);
+        // Estrategia: Validar primero con secret global, luego intentar obtener tenant
+        // Esto permite que funcione durante la migración
+        let validation = validateMercadoPagoSignature(signature, requestId, dataId);
+        let usedGlobalSecret = true;
+        let tenantId: string | null = null;
+
+        // Si la validación global falla, intentar obtener tenant del booking
+        if (!validation.valid) {
+          // Intentar obtener bookingId del payload para obtener tenant
+          let bookingId: string | undefined;
+          
+          // El bookingId puede venir en external_reference del pago
+          // Primero intentar obtenerlo del payload directamente
+          if (body.data?.external_reference) {
+            bookingId = body.data.external_reference;
+          }
+          
+          // Si no está en el payload, necesitamos consultar la API de MP
+          // Pero para eso necesitamos el accessToken, así que intentamos obtener el tenant
+          if (bookingId) {
+            try {
+              const booking = await prisma.booking.findUnique({
+                where: { id: bookingId },
+                select: { tenantId: true }
+              });
+              
+              if (booking?.tenantId) {
+                tenantId = booking.tenantId;
+                const credentials = await getTenantMercadoPagoCredentials(booking.tenantId);
+                
+                if (credentials.webhookSecret) {
+                  // Validar con secret del tenant
+                  validation = validateMercadoPagoSignature(signature, requestId, dataId, credentials.webhookSecret);
+                  usedGlobalSecret = false;
+                  console.log(`[Webhook] Validación con secret del tenant ${tenantId}${validation.valid ? ' exitosa' : ' fallida'}`);
+                }
+              }
+            } catch (error) {
+              console.warn(`[Webhook] Error obteniendo credenciales del tenant para booking ${bookingId}:`, error);
+            }
+          }
+        }
+
         if (!validation.valid) {
           console.error('[Webhook] Validación fallida de Mercado Pago', {
             signature: signature.substring(0, 20) + '...',
             requestId,
             dataId,
+            usedGlobalSecret,
+            tenantId,
             error: validation.error
           });
           return NextResponse.json(
             { error: validation.error || 'Firma inválida' },
             { status: 401 }
           );
+        } else {
+          // Si usamos secret global pero tenemos tenant, loggear advertencia
+          if (usedGlobalSecret && tenantId) {
+            console.warn(`[Webhook] Webhook validado con secret global pero booking pertenece al tenant ${tenantId}. Considera migrar credenciales.`);
+          } else if (!usedGlobalSecret) {
+            console.log(`[Webhook] Webhook validado con secret del tenant ${tenantId}`);
+          } else {
+            console.log('[Webhook] Webhook validado con secret global');
+          }
         }
       } else if (process.env.MERCADOPAGO_WEBHOOK_SECRET) {
         // Si tenemos secret configurado pero faltan headers, advertir

@@ -119,6 +119,22 @@ export class BookingService {
     this.repository = new BookingRepository(client);
   }
 
+  private async getBookingExpirationMinutes(tenantId: string): Promise<number> {
+    // Default conservador: 15 minutos para completar el pago
+    const DEFAULT_MINUTES = 15;
+    try {
+      const setting = await prisma.systemSetting.findFirst({
+        where: { tenantId, key: 'booking_expiration_minutes' },
+        select: { value: true }
+      });
+      if (!setting?.value) return DEFAULT_MINUTES;
+      const parsed = parseInt(setting.value, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MINUTES;
+    } catch {
+      return DEFAULT_MINUTES;
+    }
+  }
+
   private parseYmd(date: string) {
     const [y, m, d] = date.split('-').map(Number)
     return new Date(y as number, (m as number) - 1, d as number)
@@ -413,7 +429,10 @@ export class BookingService {
 
       // Calcular duración y precio
       const durationMinutes = this.calculateDuration(input.startTime, input.endTime);
-      const court = await prisma.court.findUnique({ where: { id: input.courtId } });
+      const court = await prisma.court.findUnique({
+        where: { id: input.courtId },
+        select: { id: true, tenantId: true, basePrice: true, priceMultiplier: true }
+      });
       
       if (!court) {
         return {
@@ -423,8 +442,11 @@ export class BookingService {
         };
       }
 
-      const totalPrice = court.basePrice * court.priceMultiplier * (durationMinutes / 60);
-      const depositAmount = totalPrice * 0.3; // 30% por defecto
+      const totalPrice = Math.round(court.basePrice * court.priceMultiplier * (durationMinutes / 60));
+      const depositAmount = Math.round(totalPrice * 0.3); // 30% por defecto
+
+      const expirationMinutes = await this.getBookingExpirationMinutes(court.tenantId);
+      const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
       const createData: BookingCreateInput = {
         courtId: input.courtId,
@@ -432,6 +454,7 @@ export class BookingService {
         bookingDate: new Date(input.bookingDate),
         startTime: input.startTime,
         endTime: input.endTime,
+        expiresAt,
         durationMinutes,
         totalPrice,
         depositAmount,
@@ -450,6 +473,75 @@ export class BookingService {
     } catch (error) {
       console.error('Error creating booking:', error);
       throw new Error('Error al crear la reserva');
+    }
+  }
+
+  // Crear preferencia de pago para una reserva
+  async createPaymentPreference(
+    bookingId: string
+  ): Promise<ApiResponse<{ preferenceId: string; initPoint: string; sandboxInitPoint?: string }>> {
+    try {
+      const booking = await this.repository.findById(bookingId);
+
+      if (!booking) {
+        return { success: false, message: 'Reserva no encontrada', error: 'Reserva no encontrada' };
+      }
+
+      if (!booking.expiresAt) {
+        return {
+          success: false,
+          message: 'La reserva no tiene fecha de expiración',
+          error: 'La reserva no tiene fecha de expiración'
+        };
+      }
+
+      const tenantId = booking.tenantId;
+      if (!tenantId) {
+        return {
+          success: false,
+          message: 'La reserva no tiene tenant asociado',
+          error: 'La reserva no tiene tenant asociado'
+        };
+      }
+
+      // Importar dinámicamente para evitar dependencias circulares
+      const { getPaymentProvider } = await import('./payments/PaymentProviderFactory');
+      const paymentProvider = await getPaymentProvider(tenantId);
+
+      const amount = booking.depositAmount && booking.depositAmount > 0 ? booking.depositAmount : booking.totalPrice;
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
+      const preference = await paymentProvider.createPreference({
+        bookingId: booking.id,
+        title: `Reserva Cancha ${booking.court.name}`,
+        description: `Reserva para ${booking.bookingDate.toISOString().split('T')[0]} ${booking.startTime}-${booking.endTime}`,
+        amount,
+        expiresAt: booking.expiresAt,
+        userId: booking.userId,
+        backUrls: {
+          success: `${baseUrl}/reservas/exito`,
+          failure: `${baseUrl}/reservas/error`,
+          pending: `${baseUrl}/reservas/pendiente`
+        }
+      });
+
+      return {
+        success: true,
+        data: {
+          preferenceId: preference.preferenceId,
+          initPoint: preference.initPoint,
+          sandboxInitPoint: preference.sandboxInitPoint
+        },
+        message: 'Preferencia de pago creada exitosamente'
+      };
+    } catch (error) {
+      console.error('Error creando preferencia de pago:', error);
+      return {
+        success: false,
+        message: 'Error al crear la preferencia de pago',
+        error: error instanceof Error ? error.message : 'Error desconocido'
+      };
     }
   }
 

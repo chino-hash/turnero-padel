@@ -507,9 +507,20 @@ export class BookingService {
         };
       }
 
+      // Obtener tenantId del booking
+      const tenantId = booking.tenantId;
+      
+      if (!tenantId) {
+        return {
+          success: false,
+          message: 'La reserva no tiene tenant asociado',
+          error: 'La reserva no tiene tenant asociado'
+        };
+      }
+
       // Importar dinámicamente para evitar dependencias circulares
       const { getPaymentProvider } = await import('./payments/PaymentProviderFactory');
-      const paymentProvider = getPaymentProvider();
+      const paymentProvider = await getPaymentProvider(tenantId);
 
       // Crear preferencia de pago
       const preference = await paymentProvider.createPreference({

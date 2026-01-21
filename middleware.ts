@@ -27,7 +27,13 @@ export default auth((req) => {
   const isAuthRoute = nextUrl.pathname.startsWith('/api/auth')
   
   // Rutas de API públicas (que no requieren autenticación)
-  const publicApiRoutes = ['/api/courts', '/api/slots', '/api/tenants/public']
+  const publicApiRoutes = [
+    '/api/courts',
+    '/api/slots',
+    '/api/tenants/public',
+    '/api/webhooks/payments',
+    '/api/system-settings/public'
+  ]
   const isPublicApiRoute = publicApiRoutes.some(route => nextUrl.pathname.startsWith(route))
 
   // Rutas de API que requieren autenticación pero deben pasar sin redirección (el endpoint maneja 401)

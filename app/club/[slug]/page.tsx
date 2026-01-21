@@ -20,23 +20,21 @@ export default async function ClubPage({ params }: ClubPageProps) {
     redirect('/?error=tenant-invalid-slug')
   }
 
-  try {
-    const tenant = await getTenantFromSlug(slug)
+  const tenant = await getTenantFromSlug(slug)
 
-    if (!tenant) {
-      redirect('/?error=tenant-not-found')
-    }
-
-    if (!tenant.isActive) {
-      redirect('/?error=tenant-inactive')
-    }
-
-    // Redirigir a login con tenantSlug en el callbackUrl
-    const callbackUrl = `/dashboard?tenantSlug=${encodeURIComponent(slug)}`
-    redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
-  } catch (error) {
-    console.error('Error en ClubPage:', error)
-    redirect('/?error=tenant-error')
+  if (!tenant) {
+    redirect('/?error=tenant-not-found')
   }
+
+  if (!tenant.isActive) {
+    redirect('/?error=tenant-inactive')
+  }
+
+  // Redirigir a login con tenantSlug en el callbackUrl
+  // Nota: `redirect()` lanza una excepción interna (NEXT_REDIRECT), no debe ser atrapada.
+  const callbackUrl = `/dashboard?tenantSlug=${encodeURIComponent(slug)}`
+  redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
 }
+
+
 

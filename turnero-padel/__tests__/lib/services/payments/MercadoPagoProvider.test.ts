@@ -46,7 +46,7 @@ describe('MercadoPagoProvider', () => {
   });
 
   describe('constructor', () => {
-    it('debe inicializar correctamente con access token válido', () => {
+    it('debe inicializar correctamente con access token de variable de entorno', () => {
       const provider = new MercadoPagoProvider();
       expect(MercadoPagoConfig).toHaveBeenCalledWith({
         accessToken: mockAccessToken,
@@ -58,6 +58,28 @@ describe('MercadoPagoProvider', () => {
     it('debe lanzar error si no hay access token', () => {
       delete process.env.MERCADOPAGO_ACCESS_TOKEN;
       expect(() => new MercadoPagoProvider()).toThrow('MERCADOPAGO_ACCESS_TOKEN no está configurado');
+    });
+
+    it('debe inicializar correctamente con access token como parámetro', () => {
+      delete process.env.MERCADOPAGO_ACCESS_TOKEN;
+      const customToken = 'CUSTOM_ACCESS_TOKEN';
+      const provider = new MercadoPagoProvider(customToken);
+      expect(MercadoPagoConfig).toHaveBeenCalledWith({
+        accessToken: customToken,
+        options: { timeout: 5000 },
+      });
+      expect(provider).toBeInstanceOf(MercadoPagoProvider);
+    });
+
+    it('debe inicializar correctamente con access token y environment como parámetros', () => {
+      delete process.env.MERCADOPAGO_ACCESS_TOKEN;
+      const customToken = 'CUSTOM_ACCESS_TOKEN';
+      const provider = new MercadoPagoProvider(customToken, 'production');
+      expect(MercadoPagoConfig).toHaveBeenCalledWith({
+        accessToken: customToken,
+        options: { timeout: 5000 },
+      });
+      expect(provider).toBeInstanceOf(MercadoPagoProvider);
     });
   });
 

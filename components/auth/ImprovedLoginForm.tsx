@@ -85,8 +85,8 @@ export function ImprovedLoginForm({ callbackUrl = '/', error }: ImprovedLoginFor
           {/* Logo mejorado */}
           <div className="mx-auto w-16 h-16 bg-white rounded-full flex items-center justify-center mb-2 shadow-lg border-2 border-emerald-200">
             <img 
-              src="/logo/padellisto.png" 
-              alt="Padel Listo Logo" 
+              src="/logo/padel.svg" 
+              alt="padelbook logo" 
               className="w-12 h-12 object-contain"
             />
           </div>

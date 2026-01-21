@@ -266,8 +266,13 @@ export function validatePartialSchema<T>(schema: z.ZodObject<any>, data: unknown
   }
 }
 
+type ModelSchemaEntry = {
+  create: any
+  update?: any
+}
+
 // Mapeo de esquemas por modelo
-export const modelSchemas = {
+export const modelSchemas: Record<string, ModelSchemaEntry> = {
   User: {
     create: userCreateSchema,
     update: userUpdateSchema
@@ -307,11 +312,15 @@ export const modelSchemas = {
 
 // Función para obtener esquema por modelo y operación
 export function getModelSchema(model: string, operation: 'create' | 'update'): any {
-  const schemas = modelSchemas[model as keyof typeof modelSchemas];
+  const schemas = modelSchemas[model];
   if (!schemas) {
     throw new Error(`No se encontró esquema para el modelo: ${model}`);
   }
-  return schemas[operation];
+  const schema = schemas[operation];
+  if (!schema) {
+    throw new Error(`No se encontró esquema para el modelo: ${model} y operación: ${operation}`);
+  }
+  return schema;
 }
 
 // Validación de permisos por modelo

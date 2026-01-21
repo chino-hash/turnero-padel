@@ -323,7 +323,7 @@ function PadelBookingPage() {
     try {
       if (!selectedSlotForConfirmation) return
       const data = await createBookingApi(selectedSlotForConfirmation)
-      setNewBooking(data.booking)
+      setNewBooking(data.data || data.booking)
       setShowConfirmationModal(false)
       setShowPaymentModal(true)
     } catch (e) {
@@ -334,7 +334,7 @@ function PadelBookingPage() {
   const handleConfirmFromSlotModal = async (slot: any) => {
     try {
       const data = await createBookingApi(slot)
-      setNewBooking(data.booking)
+      setNewBooking(data.data || data.booking)
       setShowConfirmationModal(false)
       setShowPaymentModal(true)
     } catch (e) {
@@ -348,7 +348,7 @@ function PadelBookingPage() {
       if (!selectedSlot) return
       const slot = selectedSlot
       const data = await createBookingApi(slot)
-      setNewBooking(data.booking)
+      setNewBooking(data.data || data.booking)
       setShowPaymentModal(true)
     } catch (e) {
       console.error("Error creando reserva:", e)
@@ -362,18 +362,33 @@ function PadelBookingPage() {
 
   const handlePayment = async () => {
     setPaymentProcessing(true)
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 3000))
-    setPaymentProcessing(false)
-    setPaymentSuccess(true)
+    
+    try {
+      if (!newBooking?.id) {
+        throw new Error("No se encontró la información de la reserva")
+      }
 
-    // Close modal after success
-    setTimeout(() => {
-      setShowPaymentModal(false)
-      setPaymentSuccess(false)
-      setExpandedSlot(null)
-      setSelectedSlot(null)
-    }, 2000)
+      const response = await fetch(`/api/bookings/${newBooking.id}/payment-preference`, {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || "Error al generar el pago")
+      }
+
+      if (data.data?.initPoint) {
+        window.location.href = data.data.initPoint
+      } else {
+        throw new Error("No se recibió la URL de pago")
+      }
+      
+    } catch (error) {
+      console.error("Error en proceso de pago:", error)
+      setPaymentProcessing(false)
+      alert("Hubo un error al iniciar el pago. Por favor intenta nuevamente.")
+    }
   }
 
   const closeModal = () => {

@@ -18,7 +18,7 @@ export default async function HomePage() {
       <header className="container mx-auto px-6 py-5 bg-[#0D0D0D] text-[#F3F4F6]">
         <nav className="flex justify-between items-center">
           <Link href="#" className="text-3xl font-bold tracking-tight text-[#F3F4F6]">
-            Padel<span className="text-[#BEF264]">Listo</span>
+            Padel<span className="text-[#BEF264]">Book</span>
           </Link>
           <div className="hidden md:flex space-x-6 items-center">
             <a href="#features" className="text-gray-300 hover:text-white transition-colors">Funcionalidades</a>
@@ -43,7 +43,7 @@ export default async function HomePage() {
               Tu Próximo Partido de Pádel, <span className="neon-text-gradient">a un Solo Tap.</span>
             </h1>
             <p className="text-lg text-gray-300 mt-6 max-w-lg mx-auto lg:mx-0">
-              Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. Padel Listo es la app definitiva para jugadores y clubes.
+              Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. PadelBook es la app definitiva para jugadores y clubes.
             </p>
             <div className="flex justify-center lg:justify-start gap-4 mt-10">
               <Button asChild className="bg-[#BEF264] text-[#0D0D0D] font-bold px-8 py-4 rounded-lg shadow-lg hover:shadow-[0_0_30px_rgba(190,242,100,0.3)] transition-all duration-300 transform hover:scale-105">
@@ -57,7 +57,7 @@ export default async function HomePage() {
           <div className="lg:w-1/2 mt-12 lg:mt-0 flex justify-center">
             <img
               src="https://placehold.co/350x700/1A1A1A/BEF264?text=App+Preview"
-              alt="Vista previa de la app Padel Listo en un teléfono"
+              alt="Vista previa de la app PadelBook en un teléfono"
               className="rounded-3xl shadow-2xl border-4 border-[#1A1A1A]"
             />
           </div>
@@ -91,7 +91,7 @@ export default async function HomePage() {
 
         <section id="features" className="container mx-auto px-6 mt-32 md:mt-48">
           <div className="text-center max-w-3xl mx-auto">
-            <span className="text-[#BEF264] font-semibold tracking-wider uppercase">Por qué Padel Listo</span>
+            <span className="text-[#BEF264] font-semibold tracking-wider uppercase">Por qué PadelBook</span>
             <h2 className="text-4xl md:text-5xl font-bold mt-2">Hecho para Jugadores. Diseñado para Resultados.</h2>
             <p className="text-lg text-gray-400 mt-4">Reserva • Conecta • Juega</p>
           </div>
@@ -130,7 +130,7 @@ export default async function HomePage() {
             </div>
             <div className="bg-[#1A1A1A] p-8 rounded-2xl border border-gray-800">
               <div className="flex items-center gap-2 text-[#BEF264]">★★★★★</div>
-              <p className="mt-4 text-gray-300">Desde que usamos Padel Listo, redujimos las canchas vacías.</p>
+              <p className="mt-4 text-gray-300">Desde que usamos PadelBook, redujimos las canchas vacías.</p>
               <div className="mt-6 text-sm text-gray-500">Club Smash, Administrador</div>
             </div>
             <div className="bg-[#1A1A1A] p-8 rounded-2xl border border-gray-800">
@@ -145,7 +145,7 @@ export default async function HomePage() {
           <div className="lg:w-1/2 flex justify-center">
             <img
               src="https://placehold.co/600x400/1A1A1A/BEF264?text=Gestión+de+Club"
-              alt="Panel de gestión para clubes de Padel Listo"
+              alt="Panel de gestión para clubes de PadelBook"
               className="rounded-2xl shadow-2xl border-4 border-[#1A1A1A]"
             />
           </div>
@@ -178,7 +178,7 @@ export default async function HomePage() {
         <section id="download" className="container mx-auto px-6 mt-32 md:mt-48">
           <div className="bg-[#1A1A1A] p-12 md:p-20 rounded-3xl text-center border border-gray-800 shadow-xl">
             <h2 className="text-4xl md:text-5xl font-bold">¿Listo para Jugar?</h2>
-            <p className="text-lg text-gray-300 mt-4 max-w-xl mx-auto">Descarga Padel Listo y lleva tu juego al siguiente nivel. Disponible en iOS y Android.</p>
+            <p className="text-lg text-gray-300 mt-4 max-w-xl mx-auto">Descarga PadelBook y lleva tu juego al siguiente nivel. Disponible en iOS y Android.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-6 mt-10">
               <a href="#" className="inline-block">
                 <img src="https://placehold.co/180x60/444444/FFFFFF?text=App+Store" alt="Descargar en App Store" className="store-button-img rounded-lg mx-auto" />
@@ -195,7 +195,7 @@ export default async function HomePage() {
             <h2 className="text-3xl font-bold">Contacto</h2>
             <p className="mt-2 text-gray-300">¿Tenés dudas o querés una demo? Escribinos.</p>
             <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <a href="mailto:contacto@padellisto.app" className="inline-flex items-center rounded-lg border border-gray-700 px-5 py-3 text-white hover:bg-gray-800">contacto@padellisto.app</a>
+              <a href="mailto:agustinagus05@gmail.com" className="inline-flex items-center rounded-lg border border-gray-700 px-5 py-3 text-white hover:bg-gray-800">agustinagus05@gmail.com</a>
               <Link href="/login" className="inline-flex items-center rounded-lg bg-[#BEF264] px-5 py-3 text-[#0D0D0D] font-bold hover:scale-105 transition">Solicitar Demo</Link>
             </div>
           </div>
@@ -206,9 +206,9 @@ export default async function HomePage() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="text-center md:text-left">
             <Link href="#" className="text-2xl font-bold text-white tracking-tight">
-              Padel<span className="text-[#BEF264]">Listo</span>
+              Padel<span className="text-[#BEF264]">Book</span>
             </Link>
-            <p className="mt-2 text-sm">© {new Date().getFullYear()} Padel Listo. Todos los derechos reservados.</p>
+            <p className="mt-2 text-sm">© {new Date().getFullYear()} PadelBook. Todos los derechos reservados.</p>
           </div>
           <div className="flex gap-6 mt-6 md:mt-0">
             <a href="#" className="hover:text-white transition-colors">Facebook</a>

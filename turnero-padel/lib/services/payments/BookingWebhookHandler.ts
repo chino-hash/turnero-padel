@@ -3,26 +3,31 @@
  * Implementa la lógica de negocio para PAYMENT_CONFLICT y otros casos edge
  */
 
-import { prisma } from '../../prisma';
+import { prisma } from '../../database/neon-config';
 import { IWebhookHandler, WebhookPayload, WebhookResult } from './interfaces/IWebhookHandler';
 import { processRefund } from './RefundService';
 import { BookingRepository } from '../../repositories/BookingRepository';
 import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { getTenantMercadoPagoCredentials } from './tenant-credentials';
 
 const bookingRepository = new BookingRepository(prisma);
 
 /**
  * Obtiene los datos del pago desde la API de Mercado Pago
+ * 
+ * @param paymentId - ID del pago en Mercado Pago
+ * @param accessToken - Access token de Mercado Pago (opcional, usa variable de entorno si no se proporciona)
  */
-async function getMercadoPagoPaymentData(paymentId: string): Promise<any> {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-  if (!accessToken) {
+async function getMercadoPagoPaymentData(paymentId: string, accessToken?: string): Promise<any> {
+  const token = accessToken || process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!token) {
+    console.warn('[BookingWebhookHandler] No hay accessToken disponible para obtener datos del pago');
     return null;
   }
 
   try {
     const client = new MercadoPagoConfig({
-      accessToken: accessToken,
+      accessToken: token,
       options: { timeout: 5000 }
     });
     const payment = new Payment(client);
@@ -61,31 +66,59 @@ export class BookingWebhookHandler implements IWebhookHandler {
       let paymentId: string | number;
       let bookingId: string | undefined;
 
-      // Si el payload tiene un ID pero no los datos completos, obtenerlos de la API
+      // Obtener bookingId del external_reference si está disponible
+      if (!bookingId && paymentData.external_reference) {
+        bookingId = paymentData.external_reference;
+      }
+      
+      // Si el payload tiene un ID pero no los datos completos, necesitamos obtener el booking primero
+      // para obtener las credenciales del tenant
+      let tenantAccessToken: string | undefined;
+      
       if (payload.data?.id && !payload.data?.status) {
-        const mpPaymentData = await getMercadoPagoPaymentData(payload.data.id.toString());
+        // Intentar obtener bookingId del external_reference si está disponible
+        if (!bookingId && payload.data.external_reference) {
+          bookingId = payload.data.external_reference;
+        }
+        
+        // Si tenemos bookingId, obtener credenciales del tenant antes de consultar API
+        if (bookingId) {
+          try {
+            const booking = await prisma.booking.findUnique({
+              where: { id: bookingId },
+              select: { tenantId: true }
+            });
+            
+            if (booking?.tenantId) {
+              const credentials = await getTenantMercadoPagoCredentials(booking.tenantId);
+              tenantAccessToken = credentials.accessToken;
+              console.log(`[BookingWebhookHandler] Usando credenciales del tenant ${booking.tenantId} para obtener datos del pago`);
+            }
+          } catch (error) {
+            console.warn(`[BookingWebhookHandler] Error obteniendo credenciales del tenant, usando fallback global:`, error);
+          }
+        }
+        
+        // Obtener datos del pago con credenciales del tenant o fallback global
+        const mpPaymentData = await getMercadoPagoPaymentData(payload.data.id.toString(), tenantAccessToken);
         if (mpPaymentData) {
           paymentData = mpPaymentData;
           paymentStatus = mpPaymentData.status || '';
           paymentId = mpPaymentData.id || payload.data.id;
-          bookingId = mpPaymentData.external_reference;
+          bookingId = mpPaymentData.external_reference || bookingId;
         } else {
           // Si no pudimos obtener los datos, usar lo que viene en el payload
           paymentStatus = payload.data.status || '';
           paymentId = payload.data.id;
-          bookingId = payload.data.external_reference;
+          bookingId = payload.data.external_reference || bookingId;
         }
       } else {
         // Datos completos ya vienen en el payload (modo mock o otro proveedor)
         paymentStatus = paymentData.status;
         paymentId = paymentData.id;
-        bookingId = paymentData.external_reference;
+        bookingId = paymentData.external_reference || bookingId;
       }
 
-      // Obtener bookingId del external_reference si aún no lo tenemos
-      if (!bookingId && paymentData.external_reference) {
-        bookingId = paymentData.external_reference;
-      }
       if (!bookingId) {
         console.error('Payment sin external_reference:', paymentId);
         return {
@@ -115,6 +148,9 @@ export class BookingWebhookHandler implements IWebhookHandler {
           error: 'Reserva no encontrada'
         };
       }
+      
+      // Obtener tenantId del booking para usar en operaciones posteriores
+      const tenantId = booking.tenantId;
 
       // Caso Normal: Pago aprobado y reserva en PENDING
       if (paymentStatus === 'approved' && booking.status === 'PENDING') {
@@ -261,7 +297,8 @@ export class BookingWebhookHandler implements IWebhookHandler {
               paymentId: paymentRecord.id,
               amount: paymentRecord.amount,
               externalPaymentId: paymentId?.toString() || '',
-              reason: 'Pago tardío recibido pero cancha ya ocupada'
+              reason: 'Pago tardío recibido pero cancha ya ocupada',
+              tenantId: tenantId // Pasar tenantId para usar credenciales del tenant
             });
 
             if (refundResult.success) {

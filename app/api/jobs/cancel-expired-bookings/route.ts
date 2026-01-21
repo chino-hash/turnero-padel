@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { ExpiredBookingsService } from '@/lib/services/bookings/ExpiredBookingsService';
 import { isSuperAdminUser } from '@/lib/utils/permissions';
+import { isProduction, getCronConfig } from '@/lib/config/env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,12 +53,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // TODO: Agregar validación de token de seguridad en producción para cron jobs externos
-    // const authHeader = request.headers.get('authorization');
-    // const expectedToken = process.env.CRON_SECRET;
-    // if (authHeader !== `Bearer ${expectedToken}`) {
-    //   return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    // }
+    // Validación de token de seguridad en producción para cron jobs externos
+    if (isProduction) {
+      const authHeader = request.headers.get('authorization') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+      const { secret } = getCronConfig();
+      if (!secret || token !== secret) {
+        return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
+      }
+    }
 
     const service = new ExpiredBookingsService();
     const tenantId = tenantIdParam || null;

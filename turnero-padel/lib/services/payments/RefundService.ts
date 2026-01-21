@@ -3,42 +3,51 @@
  * Utiliza IRefundService para la implementación concreta del proveedor
  */
 
-import { prisma } from '../../prisma';
+import { prisma } from '../../database/neon-config';
 import { IRefundService, ProcessRefundParams, RefundResult } from './interfaces/IRefundService';
 import { MockRefundService } from './MockRefundService';
 import { MercadoPagoRefundService } from './MercadoPagoRefundService';
 import { PaymentType } from '@prisma/client';
-
-let refundServiceInstance: IRefundService | null = null;
+import { getTenantMercadoPagoCredentials } from './tenant-credentials';
 
 /**
  * Obtiene el servicio de reembolso configurado
- * Usa MercadoPagoRefundService si MERCADOPAGO_ACCESS_TOKEN está configurado
- * De lo contrario, usa MockRefundService para desarrollo/testing
+ * Si se proporciona accessToken, crea instancia con esas credenciales
+ * Si no se proporciona, usa variables de entorno globales (compatibilidad hacia atrás)
+ * 
+ * @param accessToken - Access token de Mercado Pago (opcional)
+ * @returns Servicio de reembolso configurado
  */
-function getRefundService(): IRefundService {
-  if (refundServiceInstance) {
-    return refundServiceInstance;
+function getRefundService(accessToken?: string): IRefundService {
+  // Si se proporciona accessToken, crear instancia con esas credenciales
+  if (accessToken) {
+    try {
+      const service = new MercadoPagoRefundService(accessToken);
+      console.log('[RefundService] Usando MercadoPagoRefundService con credenciales proporcionadas');
+      return service;
+    } catch (error) {
+      console.error('[RefundService] Error inicializando MercadoPagoRefundService con credenciales proporcionadas, usando MockService:', error);
+      return new MockRefundService();
+    }
   }
 
-  // Verificar si Mercado Pago está configurado
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  // Fallback a variables de entorno globales
+  const globalAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
   const paymentProvider = process.env.PAYMENT_PROVIDER;
 
-  if (accessToken && (paymentProvider === 'mercadopago' || !paymentProvider)) {
+  if (globalAccessToken && (paymentProvider === 'mercadopago' || !paymentProvider)) {
     try {
-      refundServiceInstance = new MercadoPagoRefundService();
-      console.log('[RefundService] Usando MercadoPagoRefundService');
+      const service = new MercadoPagoRefundService();
+      console.log('[RefundService] Usando MercadoPagoRefundService con credenciales globales');
+      return service;
     } catch (error) {
       console.error('[RefundService] Error inicializando MercadoPagoRefundService, usando MockService:', error);
-      refundServiceInstance = new MockRefundService();
+      return new MockRefundService();
     }
   } else {
-    refundServiceInstance = new MockRefundService();
     console.log('[RefundService] Usando MockRefundService (MERCADOPAGO_ACCESS_TOKEN no configurado)');
+    return new MockRefundService();
   }
-
-  return refundServiceInstance;
 }
 
 /**
@@ -151,8 +160,22 @@ export async function processRefund(params: ProcessRefundParams): Promise<Refund
     };
   }
 
+  // Obtener credenciales del tenant si se proporciona tenantId
+  let accessToken: string | undefined;
+  if (params.tenantId) {
+    try {
+      const credentials = await getTenantMercadoPagoCredentials(params.tenantId);
+      accessToken = credentials.accessToken;
+      console.log(`[RefundService] Usando credenciales del tenant ${params.tenantId} para procesar reembolso`);
+    } catch (error) {
+      console.error(`[RefundService] Error obteniendo credenciales del tenant ${params.tenantId}:`, error);
+      // Continuar con fallback a variables globales
+      console.warn(`[RefundService] Fallback a credenciales globales para reembolso`);
+    }
+  }
+
   // Llamar al proveedor para procesar el reembolso
-  const refundService = getRefundService();
+  const refundService = getRefundService(accessToken);
   const result = await refundService.processRefund(params);
 
   // Actualizar el registro con el resultado
@@ -265,7 +288,8 @@ export async function processRefundForCancellation(
             paymentId: payment.id,
             amount: refundAmount,
             externalPaymentId: payment.referenceNumber,
-            reason: `Cancelación con ${hoursUntilBooking.toFixed(1)} horas de anticipación. ${cancellationReason}`
+            reason: `Cancelación con ${hoursUntilBooking.toFixed(1)} horas de anticipación. ${cancellationReason}`,
+            tenantId: booking.tenantId // Pasar tenantId del booking
           });
           refundResults.push(refundResult);
         } catch (error) {

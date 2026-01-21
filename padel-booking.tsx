@@ -745,8 +745,11 @@ function PadelBookingPage() {
           >
             <div className="flex items-center gap-0 mr-1 sm:mr-2">
               <div className="w-10 h-6 sm:w-12 sm:h-7 overflow-hidden flex items-center justify-center">
-                <img src="/logo/padel.svg" alt="PADEL BOOK logo" className="w-full h-full object-contain" />
+                <img src="/logo/padel.svg" alt="padelbook logo" className="w-full h-full object-contain" />
               </div>
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm font-bold tracking-tight text-[color:var(--color-neon-lime)]">
+                padelbook
+              </span>
             </div>
             {/* Div modo oscuro con dimensiones exactas del botón */}
             <div
