@@ -11,13 +11,6 @@ interface Club {
   description?: string | null
 }
 
-const TEST_CLUB: Club = {
-  id: 'test-tenant',
-  name: 'tenant de prueba',
-  slug: 'tenant-de-prueba',
-  description: 'Club de prueba para la landing page',
-}
-
 export default function LandingPage() {
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -63,12 +56,7 @@ export default function LandingPage() {
         const data = await response.json()
         if (data.success) {
           const clubsData: Club[] = data.data || []
-          if (process.env.NODE_ENV !== 'production') {
-            const hasTestClub = clubsData.some((club) => club.slug === TEST_CLUB.slug)
-            setClubs(hasTestClub ? clubsData : [TEST_CLUB, ...clubsData])
-          } else {
-            setClubs(clubsData)
-          }
+          setClubs(clubsData)
         } else {
           throw new Error(data.error || 'Error al cargar clubs')
         }

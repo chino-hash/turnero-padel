@@ -1,13 +1,14 @@
 import { GoogleLoginForm } from '../../components/auth/GoogleLoginForm'
 import { auth } from '../../lib/auth'
 import { redirect } from 'next/navigation'
-import { saveTenantSlug, extractTenantSlugFromUrl } from '@/lib/utils/tenant-slug-storage'
+import { extractTenantSlugFromUrl } from '@/lib/utils/tenant-slug-storage'
 import { getTenantBySlug } from '@/lib/services/tenants'
 
 interface LoginPageProps {
   searchParams: Promise<{
     error?: string
     callbackUrl?: string
+    _cookieSet?: string
   }>
 }
 
@@ -21,19 +22,29 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     redirect(callbackUrl)
   }
 
+  // Si _cookieSet está presente, la cookie ya fue establecida por el Route Handler
+  if (params._cookieSet) {
+    return (
+      <GoogleLoginForm
+        callbackUrl={params.callbackUrl}
+        error={params.error}
+      />
+    )
+  }
+
   // Extraer tenantSlug del callbackUrl si existe
   const tenantSlug = extractTenantSlugFromUrl(params.callbackUrl)
   
-  // Si viene tenantSlug, validar que el tenant existe y está activo
+  // Si viene tenantSlug, validar y redirigir al Route Handler para establecer la cookie
+  // (las cookies solo pueden modificarse en Server Actions o Route Handlers en Next.js 15)
   if (tenantSlug) {
     const tenant = await getTenantBySlug(tenantSlug)
     if (!tenant) {
-      // Si el tenant no existe o está inactivo, redirigir con error
       redirect('/?error=tenant-not-found')
     }
     
-    // Guardar tenantSlug en cookie para persistir durante OAuth
-    await saveTenantSlug(tenantSlug)
+    const callbackUrlEncoded = encodeURIComponent(params.callbackUrl || '/dashboard')
+    redirect(`/api/auth/set-tenant-slug?tenantSlug=${encodeURIComponent(tenantSlug)}&callbackUrl=${callbackUrlEncoded}`)
   }
 
   return (

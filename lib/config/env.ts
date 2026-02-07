@@ -120,6 +120,11 @@ const envSchema = z.object({
   // Desarrollo
   ANALYZE: z.string().optional()
     .describe('Habilitar análisis de bundle (true/false)'),
+  /** Crea y muestra el tenant de prueba en la API (landing) también en producción/demo */
+  SHOW_TEST_TENANT: z.string().optional()
+    .describe('Si es "true", el tenant de prueba se crea y se incluye en la lista de clubs'),
+  NEXT_PUBLIC_SHOW_TEST_TENANT: z.string().optional()
+    .describe('Si es "true", el club de prueba se muestra en la landing aunque no venga del API'),
   
   // Encriptación de Credenciales
   CREDENTIAL_ENCRYPTION_KEY: z.string()

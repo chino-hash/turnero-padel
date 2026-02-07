@@ -5,7 +5,6 @@
 
 import { prisma } from '../database/neon-config'
 import { getTenantFromSlug } from '../tenant/context'
-import { isDevelopment, isTest } from '../config/env'
 
 export interface TenantPublicInfo {
   id: string
@@ -14,63 +13,8 @@ export interface TenantPublicInfo {
   description?: string | null
 }
 
-const TEST_TENANT = {
-  name: 'tenant de prueba',
-  slug: 'tenant-de-prueba',
-  description: 'Club de prueba para la landing page',
-}
-
-async function ensureTestTenant() {
-  if (!isDevelopment && !isTest) {
-    return
-  }
-
-  try {
-    const existing = await prisma.tenant.findUnique({
-      where: { slug: TEST_TENANT.slug },
-      select: {
-        id: true,
-        settings: true,
-      },
-    })
-
-    if (!existing) {
-      await prisma.tenant.create({
-        data: {
-          name: TEST_TENANT.name,
-          slug: TEST_TENANT.slug,
-          isActive: true,
-          settings: JSON.stringify({ description: TEST_TENANT.description }),
-        },
-      })
-      return
-    }
-
-    let settings: Record<string, unknown> = {}
-    if (existing.settings) {
-      try {
-        settings = JSON.parse(existing.settings)
-      } catch {
-        settings = {}
-      }
-    }
-
-    if (!settings.description) {
-      settings.description = TEST_TENANT.description
-    }
-
-    await prisma.tenant.update({
-      where: { id: existing.id },
-      data: {
-        name: TEST_TENANT.name,
-        isActive: true,
-        settings: JSON.stringify(settings),
-      },
-    })
-  } catch (error) {
-    console.error('[TenantsService] Error creando tenant de prueba:', error)
-  }
-}
+/** Slug del tenant de prueba - oculto para evitar confusión con clubs reales */
+const HIDDEN_TEST_TENANT_SLUG = 'tenant-de-prueba'
 
 /**
  * Obtiene un tenant por su slug
@@ -81,6 +25,9 @@ async function ensureTestTenant() {
  */
 export async function getTenantBySlug(slug: string): Promise<TenantPublicInfo | null> {
   if (!slug || slug.trim().length === 0) {
+    return null
+  }
+  if (slug === HIDDEN_TEST_TENANT_SLUG) {
     return null
   }
 
@@ -133,11 +80,10 @@ export async function getTenantBySlug(slug: string): Promise<TenantPublicInfo | 
  */
 export async function getAllActiveTenants(): Promise<TenantPublicInfo[]> {
   try {
-    await ensureTestTenant()
-
     const tenants = await prisma.tenant.findMany({
       where: {
         isActive: true,
+        slug: { not: HIDDEN_TEST_TENANT_SLUG },
       },
       select: {
         id: true,

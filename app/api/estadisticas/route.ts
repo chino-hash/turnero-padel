@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     
-    if (!session || session.user?.role !== 'ADMIN') {
+    if (!session || !session.user?.isAdmin) {
       return NextResponse.json(
         { success: false, error: 'No autorizado' },
         { status: 401 }

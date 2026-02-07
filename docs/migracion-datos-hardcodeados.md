@@ -300,7 +300,7 @@ Registro de ejecución y verificación (2025-10-16)
   - Detalle: `Cancha 1`, `Cancha 2`, `Cancha 3` validadas y almacenadas con `operatingHours = { start: "08:00", end: "22:30", slot_duration: 90 }` y `features` con colores por cancha.
 
 - Paso 4: Verificación de canchas
-  - Comando: `node debug-courts.js`
+  - Comando: `node scripts/debug-courts.js`
   - Resultado: Total 6 canchas encontradas (existen canchas previas como `Cancha 1 - Premium`, `Cancha 2 - Estándar`, `Cancha 3 - Económica` y las nuevas `Cancha 1`, `Cancha 2`, `Cancha 3`).
   - Observación: Se detectan duplicados lógicos por nombre; en pasos siguientes se recomienda unificar o limpiar las entradas antiguas si no serán usadas.
 

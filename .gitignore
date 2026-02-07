@@ -64,3 +64,9 @@ Thumbs.db
 *.log
 temp_*
 .env*.local
+
+# Reportes generados
+protection-report.json
+database-optimization-report.json
+.reports/
+test-reports/
