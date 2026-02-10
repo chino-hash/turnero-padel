@@ -13,8 +13,8 @@ export interface TenantPublicInfo {
   description?: string | null
 }
 
-/** Slug del tenant de prueba - oculto para evitar confusión con clubs reales */
-const HIDDEN_TEST_TENANT_SLUG = 'tenant-de-prueba'
+/** Slug del tenant de prueba - oculto en listados públicos y en gestión de tenants */
+export const HIDDEN_TEST_TENANT_SLUG = 'tenant-de-prueba'
 
 /**
  * Obtiene un tenant por su slug
