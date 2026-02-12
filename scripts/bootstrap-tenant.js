@@ -11,21 +11,15 @@
  */
 
 const crypto = require('crypto');
+const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
 // Cargar variables de entorno desde .env/.env.local (Node no las carga automáticamente como Next)
 try {
-  require('dotenv').config({ path: '.env.local' })
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') })
 } catch {}
 try {
-  require('dotenv').config({ path: '.env' })
-} catch {}
-// Fallback: si las credenciales estaban en la app antigua `turnero-padel/`
-try {
-  require('dotenv').config({ path: 'turnero-padel/.env.local' })
-} catch {}
-try {
-  require('dotenv').config({ path: 'turnero-padel/.env' })
+  require('dotenv').config({ path: path.join(__dirname, '..', '.env') })
 } catch {}
 
 const prisma = new PrismaClient();

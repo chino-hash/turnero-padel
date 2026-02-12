@@ -7,6 +7,26 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+## [2026-02-12] - Limpieza: eliminación de subcarpeta turnero-padel
+
+### Removido
+- **Subcarpeta `turnero-padel/`** eliminada del repositorio.
+  - Contenía la versión antigua single-tenant, incompatible con el modelo multi-tenant y la base de datos actual.
+  - Incluía app, components, APIs, tests (Jest/Cypress), documentación y configuraciones obsoletas.
+
+### Agregado
+- **Análisis de usuarios con datos reales:** portados a la raíz `app/api/usuarios/analisis/route.ts` y `hooks/useAnalisisUsuarios.ts` (adaptados a multi-tenant); página admin de usuarios puede usar datos dinámicos.
+
+### Cambiado
+- **Scripts:** `bootstrap-tenant.js` y referencias solo a variables de entorno de la raíz (`.env`, `.env.local`); sin fallback a `turnero-padel/`.
+- **tsconfig.json:** eliminado `turnero-padel` de `exclude`; el proyecto compila únicamente desde la raíz.
+
+### Documentación
+- Añadido `docs/LIMPIEZA_TURNERO_PADEL_2026-02.md` con el resumen de la limpieza.
+- Mantenido `docs/ANALISIS_CARPETA_TURNERO-PADEL.md` como referencia del análisis previo.
+
+---
+
 ## [2026-01-XX] - Cambios No Documentados Consolidados
 
 ### Agregado
