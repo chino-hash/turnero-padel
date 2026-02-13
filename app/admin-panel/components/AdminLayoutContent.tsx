@@ -163,9 +163,11 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
         </div>
       </header>
 
-      {/* Contenido principal */}
+      {/* Contenido principal: contenedor único para que todos los títulos queden en la misma posición */}
       <main className="flex-1">
-        {children}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          {children}
+        </div>
       </main>
     </div>
   )

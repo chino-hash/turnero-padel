@@ -74,9 +74,16 @@ export async function POST(request: Request) {
     const isSuperAdmin = await isSuperAdminUser(user)
     const userTenantId = await getUserTenantIdSafe(user)
 
-    // Si no es super admin, asegurar que el court se cree con el tenantId del usuario
+    // Solo el super admin puede crear nuevas canchas; los admins del tenant no
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Solo el Super Administrador puede crear canchas' },
+        { status: 403 }
+      )
+    }
+
     const data = await request.json()
-    if (!isSuperAdmin && userTenantId && !data.tenantId) {
+    if (userTenantId && !data.tenantId) {
       data.tenantId = userTenantId
     }
 

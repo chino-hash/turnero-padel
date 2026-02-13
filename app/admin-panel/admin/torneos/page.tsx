@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, Fragment } from "react"
-import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X } from "lucide-react"
+import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,59 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
+type TorneoHistorialItem = {
+  id: string
+  title: string
+  category: string
+  prizeFirst: string
+  prizeSecond: string
+  pairs?: number
+  dayBlocks: { date: string; ranges: { start: string; end: string }[] }[]
+  fechaRealizacion: string
+}
+
+const TORNEOS_HISTORIAL_MOCK: TorneoHistorialItem[] = [
+  {
+    id: "1",
+    title: "Torneo Apertura 2024",
+    category: "6ta",
+    prizeFirst: "$ 150.000",
+    prizeSecond: "$ 80.000",
+    pairs: 16,
+    fechaRealizacion: "2024-03-15",
+    dayBlocks: [
+      { date: "2024-03-15", ranges: [{ start: "09:00", end: "14:00" }, { start: "16:00", end: "21:00" }] },
+      { date: "2024-03-16", ranges: [{ start: "10:00", end: "18:00" }] },
+    ],
+  },
+  {
+    id: "2",
+    title: "Copa Verano",
+    category: "7ma",
+    prizeFirst: "$ 90.000",
+    prizeSecond: "$ 45.000",
+    pairs: 12,
+    fechaRealizacion: "2024-01-20",
+    dayBlocks: [
+      { date: "2024-01-20", ranges: [{ start: "08:00", end: "20:00" }] },
+    ],
+  },
+  {
+    id: "3",
+    title: "Torneo Mixto Primavera",
+    category: "Mixto",
+    prizeFirst: "$ 120.000",
+    prizeSecond: "$ 60.000",
+    fechaRealizacion: "2024-09-08",
+    dayBlocks: [
+      { date: "2024-09-07", ranges: [{ start: "09:00", end: "13:00" }] },
+      { date: "2024-09-08", ranges: [{ start: "09:00", end: "18:00" }] },
+    ],
+  },
+]
+
 export default function Page() {
+  const [view, setView] = useState<"historial" | "crear">("historial")
   const [step, setStep] = useState(1)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
@@ -126,18 +178,110 @@ export default function Page() {
   }
 
   return (
-    <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="space-y-6">
       {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center space-x-3">
-              <div>
-                <h1 className="text-3xl font-light text-foreground mb-2">Crear Nuevo Torneo</h1>
-                <div className="w-16 h-0.5 bg-orange-500"></div>
-                <p className="text-muted-foreground text-xs mt-2">Define categorías, premios y cronograma del torneo.</p>
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-light text-foreground mb-2">
+            {view === "historial" ? "Torneos" : "Crear Nuevo Torneo"}
+          </h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">
+            {view === "historial"
+              ? "Historial de torneos realizados."
+              : "Define categorías, premios y cronograma del torneo."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {view === "historial" ? (
+            <Button onClick={() => setView("crear")} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Crear torneo
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setView("historial")} className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {view === "historial" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {TORNEOS_HISTORIAL_MOCK.map((t) => (
+            <div
+              key={t.id}
+              className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border"
+            >
+              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-4 text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                  <Trophy className="w-16 h-16 transform rotate-12 -translate-y-2 translate-x-2" />
+                </div>
+                <div className="relative z-10 space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                      <Trophy className="w-2.5 h-2.5 mr-0.5 text-yellow-300" />
+                      {t.category}
+                    </span>
+                    {t.pairs != null && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                        <Users className="w-2.5 h-2.5 mr-0.5" />
+                        Min {t.pairs}
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-sm font-bold tracking-tight text-white drop-shadow-md leading-tight line-clamp-2">
+                    {t.title}
+                  </h2>
+                  <p className="text-[10px] text-white/80">
+                    Realizado el {formatDateEs(t.fechaRealizacion)}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 space-y-3 bg-gradient-to-b from-card to-muted/20">
+                <div className="space-y-1.5">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                    <Medal className="w-2.5 h-2.5" />
+                    Premios
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="flex-1 rounded-md border border-yellow-100 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-900/10 px-2 py-1.5">
+                      <p className="text-[8px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">1°</p>
+                      <p className="text-xs font-bold text-foreground truncate">{t.prizeFirst}</p>
+                    </div>
+                    <div className="flex-1 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 px-2 py-1.5">
+                      <p className="text-[8px] text-gray-600 dark:text-gray-400 font-bold uppercase">2°</p>
+                      <p className="text-xs font-bold text-foreground truncate">{t.prizeSecond}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                    <CalendarIcon className="w-2.5 h-2.5" />
+                    Fechas
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {t.dayBlocks.slice(0, 3).map((d, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[9px] font-medium border border-blue-100 dark:border-blue-800"
+                      >
+                        {formatDateEs(d.date)}
+                      </span>
+                    ))}
+                    {t.dayBlocks.length > 3 && (
+                      <span className="text-[9px] text-muted-foreground">+{t.dayBlocks.length - 3}</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+      )}
 
+      {view === "crear" && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Stepper & Form (80%) */}
         <div className="lg:col-span-8 xl:col-span-9 space-y-6">
@@ -594,6 +738,7 @@ export default function Page() {
           </div>
         </div>
       </div>
+      )}
     </div>
   )
 }

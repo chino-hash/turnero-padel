@@ -199,18 +199,15 @@ export default function VentasPage() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="mt-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-light text-foreground mb-2">Historial de Ventas</h1>
-              <div className="w-16 h-0.5 bg-orange-500"></div>
-              <p className="text-muted-foreground text-xs mt-2">Consulta y gestiona todas las ventas directas de productos.</p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header (misma posición que el resto de pestañas) */}
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-light text-foreground mb-2">Historial de Ventas</h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Consulta y gestiona todas las ventas directas de productos.</p>
         </div>
+      </div>
 
         {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -466,7 +463,6 @@ export default function VentasPage() {
             )}
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }

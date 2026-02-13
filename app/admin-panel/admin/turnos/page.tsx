@@ -345,21 +345,21 @@ export default function TurnosPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header de la página */}
-      <div className="flex items-center justify-between">
+      {/* Header de la página (misma posición que el resto de pestañas) */}
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Turnos</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Crea, edita y administra reservas de canchas.</p>
         </div>
-        <div className="flex gap-3 items-center">
-          <Button 
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
             onClick={() => setShowCreateBookingModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
             disabled={!isAdmin}
             title={!isAdmin ? 'Disponible solo para Administradores' : 'Crear nueva reserva'}
+            className="flex items-center gap-2"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4" />
             Nueva Reserva
           </Button>
         </div>

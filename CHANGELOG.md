@@ -7,6 +7,17 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### Cambiado
+- **Panel de administración – posición de títulos unificada**
+  - Contenedor común en `AdminLayoutContent`: todo el contenido del panel se renderiza dentro de `max-w-7xl mx-auto px-4 sm:px-6 py-6`, de modo que el título de cada pestaña quede en la misma posición al cambiar de sección.
+  - Estructura unificada del bloque de título en todas las páginas del admin: `min-h-[5.5rem]`, mismo `h1` (text-3xl font-light), línea naranja y descripción (text-xs); botones opcionales a la derecha con `flex-shrink-0`.
+  - Páginas actualizadas: Turnos, Canchas, Usuarios, Productos, Ventas, Torneos, Panel de Administración (dashboard), Estadísticas.
+
+### Documentación
+- Añadido `docs/actualizaciones/unificacion-titulos-admin-2026-02.md` con el detalle de la unificación de títulos del panel admin.
+
+---
+
 ## [2026-02-12] - Limpieza: eliminación de subcarpeta turnero-padel
 
 ### Removido

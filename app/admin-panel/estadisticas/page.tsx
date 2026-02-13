@@ -44,21 +44,24 @@ export default function EstadisticasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
-      <div className="flex items-center justify-between">
+      {/* Header (misma posición que el resto de pestañas) */}
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Estadísticas</h1>
-          <p className="text-gray-600 mt-1">Análisis de ocupación y rendimiento del complejo</p>
+          <h1 className="text-3xl font-light text-foreground mb-2">Estadísticas</h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Análisis de ocupación y rendimiento del complejo.</p>
         </div>
-        <Button 
-          onClick={refetch} 
-          variant="outline" 
-          disabled={loading}
-          className="flex items-center space-x-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          <span>Actualizar</span>
-        </Button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            onClick={refetch}
+            variant="outline"
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
       </div>
 
       {/* Métricas principales */}

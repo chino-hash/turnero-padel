@@ -774,16 +774,16 @@ export default function AdminDashboard() {
 
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-light text-foreground mb-2">Panel de Administración</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Resumen general y accesos rápidos a todas las secciones.</p>
-          <p className="text-muted-foreground mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
+          <p className="text-muted-foreground text-xs mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button variant="outline" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
             Preferencias
           </Button>

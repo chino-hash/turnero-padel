@@ -94,30 +94,29 @@ export default function UsuariosPage() {
   ]
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Usuarios</h1>
-          </div>
-          <Button
-            onClick={refetch}
-            variant="outline"
-            disabled={loading}
-            className="flex items-center space-x-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Actualizar</span>
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
+          <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Usuarios</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">
             Consulta y organiza usuarios por actividad y beneficios.
           </p>
         </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Button
+            onClick={refetch}
+            variant="outline"
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualizar
+          </Button>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -311,7 +310,6 @@ export default function UsuariosPage() {
             )}
           </CardContent>
         </Card>
-      </div>
     </div>
   )
 }

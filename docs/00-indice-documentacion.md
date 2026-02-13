@@ -37,6 +37,8 @@
 - [Funcionalidad Completa Admin Turnos](./admin-turnos-funcionalidad-completa.md)
 - [Documentación Admin Canchas](./admin-canchas-documentacion.md)
 - [Trabajo Botón Admin](./documentacion-trabajo-boton-admin.md)
+- [Unificación de títulos del panel admin (2026-02)](./actualizaciones/unificacion-titulos-admin-2026-02.md)
+- [Unificación de botones del header del panel admin (2026-02)](./actualizaciones/unificacion-botones-admin-2026-02.md)
 
 ## Guías de Configuración
 

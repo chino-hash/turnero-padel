@@ -11,6 +11,7 @@ import { Label } from '../../../../components/ui/label'
 import { Switch } from '../../../../components/ui/switch'
 import { ArrowLeft, Save, Plus, Edit2, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { useAppState } from '../../../../components/providers/AppStateProvider'
 
@@ -24,7 +25,9 @@ interface Court {
 
 export default function GestionCanchas() {
   const router = useRouter()
+  const { data: session } = useSession()
   const { isDarkMode } = useAppState()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
   const [editingCourt, setEditingCourt] = useState<Court | null>(null)
@@ -184,19 +187,21 @@ export default function GestionCanchas() {
   }
 
   return (
-    <main className="container mx-auto p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div>
-            <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
-            <div className="w-16 h-0.5 bg-orange-500"></div>
-            <p className="text-muted-foreground text-xs mt-2">Activa, edita y configura precios de canchas.</p>
-          </div>
+    <div className="space-y-6">
+      <header className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
+          <div className="w-16 h-0.5 bg-orange-500"></div>
+          <p className="text-muted-foreground text-xs mt-2">Activa, edita y configura precios de canchas.</p>
         </div>
-        <Button onClick={() => setShowAddForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nueva Cancha
-        </Button>
+        {isSuperAdmin && (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Nueva Cancha
+            </Button>
+          </div>
+        )}
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -346,6 +351,6 @@ export default function GestionCanchas() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   )
 }
