@@ -385,29 +385,25 @@ export default function ProductosPage() {
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-8 py-12">
-        {/* Header */}
+        {/* Header - subrayado naranja en "Gestión", sin fondo oscuro */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-light text-foreground mb-1">
+                <span className="border-b-2 border-orange-500 pb-0.5">Gestión</span> de Productos
+              </h1>
+              <p className="text-muted-foreground text-sm mt-2">Administra catálogo, stock y precios de productos.</p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <Button onClick={handleAbrirVenta} className="flex items-center space-x-2" variant="outline">
                 <ShoppingCart className="w-4 h-4" />
                 <span>Ventas</span>
               </Button>
-              <Button onClick={handleNuevoProducto} className="flex items-center space-x-2">
+              <Button onClick={handleNuevoProducto} className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white border-0">
                 <Plus className="w-4 h-4" />
                 <span>Nuevo Producto</span>
               </Button>
             </div>
-          </div>
-          <div className="mt-6 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Productos</h1>
-              <div className="w-16 h-0.5 bg-orange-500"></div>
-              <p className="text-muted-foreground text-xs mt-2">Administra catálogo, stock y precios de productos.</p>
-            </div>
-
           </div>
         </div>
 
