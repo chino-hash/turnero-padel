@@ -48,7 +48,9 @@ export const createBookingSchema = z.object({
   })).max(4, {
     message: 'Máximo 4 jugadores por reserva'
   }).optional(),
-  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD']).optional()
+  paymentMethod: z.enum(['CASH', 'BANK_TRANSFER', 'CARD']).optional(),
+  /** Si es true (solo admins), la reserva se crea con status CONFIRMED. Usado cuando el admin crea con "Nueva Reserva". */
+  confirmOnCreate: z.boolean().optional()
 }).refine((data) => {
   // Validar que endTime sea posterior a startTime
   const [startHour, startMin] = data.startTime.split(':').map(Number);

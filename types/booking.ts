@@ -122,6 +122,8 @@ export interface CreateBookingRequest {
   userId: string
   notes?: string
   players?: Omit<Player, 'id'>[]
+  /** Si es true, la reserva se crea confirmada (solo cuando el admin usa "Nueva Reserva" → "Crear Reserva"). */
+  confirmOnCreate?: boolean
 }
 
 export interface UpdateBookingRequest extends Partial<CreateBookingRequest> {

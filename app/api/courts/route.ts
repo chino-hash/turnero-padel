@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { auth } from '../../../lib/auth'
-import { getCourts, getAllCourts, createCourt, updateCourt } from '../../../lib/services/courts'
+import { getCourts, getAllCourts, createCourt, updateCourt, deleteCourt } from '../../../lib/services/courts'
 import { eventEmitters } from '../../../lib/sse-events'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../lib/utils/permissions'
 
@@ -169,6 +169,63 @@ export async function PUT(request: Request) {
     return NextResponse.json(court)
   } catch (error) {
     console.error('Error en PUT /api/courts:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth()
+
+    if (!session || (!session.user.isAdmin && !session.user.isSuperAdmin)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    if (!isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Solo el Super Administrador puede eliminar canchas' },
+        { status: 403 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'ID de cancha requerido' }, { status: 400 })
+    }
+
+    const { prisma } = await import('../../../lib/database/neon-config')
+    const existingCourt = await prisma.court.findUnique({
+      where: { id },
+      select: { tenantId: true, name: true }
+    })
+    if (!existingCourt) {
+      return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
+    }
+
+    const court = await deleteCourt(id)
+    eventEmitters.courtsUpdated({
+      action: 'deleted',
+      court: court,
+      message: `Cancha eliminada: ${existingCourt.name}`
+    }, existingCourt.tenantId)
+
+    return NextResponse.json(court)
+  } catch (error) {
+    console.error('Error en DELETE /api/courts:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -46,9 +46,9 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               </div>
             </div>
 
-            {/* Navegación principal en el header */}
+            {/* Navegación principal en el header - centrada en pantalla completa */}
             <nav
-              className="flex flex-1 items-center space-x-1 overflow-x-auto"
+              className="flex flex-1 items-center justify-center space-x-1 overflow-x-auto"
               role="navigation"
               aria-labelledby="admin-nav-title"
               data-testid="admin-navigation"

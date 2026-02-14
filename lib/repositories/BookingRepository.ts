@@ -67,12 +67,14 @@ export type BookingCreateInput = {
   bookingDate: Date;
   startTime: string;
   endTime: string;
-  expiresAt?: Date;
+  expiresAt?: Date | null;
   durationMinutes: number;
   totalPrice: number;
   depositAmount?: number;
   notes?: string;
   paymentMethod?: PaymentMethod;
+  /** Si se indica CONFIRMED, la reserva se crea confirmada (ej. admin "Nueva Reserva"). */
+  status?: BookingStatus;
   players?: Array<{
     playerName: string;
     playerPhone?: string;
@@ -331,7 +333,8 @@ export class BookingRepository {
         throw new Error('Cancha no encontrada');
       }
 
-      // Crear la reserva
+      // Crear la reserva (status CONFIRMED cuando el admin confirma al crear, si no PENDING)
+      const initialStatus = data.status ?? 'PENDING';
       const booking = await tx.booking.create({
         data: {
           courtId: data.courtId,
@@ -340,13 +343,13 @@ export class BookingRepository {
           bookingDate: data.bookingDate,
           startTime: data.startTime,
           endTime: data.endTime,
-          expiresAt: data.expiresAt,
+          expiresAt: initialStatus === 'CONFIRMED' ? null : data.expiresAt,
           durationMinutes: data.durationMinutes,
           totalPrice: data.totalPrice,
           depositAmount: data.depositAmount || 0,
           notes: data.notes,
           paymentMethod: data.paymentMethod,
-          status: 'PENDING',
+          status: initialStatus,
           paymentStatus: 'PENDING'
         }
       });

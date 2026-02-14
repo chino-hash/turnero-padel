@@ -844,19 +844,22 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   }
 
   const togglePlayerPayment = async (bookingId: string, playerKey: keyof Booking['individualPayments']) => {
-    // Encontrar estado previo de forma fiable antes de mutar
     const previousState = bookings.find(b => b.id === bookingId) || null
     if (!previousState) {
       console.error('Reserva no encontrada para toggle', bookingId)
       return
     }
-    // UI optimista: aplicar el cambio localmente primero
+    const position = Number(String(playerKey).replace('player', ''))
+    if (!(position >= 1 && position <= 4)) return
+    const newPaidStatus = previousState.individualPayments[playerKey] === 'pagado' ? false : true
+
+    // UI optimista: aplicar el cambio localmente de inmediato
     setInFlightUpdates(prev => ({ ...prev, [bookingId]: true }))
     setBookings(prevBookings => prevBookings.map(booking => {
       if (booking.id !== bookingId) return booking
       const newPayments = {
         ...booking.individualPayments,
-        [playerKey]: booking.individualPayments[playerKey] === 'pagado' ? 'pendiente' : 'pagado'
+        [playerKey]: newPaidStatus ? 'pagado' : 'pendiente'
       }
       const paidCount = Object.values(newPayments).filter(status => status === 'pagado').length
       const totalPlayers = 4
@@ -864,125 +867,144 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       return { ...booking, individualPayments: newPayments, paymentStatus }
     }))
 
+    const toggledPayments: Booking['individualPayments'] = {
+      ...previousState.individualPayments,
+      [playerKey]: newPaidStatus ? 'pagado' : 'pendiente'
+    }
+    const paidCountBackend = Object.values(toggledPayments).filter(s => s === 'pagado').length
+    const paymentStatusBackend = paidCountBackend === 0 ? 'PENDING' : paidCountBackend === 4 ? 'FULLY_PAID' : 'DEPOSIT_PAID'
+    const playerKeys: Array<keyof Booking['players']> = ['player1', 'player2', 'player3', 'player4']
+    const playersPayload = playerKeys.map((key, idx) => {
+      const name = (previousState.players[key] || '').trim()
+      const displayName = name || (key === 'player1' ? 'Titular' : `Jugador ${key.slice(-1)}`)
+      const hasPaid = toggledPayments[key as keyof Booking['individualPayments']] === 'pagado'
+      return { playerName: displayName, position: idx + 1, hasPaid }
+    })
+
+    const doPutFallback = async (): Promise<Response> => {
+      return fetch(`/api/bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ players: playersPayload, paymentStatus: paymentStatusBackend })
+      })
+    }
+
+    const isNetworkError = (err: unknown): boolean =>
+      err instanceof TypeError && (err.message === 'Failed to fetch' || (err as Error).message?.includes('fetch'))
+
+    const doPatch = () =>
+      fetch(`/api/bookings/${bookingId}/players/position/${position}/payment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ hasPaid: newPaidStatus })
+      })
+
     try {
-      const position = Number(String(playerKey).replace('player', ''))
-      if (!(position >= 1 && position <= 4)) throw new Error(`Posición inválida: ${position}`)
-      const newPaidStatus = previousState.individualPayments[playerKey] === 'pagado' ? false : true
-
-      // Reconstruir estado de pagos tras el toggle para calcular paymentStatusBackend con 4 jugadores
-      const currentPayments = { ...(previousState.individualPayments || {}) } as Booking['individualPayments']
-      const toggledPayments = { ...currentPayments, [playerKey]: newPaidStatus ? 'pagado' : 'pendiente' }
-
-      // Construir payload de jugadores desde el estado previo, aplicando el toggle
-      const playerKeys: Array<keyof Booking['players']> = ['player1', 'player2', 'player3', 'player4']
-      const playersPayload = playerKeys
-        .map((key, idx) => {
-          const name = (previousState.players[key] || '').trim()
-          if (!name) return null
-          const hasPaid = toggledPayments[key as keyof Booking['individualPayments']] === 'pagado'
-          return {
-            playerName: name,
-            position: idx + 1,
-            hasPaid
-          }
-        })
-        .filter(Boolean) as Array<{ playerName: string; position: number; hasPaid: boolean }>
-
-      // Calcular `paymentStatus` para backend (enum prisma)
-      const paidCountBackend = Object.values(toggledPayments).filter(s => s === 'pagado').length
-      const totalPlayersBackend = 4
-      const paymentStatusBackend = paidCountBackend === 0
-        ? 'PENDING'
-        : paidCountBackend === totalPlayersBackend
-          ? 'FULLY_PAID'
-          : 'DEPOSIT_PAID'
-
-      const doPutWithRetry = async (retries: number, delayMs: number): Promise<Response> => {
-        const res = await fetch(`/api/bookings/${bookingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ players: playersPayload, paymentStatus: paymentStatusBackend })
-        })
-        if (res.status === 429 && retries > 0) {
-          await new Promise(r => setTimeout(r, delayMs))
-          return doPutWithRetry(retries - 1, delayMs * 2)
-        }
-        return res
-      }
-
-      const putRes = await doPutWithRetry(2, 400)
-      if (!putRes.ok) {
-        let errorMessage = `Error actualizando reserva (HTTP ${putRes.status})`
-        let dataError: string | undefined
-        try {
-          const data = await putRes.json()
-          if (data?.error) {
-            dataError = String(data.error)
-            errorMessage = `Error actualizando reserva: ${data.error}`
-          }
-        } catch (_) {}
-        if (putRes.status === 429 || dataError === 'RATE_LIMIT_EXCEEDED') {
-          // Mantener estado optimista en rate limit y registrar evento, sin romper la UI
-          await fetch('/api/admin/test-event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({
-              type: 'bookings_updated',
-              message: `RATE_LIMIT_EXCEEDED al actualizar pagos de ${bookingId}. Se mantuvo estado y se intentó reintentar.`
-            })
-          }).catch(() => {})
-        } else {
-          throw new Error(errorMessage)
-        }
-      }
-
-      // Registro de transacción: crear entrada de pago (silencioso si falla)
+      // PATCH ligero (con reintento ante error de red)
+      let patchRes: Response
       try {
-        const playerAmount = calculatePlayerAmount(previousState, playerKey as keyof Booking['players'])
-        const txRes = await fetch('/api/crud/transaction', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            operations: [
-              {
-                operation: 'create',
-                model: 'payment',
-                data: {
-                  bookingId,
-                  amount: playerAmount,
-                  paymentMethod: 'CASH',
-                  paymentType: newPaidStatus ? 'PAYMENT' : 'ADJUSTMENT',
-                  status: newPaidStatus ? 'completed' : 'reversed'
-                }
-              }
-            ]
-          })
-        })
+        patchRes = await doPatch()
+      } catch (patchErr) {
+        if (isNetworkError(patchErr)) {
+          await new Promise(r => setTimeout(r, 400))
+          patchRes = await doPatch()
+        } else {
+          throw patchErr
+        }
+      }
 
-        if (!txRes.ok) {
-          await fetch('/api/admin/test-event', {
+      const json = patchRes.ok ? await patchRes.json().catch(() => ({})) : await patchRes.json().catch(() => ({}))
+      const errorMsg = json?.error ? String(json.error) : ''
+
+      if (!patchRes.ok) {
+        if (patchRes.status === 429 || json?.error === 'RATE_LIMIT_EXCEEDED') {
+          fetch('/api/admin/test-event', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify({
               type: 'bookings_updated',
-              message: `Pago ${newPaidStatus ? 'marcado' : 'revertido'} para booking ${bookingId} jugador ${position} por $${playerAmount}`
+              message: `RATE_LIMIT al actualizar pago ${bookingId}. Estado optimista mantenido.`
+            })
+          }).catch(() => {})
+          return
+        }
+        // Fallback: si no existe jugador en esa posición (reserva sin BookingPlayer), actualizar con PUT
+        if (patchRes.status === 404 && errorMsg.includes('Jugador no encontrado')) {
+          let putRes: Response
+          try {
+            putRes = await doPutFallback()
+          } catch (putErr) {
+            if (isNetworkError(putErr)) {
+              await new Promise(r => setTimeout(r, 400))
+              putRes = await doPutFallback()
+            } else {
+              throw putErr
+            }
+          }
+          const putJson = putRes.ok ? await putRes.json().catch(() => ({})) : await putRes.json().catch(() => ({}))
+          if (!putRes.ok) {
+            throw new Error(putJson?.error ? String(putJson.error) : `Error actualizando reserva (HTTP ${putRes.status})`)
+          }
+          if (putJson?.success && putJson?.data) {
+            const mapped = mapApiBookingToLocal(putJson.data)
+            setBookings(prev => prev.map(b => (b.id === bookingId ? mapped : b)))
+          }
+        } else {
+          throw new Error(errorMsg || `Error actualizando pago (HTTP ${patchRes.status})`)
+        }
+      } else {
+        if (json?.success && json?.data) {
+          const mapped = mapApiBookingToLocal(json.data)
+          setBookings(prev => prev.map(b => (b.id === bookingId ? mapped : b)))
+        }
+      }
+
+      // Registro de transacción en segundo plano (no bloquear la UI)
+      const playerAmount = calculatePlayerAmount(previousState, playerKey as keyof Booking['players'])
+      fetch('/api/crud/transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          operations: [
+            {
+              operation: 'create',
+              model: 'payment',
+              data: {
+                bookingId,
+                amount: playerAmount,
+                paymentMethod: 'CASH',
+                paymentType: newPaidStatus ? 'PAYMENT' : 'ADJUSTMENT',
+                status: newPaidStatus ? 'completed' : 'reversed'
+              }
+            }
+          ]
+        })
+      }).then(txRes => {
+        if (!txRes.ok) {
+          fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+              type: 'bookings_updated',
+              message: `Transacción de pago no registrada: booking ${bookingId} jugador ${position}`
             })
           }).catch(() => {})
         }
-      } catch (logErr) {
-        console.warn('Fallo registrando transacción de pago:', logErr)
-      }
-
-      // Éxito: no es necesario actualizar estado, la UI ya refleja el cambio
+      }).catch(() => console.warn('Fallo registrando transacción de pago (background)'))
     } catch (err) {
-      console.error('Fallo al actualizar pago del jugador:', err)
-      // Revertir UI optimista si falla en errores reales del backend (no 404 controlado)
+      const isNetwork = err instanceof TypeError && ((err as Error).message === 'Failed to fetch' || (err as Error).message?.includes('fetch'))
+      if (isNetwork) {
+        console.warn('Error de red al actualizar pago. Estado revertido. Comprueba la conexión e inténtalo de nuevo.')
+      } else {
+        console.error('Fallo al actualizar pago del jugador:', err)
+      }
       if (previousState) {
-        setBookings(prevBookings => prevBookings.map(b => (b.id === bookingId ? previousState! : b)))
+        setBookings(prevBookings => prevBookings.map(b => (b.id === bookingId ? previousState : b)))
       }
     } finally {
       setInFlightUpdates(prev => ({ ...prev, [bookingId]: false }))
@@ -1264,6 +1286,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [visibleInProgress, setVisibleInProgress] = useState(30)
   const [visibleCompleted, setVisibleCompleted] = useState(30)
   const [visibleClosed, setVisibleClosed] = useState(30)
+  const [confirmedSectionCollapsed, setConfirmedSectionCollapsed] = useState(false)
 
   if (loading) {
     return (
@@ -1567,9 +1590,26 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-green-300"></div>
-                <span className="text-xs font-bold tracking-widest text-green-700 bg-green-50 px-3 py-1 rounded">TURNOS CONFIRMADOS</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold tracking-widest text-green-700 bg-green-50 px-3 py-1 rounded">TURNOS CONFIRMADOS</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmedSectionCollapsed(c => !c)}
+                    aria-expanded={!confirmedSectionCollapsed}
+                    data-testid="expand-confirmed-section"
+                    className="h-8 w-8 p-0"
+                  >
+                    {confirmedSectionCollapsed ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
                 <div className="flex-1 border-t border-green-300"></div>
               </div>
+              {!confirmedSectionCollapsed && (
               <div className="mt-4 space-y-4">
                 {confirmedDerived.slice(0, visibleConfirmed).map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden">
@@ -1648,6 +1688,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 </div>
               )}
               </div>
+              )}
             </div>
 
             {/* Sección: Turnos en curso */}
@@ -1843,59 +1884,42 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
             </div>
 
-            {/* Sección: Turnos cerrados */}
+            {/* Sección: Turnos cerrados (resumen compacto) */}
             <div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 border-t border-gray-300"></div>
-                <span className="text-xs font-bold tracking-widest text-gray-700 bg-gray-50 px-3 py-1 rounded">TURNOS CERRADOS</span>
-                <div className="flex-1 border-t border-gray-300"></div>
+                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                <span className="text-xs font-bold tracking-widest text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded">TURNOS CERRADOS</span>
+                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
               </div>
-              <div className="mt-4 space-y-4">
-                {closedDerived.slice(0, visibleClosed).map((d) => (
-                    <Card key={d.booking.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
-                              {d.booking.courtName}
-                              <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">Cerrado</span>
-                            </CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {d.booking.timeRange}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                Cerrado {d.booking.closedAt ? new Date(d.booking.closedAt).toLocaleString('es-ES') : ''}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">Sin acciones</span>
-                            <Button variant="ghost" size="sm" aria-disabled className="cursor-not-allowed opacity-60">
-                              <ChevronDown className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
+              <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 overflow-hidden">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {closedDerived.slice(0, visibleClosed).map((d) => (
+                    <div
+                      key={d.booking.id}
+                      className="px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400"
+                    >
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{d.booking.courtName}</span>
+                      <span>{new Date(d.booking.date).toLocaleDateString('es-ES')}</span>
+                      <span>{d.booking.timeRange}</span>
+                      <span className="truncate">{d.booking.userName}</span>
+                      {d.booking.closedAt && (
+                        <span className="text-gray-500 dark:text-gray-500">
+                          cerrado {new Date(d.booking.closedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
                   ))}
-              {(closedDerived.length > visibleClosed || visibleClosed > 30) && (
-                <div className="flex justify-center gap-2 mt-2">
-                  {closedDerived.length > visibleClosed && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleClosed(v => v + 30)}>Mostrar más</Button>
-                  )}
-                  {visibleClosed > 30 && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleClosed(30)}>Mostrar menos</Button>
-                  )}
                 </div>
-              )}
+                {(closedDerived.length > visibleClosed || visibleClosed > 30) && (
+                  <div className="flex justify-center gap-2 py-2 border-t border-gray-200 dark:border-gray-700">
+                    {closedDerived.length > visibleClosed && (
+                      <Button variant="outline" size="sm" onClick={() => setVisibleClosed(v => v + 30)}>Mostrar más</Button>
+                    )}
+                    {visibleClosed > 30 && (
+                      <Button variant="outline" size="sm" onClick={() => setVisibleClosed(30)}>Mostrar menos</Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>

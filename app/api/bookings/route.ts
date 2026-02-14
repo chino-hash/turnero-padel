@@ -189,6 +189,11 @@ export async function POST(request: NextRequest) {
     const isSuperAdmin = await isSuperAdminUser(user)
     const userTenantId = await getUserTenantIdSafe(user)
 
+    // confirmOnCreate solo lo puede usar un admin: reserva creada como CONFIRMED (ej. "Nueva Reserva" → "Crear Reserva")
+    if (validatedData.confirmOnCreate && !user.isAdmin && !isSuperAdmin) {
+      validatedData.confirmOnCreate = false
+    }
+
     // Validar que el courtId pertenece al tenant del usuario (excepto super admin)
     if (!isSuperAdmin && validatedData.courtId) {
       const court = await prisma.court.findUnique({

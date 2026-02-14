@@ -15,7 +15,7 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
-import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText } from 'lucide-react'
+import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { useAuth } from '../../../../hooks/useAuth'
 import { useBookings } from '../../../../hooks/useBookings'
 import { useCourtPrices } from '../../../../hooks/useCourtPrices'
@@ -58,6 +58,7 @@ export default function TurnosPage() {
   const [dateMenuWidth, setDateMenuWidth] = useState<number | undefined>(undefined)
   const [timeMenuWidth, setTimeMenuWidth] = useState<number | undefined>(undefined)
   const [isRecurring, setIsRecurring] = useState<boolean>(false)
+  const [turnoFijoExpanded, setTurnoFijoExpanded] = useState<boolean>(false)
   const [recurringWeekday, setRecurringWeekday] = useState<number>(new Date().getDay())
   const [recurringStartsAt, setRecurringStartsAt] = useState<string>(formatDateYMD(new Date()))
   const [recurringEndsAt, setRecurringEndsAt] = useState<string>('')
@@ -249,7 +250,7 @@ export default function TurnosPage() {
         alert('Turno fijo creado exitosamente')
         setShowCreateBookingModal(false)
       } else {
-        // Crear reserva puntual
+        // Crear reserva puntual: el admin confirma al hacer "Crear Reserva", así que se crea ya confirmada
         const payload = {
           courtId,
           bookingDate: formData.date,
@@ -257,7 +258,8 @@ export default function TurnosPage() {
           endTime,
           notes: formData.notes || undefined,
           userId: user?.id,
-          players: players as any
+          players: players as any,
+          confirmOnCreate: true
         }
         const created = await createBooking(payload as any)
         if (created) {
@@ -446,50 +448,72 @@ export default function TurnosPage() {
       </Card>
 
       {/* Modal para crear nueva reserva */}
-      <Dialog open={showCreateBookingModal} onOpenChange={setShowCreateBookingModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-          <DialogHeader className="pb-4">
+      <Dialog
+        open={showCreateBookingModal}
+        onOpenChange={(open) => {
+          setShowCreateBookingModal(open)
+          if (!open) setTurnoFijoExpanded(false)
+        }}
+      >
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6 gap-0">
+          <DialogHeader className="pb-4 flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Plus className="w-5 h-5" />
               Nueva Reserva - Administrador
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-8 px-1">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-8 px-1 py-2">
             {/* Información del cliente */}
-            <div className="space-y-5 bg-gray-50 p-5 rounded-lg">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-800">
+            <div className="space-y-5 bg-gray-800 border border-gray-700 p-5 rounded-lg">
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-100">
                 <User className="w-5 h-5" />
                 Información del Cliente
               </h3>
               
               <div className="grid grid-cols-1 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="userName" className="text-sm font-medium text-gray-700">Nombre Completo *</Label>
+                  <Label htmlFor="userName" className="text-sm font-medium text-gray-300">Nombre Completo *</Label>
                   <Input
                     id="userName"
                     value={formData.userName}
                     onChange={(e) => handleInputChange('userName', e.target.value)}
                     placeholder="Ej: Juan Pérez"
                     required
-                    className="h-11"
+                    className="h-11 bg-gray-700/50 border-gray-600 text-gray-100 placeholder:text-gray-500"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Opcional: Turno Fijo (Regla recurrente) */}
-            <div className="space-y-5 bg-purple-50 p-5 rounded-lg">
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-purple-800">
-                <FileText className="w-5 h-5" />
-                Turno Fijo (Opcional)
-              </h3>
-              <p className="text-xs text-purple-700">Si seleccionas esta opción, se creará una regla recurrente que bloqueará este horario cada semana hasta que se dé de baja.</p>
+            {/* Opcional: Turno Fijo (Regla recurrente) - desplegable como en la sección de turnos */}
+            <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setTurnoFijoExpanded((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 p-5 text-left hover:bg-gray-700/50 transition-colors"
+                aria-expanded={turnoFijoExpanded}
+              >
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-100">
+                  <FileText className="w-5 h-5" />
+                  Turno Fijo (Opcional)
+                </h3>
+                <span className="text-gray-400 shrink-0">
+                  {turnoFijoExpanded ? (
+                    <ChevronUp className="w-5 h-5" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5" />
+                  )}
+                </span>
+              </button>
+              {turnoFijoExpanded && (
+              <div className="space-y-5 px-5 pb-5 pt-0">
+              <p className="text-xs text-gray-400">Si seleccionas esta opción, se creará una regla recurrente que bloqueará este horario cada semana hasta que se dé de baja.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Activar turno fijo</Label>
+                  <Label className="text-sm font-medium text-gray-300">Activar turno fijo</Label>
                   <Select value={isRecurring ? 'si' : 'no'} onValueChange={(v) => setIsRecurring(v === 'si')}>
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger className="h-11 bg-gray-700/50 border-gray-600 text-gray-200 [&>span]:text-gray-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -499,9 +523,9 @@ export default function TurnosPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Día de la semana</Label>
+                  <Label className="text-sm font-medium text-gray-300">Día de la semana</Label>
                   <Select value={String(recurringWeekday)} onValueChange={(v) => setRecurringWeekday(Number(v))} disabled={!isRecurring}>
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger className="h-11 bg-gray-700/50 border-gray-600 text-gray-200 [&>span]:text-gray-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -516,10 +540,10 @@ export default function TurnosPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700">Inicio</Label>
+                  <Label className="text-sm font-medium text-gray-300">Inicio</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg" disabled={!isRecurring}>
+                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg border-gray-600 bg-gray-700/50 text-gray-200 hover:bg-gray-600" disabled={!isRecurring}>
                         <span>{ymdToDate(recurringStartsAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         <Calendar className="w-4 h-4 opacity-70" />
                       </Button>
@@ -540,10 +564,10 @@ export default function TurnosPage() {
                   </DropdownMenu>
                 </div>
                 <div className="space-y-2 md:col-span-3">
-                  <Label className="text-sm font-medium text-gray-700">Fin (opcional)</Label>
+                  <Label className="text-sm font-medium text-gray-300">Fin (opcional)</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg" disabled={!isRecurring}>
+                      <Button type="button" variant="outline" className="h-11 w-full justify-between px-3 rounded-lg border-gray-600 bg-gray-700/50 text-gray-200 hover:bg-gray-600" disabled={!isRecurring}>
                         <span>{recurringEndsAt ? ymdToDate(recurringEndsAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha fin'}</span>
                         <Calendar className="w-4 h-4 opacity-70" />
                       </Button>
@@ -565,20 +589,23 @@ export default function TurnosPage() {
                   </DropdownMenu>
                 </div>
               </div>
+              </div>
+              )}
+
             </div>
 
             {/* Información de la reserva */}
-            <div className={`space-y-5 bg-blue-50 p-5 rounded-lg ${isRecurring ? 'opacity-60' : ''}`} aria-disabled={isRecurring}>
-              <h3 className="text-lg font-semibold flex items-center gap-2 text-blue-800">
+            <div className={`space-y-5 bg-gray-800 border border-gray-700 p-5 rounded-lg ${isRecurring ? 'opacity-60' : ''}`} aria-disabled={isRecurring}>
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-100">
                 <Calendar className="w-5 h-5" />
                 Detalles de la Reserva
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="courtName" className="text-sm font-medium text-gray-700">Cancha *</Label>
+                  <Label htmlFor="courtName" className="text-sm font-medium text-gray-300">Cancha *</Label>
                   <Select value={formData.courtName} onValueChange={(value) => handleInputChange('courtName', value)}>
-                    <SelectTrigger className="h-11">
+                    <SelectTrigger className="h-11 bg-gray-700/50 border-gray-600 text-gray-200 [&>span]:text-gray-200">
                       <SelectValue placeholder="Seleccionar cancha" />
                     </SelectTrigger>
                     <SelectContent>
@@ -596,14 +623,14 @@ export default function TurnosPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium text-gray-700">Fecha *</Label>
+                  <Label htmlFor="date" className="text-sm font-medium text-gray-300">Fecha *</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         ref={dateTriggerRef}
                         type="button"
                         variant="outline"
-                        className="h-11 w-full justify-between px-3 rounded-lg"
+                        className="h-11 w-full justify-between px-3 rounded-lg border-gray-600 bg-gray-700/50 text-gray-200 hover:bg-gray-600"
                         aria-haspopup="menu"
                         aria-label="Seleccionar fecha"
                         disabled={isRecurring}
@@ -636,14 +663,14 @@ export default function TurnosPage() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="timeRange" className="text-sm font-medium text-gray-700">Horario *</Label>
+                  <Label htmlFor="timeRange" className="text-sm font-medium text-gray-300">Horario *</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         ref={timeTriggerRef}
                         type="button"
                         variant="outline"
-                        className="h-11 w-full justify-between px-3 rounded-lg"
+                        className="h-11 w-full justify-between px-3 rounded-lg border-gray-600 bg-gray-700/50 text-gray-200 hover:bg-gray-600"
                         aria-haspopup="menu"
                         aria-label="Horarios"
                       >
@@ -677,13 +704,15 @@ export default function TurnosPage() {
 
 
 
-            {/* Botones de acción */}
-            <div className="flex justify-end gap-4 pt-6 mt-6 border-t border-gray-200">
+          </div>
+
+          {/* Botones de acción: siempre visibles en el pie del modal */}
+            <div className="flex flex-wrap justify-end gap-3 pt-4 mt-4 border-t border-gray-200 flex-shrink-0 bg-background">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowCreateBookingModal(false)}
-                className="px-6 py-2.5 h-auto"
+                className="px-6 py-2.5 h-auto border-gray-400 text-gray-800 hover:bg-gray-100 hover:text-gray-900 dark:border-gray-500 dark:text-gray-200 dark:hover:bg-gray-800"
               >
                 Cancelar
               </Button>
@@ -692,7 +721,7 @@ export default function TurnosPage() {
                   type="button"
                   variant="outline"
                   onClick={handleSkipThisWeek}
-                  className="px-6 py-2.5 h-auto text-purple-700 border-purple-300 hover:bg-purple-50"
+                  className="px-6 py-2.5 h-auto text-purple-700 border-purple-400 hover:bg-purple-50 dark:text-purple-300 dark:border-purple-500 dark:hover:bg-purple-950"
                   title="Dar de baja esta semana"
                 >
                   Dar baja semana
@@ -702,12 +731,11 @@ export default function TurnosPage() {
                  type="button"
                  onClick={handleCreateBooking}
                  disabled={!formData.userName || !formData.courtName || !formData.timeRange || (isRecurring ? false : (!formData.date || isTimeAvailable !== true))}
-                 className="w-full bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                 className="px-6 py-2.5 h-auto bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
                >
                  {isRecurring ? 'Crear Turno Fijo' : 'Crear Reserva'}
                </Button>
-          </div>
-          </div>
+            </div>
         </DialogContent>
       </Dialog>
 

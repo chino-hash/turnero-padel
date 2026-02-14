@@ -445,8 +445,9 @@ export class BookingService {
       const totalPrice = Math.round(court.basePrice * court.priceMultiplier * (durationMinutes / 60));
       const depositAmount = Math.round(totalPrice * 0.3); // 30% por defecto
 
+      const confirmOnCreate = Boolean(input.confirmOnCreate);
       const expirationMinutes = await this.getBookingExpirationMinutes(court.tenantId);
-      const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+      const expiresAt = confirmOnCreate ? null : new Date(Date.now() + expirationMinutes * 60 * 1000);
 
       const createData: BookingCreateInput = {
         courtId: input.courtId,
@@ -460,7 +461,8 @@ export class BookingService {
         depositAmount,
         notes: input.notes,
         paymentMethod: input.paymentMethod,
-        players: input.players
+        players: input.players,
+        ...(confirmOnCreate && { status: 'CONFIRMED' as const })
       };
 
       const booking = await this.repository.create(createData);
@@ -563,7 +565,7 @@ export class BookingService {
         };
       }
 
-      const isAdmin = userRole === 'ADMIN' || userRole === 'admin'
+      const isAdmin = userRole === 'ADMIN' || userRole === 'admin' || userRole === 'SUPER_ADMIN' || userRole === 'super_admin'
       if (userId && !isAdmin && existingBooking.userId !== userId) {
         return {
           success: false,
@@ -624,7 +626,7 @@ export class BookingService {
     userRole?: string
   ): Promise<ApiResponse<BookingWithDetails>> {
     try {
-      const isAdminUpdate = userRole === 'ADMIN' || userRole === 'admin'
+      const isAdminUpdate = userRole === 'ADMIN' || userRole === 'admin' || userRole === 'SUPER_ADMIN' || userRole === 'super_admin'
       if (!isAdminUpdate) {
         return {
           success: false,
@@ -677,7 +679,7 @@ export class BookingService {
         };
       }
 
-      const isAdminCancel = userRole === 'ADMIN' || userRole === 'admin'
+      const isAdminCancel = userRole === 'ADMIN' || userRole === 'admin' || userRole === 'SUPER_ADMIN' || userRole === 'super_admin'
       if (userId && !isAdminCancel && existingBooking.userId !== userId) {
         return {
           success: false,
@@ -714,7 +716,7 @@ export class BookingService {
     userRole?: string
   ): Promise<ApiResponse<{ count: number }>> {
     try {
-      const isAdminBulk = userRole === 'ADMIN' || userRole === 'admin'
+      const isAdminBulk = userRole === 'ADMIN' || userRole === 'admin' || userRole === 'SUPER_ADMIN' || userRole === 'super_admin'
       if (!isAdminBulk) {
         return {
           success: false,

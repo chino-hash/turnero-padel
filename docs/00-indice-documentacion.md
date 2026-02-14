@@ -39,6 +39,9 @@
 - [Trabajo Botón Admin](./documentacion-trabajo-boton-admin.md)
 - [Unificación de títulos del panel admin (2026-02)](./actualizaciones/unificacion-titulos-admin-2026-02.md)
 - [Unificación de botones del header del panel admin (2026-02)](./actualizaciones/unificacion-botones-admin-2026-02.md)
+- [Permisos de canchas: solo Superadmin agrega y elimina (2026-02)](./actualizaciones/permisos-canchas-superadmin-2026-02.md)
+- [Confirmación de reservas creadas por el admin - Nueva Reserva (2026-02)](./actualizaciones/confirmacion-reserva-admin-2026-02.md)
+- [Mejoras del modal Nueva Reserva - Administrador (2026-02)](./actualizaciones/modal-nueva-reserva-admin-2026-02.md)
 
 ## Guías de Configuración
 

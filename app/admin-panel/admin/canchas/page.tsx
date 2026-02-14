@@ -176,6 +176,9 @@ export default function GestionCanchas() {
     return (basePrice / 4).toFixed(2)
   }
 
+  const activeCourts = courts.filter((c) => c.isActive)
+  const inactiveCourts = courts.filter((c) => !c.isActive)
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -204,19 +207,22 @@ export default function GestionCanchas() {
         )}
       </header>
 
+      {/* Canchas activas: grid completo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courts.map((court) => (
+        {activeCourts.map((court) => (
           <Card key={court.id} className="h-full flex flex-col">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-lg">
                 <span className="truncate">{court.name}</span>
-                <Switch
-                  checked={court.isActive}
-                  onCheckedChange={() => handleToggleActive(court)}
-                />
+                {isSuperAdmin && (
+                  <Switch
+                    checked={court.isActive}
+                    onCheckedChange={() => handleToggleActive(court)}
+                  />
+                )}
               </CardTitle>
               <div className="text-xs text-muted-foreground">
-                {court.isActive ? 'Activa' : 'Inactiva'}
+                Activa
               </div>
             </CardHeader>
             <CardContent className="p-4 flex-1 flex flex-col justify-between">
@@ -245,15 +251,44 @@ export default function GestionCanchas() {
                   <Edit2 className="w-3 h-3 mr-1" />
                   Editar
                 </Button>
-                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(court)}>
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Eliminar
-                </Button>
+                {isSuperAdmin && (
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDelete(court)}>
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Eliminar
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {/* Canchas cerradas/inactivas: lista compacta */}
+      {inactiveCourts.length > 0 && (
+        <div className="mt-4 rounded-lg border border-muted bg-muted/30 px-3 py-2">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Canchas cerradas (inactivas)</p>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {inactiveCourts.map((court) => (
+              <li key={court.id} className="flex items-center gap-2">
+                <span>{court.name}</span>
+                {isSuperAdmin && (
+                  <>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => handleEdit(court)}>
+                      <Edit2 className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleToggleActive(court)}>
+                      Activar
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" onClick={() => handleDelete(court)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Modal de Agregar/Editar Cancha */}
       {showAddForm && (

@@ -126,11 +126,11 @@ function canonicalCourtName(name: string): string {
 // Obtener todas las canchas activas
 export async function getCourts(tenantId?: string): Promise<Court[]> {
   try {
-    const whereClause: any = { isActive: true }
+    const whereClause: any = { isActive: true, deletedAt: null }
     if (tenantId) {
       whereClause.tenantId = tenantId
     }
-    
+
     const courts = await prisma.court.findMany({
       where: whereClause,
       orderBy: { name: 'asc' }
@@ -168,11 +168,11 @@ export async function getCourts(tenantId?: string): Promise<Court[]> {
 // Obtener todas las canchas (para administraci�n)
 export async function getAllCourts(tenantId?: string): Promise<Court[]> {
   try {
-    const whereClause: any = {}
+    const whereClause: any = { deletedAt: null }
     if (tenantId) {
       whereClause.tenantId = tenantId
     }
-    
+
     const courts = await prisma.court.findMany({
       where: whereClause,
       orderBy: { name: 'asc' }
@@ -278,6 +278,20 @@ export async function deactivateCourt(id: string): Promise<Court> {
   } catch (error) {
     console.error('Error desactivando cancha:', error)
     throw new Error('Error al desactivar la cancha')
+  }
+}
+
+// Eliminar cancha (soft delete: deletedAt + isActive false). Solo para superadmin.
+export async function deleteCourt(id: string): Promise<Court> {
+  try {
+    const court = await prisma.court.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false }
+    })
+    return transformCourtData(court)
+  } catch (error) {
+    console.error('Error eliminando cancha:', error)
+    throw new Error('Error al eliminar la cancha')
   }
 }
 
