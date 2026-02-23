@@ -12,32 +12,34 @@ import type { NextAuthConfig } from "next-auth"
 
 // Importación dinámica de admin-system para evitar problemas en el middleware
 const getUserRoleAndTenant = async (email: string): Promise<{ role: 'USER' | 'ADMIN' | 'SUPER_ADMIN', tenantId: string | null }> => {
+  const emailLower = email?.toLowerCase() || ''
+  const superAdminEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || []
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || []
+
   try {
     // Solo importar admin-system cuando no estamos en el middleware
     if (typeof window === 'undefined') {
       const { getUserRole } = await import('./admin-system')
-      
+
+      // Prioridad: SUPER_ADMIN_EMAILS env (más confiable en serverless/cold start)
+      if (superAdminEmails.includes(emailLower)) {
+        return { role: 'SUPER_ADMIN', tenantId: null }
+      }
+
       // Obtener usuario de la base de datos para obtener tenantId
-      // Usar findFirst porque email ahora es parte de un índice compuesto (email, tenantId)
       const { prisma } = await import('@/lib/database/neon-config')
       const user = await prisma.user.findFirst({
-        where: { email: email.toLowerCase() },
+        where: { email: emailLower },
         select: { id: true, tenantId: true }
       })
-      
+
       const tenantId = user?.tenantId || null
-      
-      // Obtener rol
       const role = await getUserRole(email, tenantId)
-      
+
       return { role, tenantId }
     }
-    
-    // Fallback simple para middleware (no ideal, pero necesario)
-    const superAdminEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
-    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || []
-    const emailLower = email.toLowerCase()
-    
+
+    // Fallback para middleware (Edge): solo env
     if (superAdminEmails.includes(emailLower)) {
       return { role: 'SUPER_ADMIN', tenantId: null }
     }
@@ -46,8 +48,14 @@ const getUserRoleAndTenant = async (email: string): Promise<{ role: 'USER' | 'AD
     }
     return { role: 'USER', tenantId: null }
   } catch (error) {
-    console.error('Error checking user role:', error)
-    // Fallback a USER
+    console.error('[Auth] Error obteniendo rol para', emailLower, ':', error)
+    // Si SUPER_ADMIN_EMAILS está definido, usarlo como fallback ante errores de BD
+    if (superAdminEmails.includes(emailLower)) {
+      return { role: 'SUPER_ADMIN', tenantId: null }
+    }
+    if (adminEmails.includes(emailLower)) {
+      return { role: 'ADMIN', tenantId: null }
+    }
     return { role: 'USER', tenantId: null }
   }
 }

@@ -106,11 +106,17 @@ export const isSuperAdmin = async (email: string): Promise<boolean> => {
         isActive: true,
       },
     })
-    
-    return !!admin
+
+    if (admin) return true
+
+    // Último fallback: variable de entorno directa (por si env/config falló)
+    const envEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || []
+    return envEmails.includes(email.toLowerCase())
   } catch (error) {
-    console.error('Error verificando super admin:', error)
-    return false
+    console.error('[AdminSystem] Error verificando super admin:', email, error)
+    // Fallback a env cuando la BD falla (ej. en cold start o errores de conexión)
+    const envEmails = process.env.SUPER_ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()).filter(Boolean) || []
+    return envEmails.includes(email.toLowerCase())
   }
 }
 

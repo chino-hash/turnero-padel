@@ -98,7 +98,7 @@ export function useAuthWithRetry(options: AuthRetryOptions = {}) {
   const signOutWithRetry = useCallback(async (callbackUrl?: string) => {
     try {
       await signOut({
-        callbackUrl: callbackUrl || '/login',
+        callbackUrl: callbackUrl || '/',
         redirect: true
       })
       return true

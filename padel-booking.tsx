@@ -699,9 +699,12 @@ function PadelBookingPage() {
                 onClick={async () => {
                   try {
                     await signOut()
-                    router.push('/login')
+                    // signOut usa callbackUrl: '/' y redirect: true, así que la redirección la hace NextAuth.
+                    // Si por alguna razón no redirige, hacer fallback a landing.
+                    router.push('/')
                   } catch (error) {
                     console.error('Error al cerrar sesión:', error)
+                    router.push('/')
                   }
                 }}
               >

@@ -38,7 +38,7 @@ export function useAuth() {
   const handleSignOut = async () => {
     console.log('🚪 useAuth: Iniciando proceso de logout')
     await signOut({
-      callbackUrl: '/login',
+      callbackUrl: '/',
       redirect: true
     })
   }

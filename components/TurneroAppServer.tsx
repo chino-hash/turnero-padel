@@ -13,7 +13,7 @@ export default async function TurneroAppServer() {
 
   async function handleSignOut() {
     'use server'
-    await signOut({ redirectTo: '/login' })
+    await signOut({ redirectTo: '/' })
   }
 
   return (
