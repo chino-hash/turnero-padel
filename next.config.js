@@ -22,8 +22,8 @@ const nextConfig = {
       'node_modules/webpack/**',
       'node_modules/rollup/**',
       'node_modules/@prisma/client/runtime/wasm-engine-edge.js',
-      // Build tools y runtime no usados en Edge
-      'node_modules/@prisma/client/**',
+      // NO excluir @prisma/client aquí: las páginas y API routes sí lo necesitan.
+      // Solo el middleware lo excluye (véase 'middleware' más abajo).
       'node_modules/terser/**',
       'node_modules/esbuild/**',
       'node_modules/@babel/**',
