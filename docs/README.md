@@ -2,6 +2,8 @@
 
 Bienvenido a la documentación técnica del sistema de turnos para canchas de padel. Esta carpeta contiene toda la documentación interna del proyecto, incluyendo estándares, plantillas y guías para desarrolladores.
 
+> **Índice completo:** [00-indice-documentacion.md](./00-indice-documentacion.md) — Referencia de todos los documentos del proyecto.
+
 ## 📁 Estructura de la Documentación
 
 ```
@@ -22,9 +24,12 @@ docs/
 │   └── HOOK-TEMPLATE.md                # Plantilla para hooks personalizados
 ├── architecture/                       # Documentación de arquitectura
 ├── api/                               # Documentación de APIs
+├── apis/                              # Referencia de endpoints
 ├── components/                        # Documentación de componentes
 ├── services/                          # Documentación de servicios
-└── guides/                            # Guías y tutoriales
+├── guides/                            # Guías y tutoriales
+├── pasos/                             # Pendientes por pestaña del panel admin
+└── actualizaciones/                   # Changelog de actualizaciones
 ```
 
 ## 🎯 Propósito de la Documentación
@@ -287,5 +292,5 @@ Si tienes preguntas sobre la documentación o necesitas ayuda:
 
 ---
 
-**Última actualización**: Diciembre 2024  
+**Última actualización**: Febrero 2026  
 **Mantenido por**: Equipo de Desarrollo Turnero de Padel

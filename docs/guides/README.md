@@ -53,7 +53,7 @@ Esta sección contiene guías completas para desarrolladores que trabajen en el 
 
 ### 👑 DevOps/Admin
 - Configuración de Vercel
-- Gestión de Supabase
+- Gestión de PostgreSQL (Neon) y Prisma
 - Monitoreo y alertas
 - Backup y recuperación
 
@@ -81,7 +81,7 @@ Esta sección contiene guías completas para desarrolladores que trabajen en el 
 - **React Developer Tools**
 - **Prisma Studio**
 - **Vercel CLI**
-- **Supabase CLI**
+- **Prisma Studio / Vercel CLI**
 
 ## 📋 Checklist para Nuevos Desarrolladores
 

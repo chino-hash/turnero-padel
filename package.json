@@ -37,7 +37,8 @@
     "test:playwright:headed": "playwright test --headed",
     "test:all": "node scripts/run-all-tests.js",
     "test:all:ci": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:e2e",
-    "test:all:crud": "npm run test:crud && npm run test:e2e && npm run test:playwright"
+    "test:all:crud": "npm run test:crud && npm run test:e2e && npm run test:playwright",
+    "check-middleware": "node scripts/check-middleware-size.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",

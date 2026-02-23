@@ -16,11 +16,30 @@ const nextConfig = {
   // Reducir el tamaño del middleware excluyendo dependencias pesadas
   outputFileTracingExcludes: {
     '*': [
+      // Existentes
       'node_modules/@swc/core*/**',
       'node_modules/@esbuild/**',
       'node_modules/webpack/**',
       'node_modules/rollup/**',
       'node_modules/@prisma/client/runtime/wasm-engine-edge.js',
+      // Build tools y runtime no usados en Edge
+      'node_modules/@prisma/client/**',
+      'node_modules/terser/**',
+      'node_modules/esbuild/**',
+      'node_modules/@babel/**',
+      'node_modules/ts-node/**',
+      // Pruebas y desarrollo
+      'node_modules/playwright/**',
+      'node_modules/@playwright/**',
+      'node_modules/jest/**',
+      'node_modules/@jest/**',
+      'node_modules/cypress/**',
+      'node_modules/msw/**',
+    ],
+    // Exclusiones específicas para el Edge Function del middleware
+    'middleware': [
+      'node_modules/@prisma/client/**',
+      'node_modules/@auth/prisma-adapter/**',
     ],
   },
   webpack: (config, { isServer }) => {

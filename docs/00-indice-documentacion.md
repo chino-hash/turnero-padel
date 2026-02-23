@@ -3,22 +3,20 @@
 ## Análisis y Diseño Original
 
 1. [Análisis del Frontend Actual](./01-analisis-frontend-actual.md)
-2. [Diseño de Base de Datos Supabase](./02-diseno-base-datos-supabase.md)
-3. [Configuración de Autenticación Supabase](./03-configuracion-autenticacion-supabase.md)
-4. [Implementación de APIs Supabase](./04-implementacion-apis-supabase.md)
-5. [Configuración del Proyecto Supabase](./05-configuracion-proyecto-supabase.md)
+
+> **Nota:** La documentación original de Supabase (02-05) fue eliminada al migrar el proyecto a NextAuth.js + Prisma + PostgreSQL.
 
 ## Plan de Mejoras
 
-6. [Migración de SQLite a PostgreSQL](./06-migracion-sqlite-postgresql.md)
-7. [Mejora de la Documentación Interna](./07-mejora-documentacion-interna.md)
-8. [Implementación de Pruebas Automatizadas](./08-implementacion-pruebas-automatizadas.md)
+2. [Migración de SQLite a PostgreSQL](./06-migracion-sqlite-postgresql.md)
+3. [Mejora de la Documentación Interna](./07-mejora-documentacion-interna.md)
+4. [Implementación de Pruebas Automatizadas](./08-implementacion-pruebas-automatizadas.md)
 
 ## Implementaciones Recientes
 
-9. [Análisis de Mejoras UI Frontend](./09-analisis-frontend-mejoras-ui.md)
-10. [Cambios Frontend - Parte 1](./10-frontend-cambios-1.markdown)
-11. [Refactorización de Componentes - Resumen](./11-refactorizacion-componentes-resumen.md)
+5. [Análisis de Mejoras UI Frontend](./09-analisis-frontend-mejoras-ui.md)
+6. [Cambios Frontend - Parte 1](./10-frontend-cambios-1.markdown)
+7. [Refactorización de Componentes - Resumen](./11-refactorizacion-componentes-resumen.md)
 
 ## Documentación Técnica Específica
 
@@ -36,7 +34,6 @@
 
 - [Funcionalidad Completa Admin Turnos](./admin-turnos-funcionalidad-completa.md)
 - [Documentación Admin Canchas](./admin-canchas-documentacion.md)
-- [Trabajo Botón Admin](./documentacion-trabajo-boton-admin.md)
 - [Unificación de títulos del panel admin (2026-02)](./actualizaciones/unificacion-titulos-admin-2026-02.md)
 - [Unificación de botones del header del panel admin (2026-02)](./actualizaciones/unificacion-botones-admin-2026-02.md)
 - [Permisos de canchas: solo Superadmin agrega y elimina (2026-02)](./actualizaciones/permisos-canchas-superadmin-2026-02.md)
@@ -56,7 +53,7 @@ El proyecto "Turnero de Pádel" es una aplicación web desarrollada con Next.js 
 
 - **Frontend**: Next.js, React, TailwindCSS
 - **Backend**: Next.js API Routes
-- **Base de Datos**: SQLite (desarrollo), PostgreSQL (producción planificada)
+- **Base de Datos**: PostgreSQL (Neon)
 - **ORM**: Prisma
 - **Autenticación**: NextAuth.js con Google OAuth
 
@@ -69,11 +66,11 @@ El proyecto "Turnero de Pádel" es una aplicación web desarrollada con Next.js 
 
 ## Estado Actual y Próximos Pasos
 
-El proyecto ha completado una migración exitosa desde Supabase a NextAuth.js + PostgreSQL + Prisma para la autenticación y gestión de datos. Los próximos pasos incluyen:
+El proyecto utiliza NextAuth.js + PostgreSQL (Neon) + Prisma como stack principal, con arquitectura multitenant. Los próximos pasos incluyen:
 
-1. Migrar la base de datos de desarrollo (SQLite) a PostgreSQL para producción
-2. Mejorar la documentación interna del código y APIs
-3. Implementar pruebas automatizadas para asegurar la calidad del código
+1. Mejorar la documentación interna del código y APIs
+2. Mantener y ampliar las pruebas automatizadas (Playwright, Jest)
+3. Implementar funcionalidades pendientes del panel admin (ver [pasos/](./pasos/README.md))
 
 ## Cómo Usar Esta Documentación
 
