@@ -27,6 +27,7 @@
 - [Implementación de Horarios Reservados](./documentacion-implementacion-horarios-reservados.md)
 - [Corrección de Posicionamiento - Sección Turnos](./documentacion-implementacion-posicionamiento-turnos.md)
 - [Resumen de Cambios Técnicos](./resumen-cambios-tecnicos.md)
+- **[Documentación Refactorización 2026](./DOCUMENTACION-REFACTORIZACION-CAMBIOS-2026.md)** - ⭐ Cambios de auth middleware, Auth.js v5, hooks y TurneroAppServer
 - [Especificación Mis Turnos](./mis-turnos-especificacion.md)
 - [Especificación Panel de Inicio](./panel-inicio-especificacion.md)
 
