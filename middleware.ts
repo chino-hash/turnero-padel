@@ -32,7 +32,8 @@ export default auth((req) => {
     '/api/slots',
     '/api/tenants/public',
     '/api/webhooks/payments',
-    '/api/system-settings/public'
+    '/api/system-settings/public',
+    '/api/debug-env'
   ]
   const isPublicApiRoute = publicApiRoutes.some(route => nextUrl.pathname.startsWith(route))
 
