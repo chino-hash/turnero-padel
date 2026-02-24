@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { env, isProduction, getAuthConfig, getDatabaseConfig, getSuperAdminConfig } from '../../../lib/config/env'
 
+const DEBUG_TOKEN = 'debug-token-2024'
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
-  
-  if (isProduction && authHeader !== 'Bearer debug-token-2024') {
+  const tokenParam = request.nextUrl.searchParams.get('token')
+  const validHeader = authHeader === `Bearer ${DEBUG_TOKEN}`
+  const validParam = tokenParam === DEBUG_TOKEN
+
+  if (isProduction && !validHeader && !validParam) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
