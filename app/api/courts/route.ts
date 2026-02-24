@@ -3,6 +3,8 @@ import { auth } from '../../../lib/auth'
 import { getCourts, getAllCourts, createCourt, updateCourt, deleteCourt } from '../../../lib/services/courts'
 import { eventEmitters } from '../../../lib/sse-events'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../lib/utils/permissions'
+import { courtCreateSchema, courtUpdateSchema } from '../../../lib/validations/court'
+import { createErrorResponse, formatZodErrors } from '../../../lib/validations/common'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,19 +39,18 @@ export async function GET(request: NextRequest) {
     // Si es super admin y no se fuerza vista pública, obtener todas las canchas (sin filtro de tenant)
     // Si es admin de tenant, obtener todas las canchas de su tenant (incluyendo inactivas)
     // Caso contrario, devolver solo activas (deduplicadas por nombre) del tenant
-    const courts = (session?.user?.isAdmin && !forcePublic && isSuperAdmin) 
-      ? await getAllCourts() // SUPER_ADMIN: todas las canchas sin filtro
+    const courts = (session?.user?.isAdmin && !forcePublic && isSuperAdmin)
+      ? await getAllCourts(undefined, { includeTenant: true })
       : (session?.user?.isAdmin && !forcePublic && userTenantId)
       ? await getAllCourts(userTenantId) // ADMIN: todas las canchas de su tenant (incluyendo inactivas)
       : await getCourts(userTenantId || undefined) // USER o público: solo activas del tenant
     return NextResponse.json(courts)
   } catch (error) {
     console.error('Error en GET /api/courts:', error)
-    // Si hay un error, puede ser porque no hay datos migrados todavía
-    // Devolver array vacío en lugar de error 500 para que la aplicación no se rompa
-    // TODO: Una vez que se migren los datos con tenantId, remover este fallback
-    console.warn('⚠️ Error obteniendo canchas - posiblemente falta migración de datos. Devolviendo array vacío.')
-    return NextResponse.json([])
+    return NextResponse.json(
+      createErrorResponse('Error al obtener canchas', 'Error interno del servidor'),
+      { status: 500 }
+    )
   }
 }
 
@@ -82,9 +83,24 @@ export async function POST(request: Request) {
       )
     }
 
-    const data = await request.json()
+    const raw = await request.json()
+    const parsed = courtCreateSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        createErrorResponse('Datos inválidos', undefined, formatZodErrors(parsed.error)),
+        { status: 400 }
+      )
+    }
+    const data = parsed.data
+
     if (userTenantId && !data.tenantId) {
       data.tenantId = userTenantId
+    }
+    if (isSuperAdmin && !data.tenantId && !userTenantId) {
+      return NextResponse.json(
+        createErrorResponse('Debe seleccionar un tenant para la cancha'),
+        { status: 400 }
+      )
     }
 
     const court = await createCourt(data)
@@ -127,12 +143,15 @@ export async function PUT(request: Request) {
     const isSuperAdmin = await isSuperAdminUser(user)
     const userTenantId = await getUserTenantIdSafe(user)
 
-    const data = await request.json()
-    const { id, ...updateData } = data
-    
-    if (!id) {
-      return NextResponse.json({ error: 'ID de cancha requerido' }, { status: 400 })
+    const raw = await request.json()
+    const parsed = courtUpdateSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        createErrorResponse('Datos inválidos', undefined, formatZodErrors(parsed.error)),
+        { status: 400 }
+      )
     }
+    const { id, ...updateData } = parsed.data
 
     // Obtener court existente para validación y tenantId del evento
     const { prisma } = await import('../../../lib/database/neon-config')

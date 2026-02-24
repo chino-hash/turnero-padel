@@ -104,7 +104,8 @@ export default function TurneroApp() {
                           else if (typeof court.features === 'string') features = JSON.parse(court.features || '[]')
                         } catch {}
                         const isIndoor = features.some((f: string) => /indoor|covered|climate/i.test(f))
-                        const price = Math.round((court.base_price || 0) / 100)
+                        const basePrice = court.basePrice ?? court.base_price ?? 0
+                        const price = Math.round(basePrice / 4)
                         return (
                           <div key={court.id} className="rounded-xl border p-4 flex flex-col gap-2 bg-white">
                             <span className="text-[11px] text-gray-600">{isIndoor ? 'Indoor' : ''}</span>

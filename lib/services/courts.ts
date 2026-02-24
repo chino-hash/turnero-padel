@@ -20,8 +20,8 @@ export interface UpdateCourtData {
   description?: string
   basePrice?: number
   priceMultiplier?: number
-  features?: string // JSON string in database
-  operatingHours?: string // JSON string in database
+  features?: string
+  operatingHours?: string | { start: string; end: string; slot_duration: number }
   isActive?: boolean
 }
 
@@ -166,18 +166,34 @@ export async function getCourts(tenantId?: string): Promise<Court[]> {
 }
 
 // Obtener todas las canchas (para administraci�n)
-export async function getAllCourts(tenantId?: string): Promise<Court[]> {
+export type CourtWithTenant = Court & { tenantId?: string; tenantName?: string; tenantSlug?: string }
+
+export async function getAllCourts(tenantId?: string, options?: { includeTenant?: boolean }): Promise<CourtWithTenant[]> {
   try {
-    const whereClause: any = { deletedAt: null }
+    const whereClause: { deletedAt: null; tenantId?: string } = { deletedAt: null }
     if (tenantId) {
       whereClause.tenantId = tenantId
     }
 
     const courts = await prisma.court.findMany({
       where: whereClause,
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      include: options?.includeTenant ? { tenant: { select: { id: true, name: true, slug: true } } } : undefined
     })
-    return courts.map(transformCourtData)
+
+    return courts.map((c) => {
+      const court = transformCourtData(c)
+      if (options?.includeTenant && 'tenant' in c && (c as any).tenant) {
+        const t = (c as any).tenant
+        return {
+          ...court,
+          tenantId: c.tenantId,
+          tenantName: t?.name,
+          tenantSlug: t?.slug
+        }
+      }
+      return court
+    })
   } catch (error) {
     console.error('Error obteniendo todas las canchas:', error)
     throw new Error('Error al obtener todas las canchas')
@@ -251,11 +267,16 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
     // Preparar datos para Prisma, convirtiendo basePrice si est� presente
-    const prismaData: any = { ...data }
+    const prismaData: Record<string, unknown> = { ...data }
     if (data.basePrice !== undefined) {
       prismaData.basePrice = Math.round(data.basePrice * 100)
     }
-    
+    if (data.operatingHours !== undefined) {
+      prismaData.operatingHours = typeof data.operatingHours === 'object'
+        ? JSON.stringify(data.operatingHours)
+        : data.operatingHours
+    }
+
     const court = await prisma.court.update({
       where: { id },
       data: prismaData

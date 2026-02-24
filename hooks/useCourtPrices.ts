@@ -5,8 +5,9 @@ import { useState, useEffect } from 'react'
 interface Court {
   id: string
   name: string
-  base_price: number
-  priceMultiplier: number
+  basePrice?: number
+  base_price?: number
+  priceMultiplier?: number
   isActive: boolean
   description?: string
 }
@@ -54,14 +55,15 @@ export function useCourtPrices(options?: { publicView?: boolean }) {
   const getCourtPrice = (courtName: string): number => {
     const court = courts.find(c => c.name === courtName)
     if (!court) return 0
-    return (court.base_price * court.priceMultiplier) / 4 // Precio por persona
+    const basePrice = court.basePrice ?? court.base_price ?? 0
+    return (basePrice * (court.priceMultiplier ?? 1)) / 4 // Precio por persona
   }
 
-  // Función para obtener precio total de la cancha
   const getCourtTotalPrice = (courtName: string): number => {
     const court = courts.find(c => c.name === courtName)
     if (!court) return 0
-    return court.base_price * court.priceMultiplier
+    const basePrice = court.basePrice ?? court.base_price ?? 0
+    return basePrice * (court.priceMultiplier ?? 1)
   }
 
   // Función para verificar si una cancha está activa
