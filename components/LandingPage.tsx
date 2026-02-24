@@ -72,7 +72,7 @@ export default function LandingPage() {
 
   const filteredClubs = clubs.filter(club =>
     club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    club.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    (club.description ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
