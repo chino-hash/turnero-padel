@@ -1,2 +1,1122 @@
-<testsuites id="" name="" tests="0" failures="0" skipped="0" errors="0" time="32.421839000000006">
+<testsuites id="" name="" tests="126" failures="25" skipped="0" errors="0" time="467.823479">
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="chromium" tests="10" failures="7" skipped="0" time="434.987" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="61.993">
+<failure message="admin-autenticacion.spec.ts:10:9 debe redirigir a login cuando no hay sesión" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:10:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      10 |     test('debe redirigir a login cuando no hay sesión', async ({ page }) => {
+      11 |       // Intentar acceder al panel admin sin autenticación
+    > 12 |       await page.goto('/admin');
+         |                  ^
+      13 |       await page.waitForTimeout(2000);
+      14 |       
+      15 |       // Verificar redirección a login
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:12:18
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="62.435">
+<failure message="admin-autenticacion.spec.ts:28:9 debe redirigir usuarios no admin a home" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:28:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      32 |       
+      33 |       // Intentar acceder directamente al panel admin
+    > 34 |       await page.goto('/admin');
+         |                  ^
+      35 |       await page.waitForTimeout(2000);
+      36 |       
+      37 |       // Verificar que no está en admin o fue redirigido
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:34:18
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+]]>
+</failure>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="62.158">
+<failure message="admin-autenticacion.spec.ts:47:9 debe proteger rutas específicas del admin" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:47:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin/canchas", waiting until "load"
+
+
+      54 |       
+      55 |       for (const route of adminRoutes) {
+    > 56 |         await page.goto(route);
+         |                    ^
+      57 |         await page.waitForTimeout(1500);
+      58 |         
+      59 |         const currentUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:56:20
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="62.028">
+<failure message="admin-autenticacion.spec.ts:71:9 debe permitir acceso con credenciales admin válidas" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:71:9 › Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/login", waiting until "load"
+
+
+      71 |     test('debe permitir acceso con credenciales admin válidas', async ({ page }) => {
+      72 |       // Ir a login
+    > 73 |       await page.goto('/login');
+         |                  ^
+      74 |       await page.waitForTimeout(2000);
+      75 |       
+      76 |       // Buscar campos de login
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:73:18
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="68.551">
+<failure message="admin-autenticacion.spec.ts:118:9 debe mantener sesión admin entre navegaciones" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:118:9 › Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      118 |     test('debe mantener sesión admin entre navegaciones', async ({ page }) => {
+      119 |       // Simular sesión admin activa
+    > 120 |       await page.goto('/admin');
+          |                  ^
+      121 |       await page.waitForTimeout(2000);
+      122 |       
+      123 |       const initialUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:120:18
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="61.246">
+<failure message="admin-autenticacion.spec.ts:143:9 debe validar tokens de sesión" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:143:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      142 |   test.describe('Validaciones de Seguridad', () => {
+      143 |     test('debe validar tokens de sesión', async ({ page }) => {
+    > 144 |       await page.goto('/admin');
+          |                  ^
+      145 |       await page.waitForTimeout(2000);
+      146 |       
+      147 |       // Verificar que hay validación de autenticación
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:144:18
+
+    Tearing down "context" exceeded the test timeout of 30000ms.
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="19.686">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="9.017">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [chromium] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-chromium\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="13.595">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="14.278">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="chromium" tests="8" failures="5" skipped="0" time="255.139" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="12.99">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="12.201">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="40.954">
+<failure message="auth.spec.ts:44:9 debe manejar intentos de login inválidos" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:44:9 › Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/login", waiting until "load"
+
+
+      43 |
+      44 |     test('debe manejar intentos de login inválidos', async ({ page }) => {
+    > 45 |       await page.goto('/login');
+         |                  ^
+      46 |       await page.waitForTimeout(2000);
+      47 |       
+      48 |       const currentUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\auth.spec.ts:45:18
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\auth-Sistema-de-Autenticac-0ef6f-intentos-de-login-inválidos-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\auth-Sistema-de-Autenticac-0ef6f-intentos-de-login-inválidos-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-0ef6f-intentos-de-login-inválidos-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-0ef6f-intentos-de-login-inválidos-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="36.049">
+<failure message="auth.spec.ts:77:9 debe redirigir rutas protegidas a login cuando no autenticado" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:77:9 › Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      80 |       
+      81 |       for (const route of protectedRoutes) {
+    > 82 |         await page.goto(route);
+         |                    ^
+      83 |         await page.waitForTimeout(2000);
+      84 |         
+      85 |         // Verificar que la página carga (puede redirigir o mostrar contenido)
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\auth.spec.ts:82:20
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\auth-Sistema-de-Autenticac-9eceb-login-cuando-no-autenticado-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\auth-Sistema-de-Autenticac-9eceb-login-cuando-no-autenticado-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-9eceb-login-cuando-no-autenticado-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-9eceb-login-cuando-no-autenticado-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="48.135">
+<failure message="auth.spec.ts:90:9 debe permitir acceso a rutas públicas" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:90:9 › Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/about", waiting until "load"
+
+
+      92 |       
+      93 |       for (const route of publicRoutes) {
+    > 94 |         await page.goto(route);
+         |                    ^
+      95 |         await page.waitForTimeout(1000);
+      96 |         
+      97 |         // Verificar que la página carga correctamente
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\auth.spec.ts:94:20
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\auth-Sistema-de-Autenticac-343d6-tir-acceso-a-rutas-públicas-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\auth-Sistema-de-Autenticac-343d6-tir-acceso-a-rutas-públicas-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-343d6-tir-acceso-a-rutas-públicas-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-343d6-tir-acceso-a-rutas-públicas-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="54.599">
+<failure message="auth.spec.ts:104:9 debe mantener estado de sesión entre navegaciones" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:104:9 › Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/login", waiting until "load"
+
+
+      107 |       await page.waitForTimeout(1000);
+      108 |       
+    > 109 |       await page.goto('/login');
+          |                  ^
+      110 |       await page.waitForTimeout(1000);
+      111 |       
+      112 |       await page.goto('/');
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\auth.spec.ts:109:18
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\auth-Sistema-de-Autenticac-36a5e-e-sesión-entre-navegaciones-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\auth-Sistema-de-Autenticac-36a5e-e-sesión-entre-navegaciones-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-36a5e-e-sesión-entre-navegaciones-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-36a5e-e-sesión-entre-navegaciones-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="7.056">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="43.155">
+<failure message="auth.spec.ts:138:9 debe funcionar correctamente en móvil" type="FAILURE">
+<![CDATA[  [chromium] › auth.spec.ts:138:9 › Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/login", waiting until "load"
+
+
+      139 |       await page.setViewportSize({ width: 375, height: 667 });
+      140 |       
+    > 141 |       await page.goto('/login');
+          |                  ^
+      142 |       await page.waitForTimeout(2000);
+      143 |       
+      144 |       const currentUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\auth.spec.ts:141:18
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\auth-Sistema-de-Autenticac-be68b-onar-correctamente-en-móvil-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\auth-Sistema-de-Autenticac-be68b-onar-correctamente-en-móvil-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-be68b-onar-correctamente-en-móvil-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\auth-Sistema-de-Autenticac-be68b-onar-correctamente-en-móvil-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="firefox" tests="10" failures="8" skipped="0" time="337.824" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="44.055">
+<failure message="admin-autenticacion.spec.ts:10:9 debe redirigir a login cuando no hay sesión" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:10:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión 
+
+    Test timeout of 30000ms exceeded.
+
+    TimeoutError: page.goto: Timeout 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      10 |     test('debe redirigir a login cuando no hay sesión', async ({ page }) => {
+      11 |       // Intentar acceder al panel admin sin autenticación
+    > 12 |       await page.goto('/admin');
+         |                  ^
+      13 |       await page.waitForTimeout(2000);
+      14 |       
+      15 |       // Verificar redirección a login
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:12:18
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--0e744--login-cuando-no-hay-sesión-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="43.443">
+<failure message="admin-autenticacion.spec.ts:28:9 debe redirigir usuarios no admin a home" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:28:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      32 |       
+      33 |       // Intentar acceder directamente al panel admin
+    > 34 |       await page.goto('/admin');
+         |                  ^
+      35 |       await page.waitForTimeout(2000);
+      36 |       
+      37 |       // Verificar que no está en admin o fue redirigido
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:34:18
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--db26c-ir-usuarios-no-admin-a-home-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--db26c-ir-usuarios-no-admin-a-home-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--db26c-ir-usuarios-no-admin-a-home-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--db26c-ir-usuarios-no-admin-a-home-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="35.865">
+<failure message="admin-autenticacion.spec.ts:47:9 debe proteger rutas específicas del admin" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:47:9 › Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin/usuarios", waiting until "load"
+
+
+      54 |       
+      55 |       for (const route of adminRoutes) {
+    > 56 |         await page.goto(route);
+         |                    ^
+      57 |         await page.waitForTimeout(1500);
+      58 |         
+      59 |         const currentUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:56:20
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--ec2b0-rutas-específicas-del-admin-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="40.045">
+<failure message="admin-autenticacion.spec.ts:71:9 debe permitir acceso con credenciales admin válidas" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:71:9 › Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/login", waiting until "load"
+
+
+      71 |     test('debe permitir acceso con credenciales admin válidas', async ({ page }) => {
+      72 |       // Ir a login
+    > 73 |       await page.goto('/login');
+         |                  ^
+      74 |       await page.waitForTimeout(2000);
+      75 |       
+      76 |       // Buscar campos de login
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:73:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--bcdb0--credenciales-admin-válidas-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="40.072">
+<failure message="admin-autenticacion.spec.ts:118:9 debe mantener sesión admin entre navegaciones" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:118:9 › Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      119 |       // Simular sesión admin activa
+      120 |       await page.goto('/admin');
+    > 121 |       await page.waitForTimeout(2000);
+          |                  ^
+      122 |       
+      123 |       const initialUrl = page.url();
+      124 |       
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:121:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--2e97d-ón-admin-entre-navegaciones-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="31.077">
+<failure message="admin-autenticacion.spec.ts:143:9 debe validar tokens de sesión" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:143:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://localhost:3000/admin", waiting until "load"
+
+
+      142 |   test.describe('Validaciones de Seguridad', () => {
+      143 |     test('debe validar tokens de sesión', async ({ page }) => {
+    > 144 |       await page.goto('/admin');
+          |                  ^
+      145 |       await page.waitForTimeout(2000);
+      146 |       
+      147 |       // Verificar que hay validación de autenticación
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:144:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--6a166-be-validar-tokens-de-sesión-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="33.459">
+<failure message="admin-autenticacion.spec.ts:154:9 debe manejar sesiones expiradas" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:154:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.waitForTimeout: Test timeout of 30000ms exceeded.
+
+      166 |       // Intentar acceder nuevamente
+      167 |       await page.goto('/admin');
+    > 168 |       await page.waitForTimeout(2000);
+          |                  ^
+      169 |       
+      170 |       // Debe redirigir a login
+      171 |       const finalUrl = page.url();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:168:18
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\video.webm]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--76bc3--manejar-sesiones-expiradas-firefox\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="15.771">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [firefox] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    TimeoutError: apiRequestContext.get: Timeout 10000ms exceeded.
+    Call log:
+      - → GET http://localhost:3000/api/admin/users
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0.1) Gecko/20100101 Firefox/142.0.1
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+      - ← 307 Temporary Redirect
+        - x-frame-options: SAMEORIGIN
+        - x-content-type-options: nosniff
+        - referrer-policy: strict-origin-when-cross-origin
+        - content-security-policy: frame-ancestors 'self' https://*.trae.ai https://trae.ai
+        - location: /login?callbackUrl=%2Fapi%2Fadmin%2Fusers
+        - set-cookie: authjs.csrf-token=fe149fbaec98f8944645ba741b0d12e54ae3bd7f33e549325369c99d6ee1699c%7C589b1ccdfd6cfda28d5479f94e76bfd96359e5aa71c1120da52f4c45b41d63c8; Path=/; HttpOnly; SameSite=Lax,authjs.callback-url=http%3A%2F%2Flocalhost%3A3000; Path=/; HttpOnly; SameSite=Lax
+        - date: Mon, 23 Feb 2026 19:25:03 GMT
+        - connection: keep-alive
+        - keep-alive: timeout=5
+        - transfer-encoding: chunked
+      - → GET http://localhost:3000/login?callbackUrl=%2Fapi%2Fadmin%2Fusers
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0.1) Gecko/20100101 Firefox/142.0.1
+        - accept: */*
+        - accept-encoding: gzip,deflate,br
+        - cookie: authjs.csrf-token=fe149fbaec98f8944645ba741b0d12e54ae3bd7f33e549325369c99d6ee1699c%7C589b1ccdfd6cfda28d5479f94e76bfd96359e5aa71c1120da52f4c45b41d63c8; authjs.callback-url=http%3A%2F%2Flocalhost%3A3000
+      - ← 200 OK
+        - x-frame-options: SAMEORIGIN
+        - x-content-type-options: nosniff
+        - referrer-policy: strict-origin-when-cross-origin
+        - content-security-policy: frame-ancestors 'self' https://*.trae.ai https://trae.ai
+        - vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding
+        - link: </_next/static/css/983f21244dffe193.css>; rel=preload; as="style", </_next/static/css/309c9c43792bdc4d.css>; rel=preload; as="style"
+        - x-powered-by: Next.js
+        - cache-control: private, no-cache, no-store, max-age=0, must-revalidate
+        - content-type: text/html; charset=utf-8
+        - content-encoding: gzip
+        - date: Mon, 23 Feb 2026 19:25:10 GMT
+        - connection: keep-alive
+        - keep-alive: timeout=5
+        - transfer-encoding: chunked
+
+
+      183 |       
+      184 |       for (const endpoint of apiEndpoints) {
+    > 185 |         const response = await page.request.get(`http://localhost:3000${endpoint}`);
+          |                                             ^
+      186 |         
+      187 |         // Debe retornar error de autorización (401, 403) o redirección (302)
+      188 |         const status = response.status();
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:185:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-firefox\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-firefox\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-firefox\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-firefox\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="23.718">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="30.319">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="firefox" tests="8" failures="0" skipped="0" time="117.868" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="23.241">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="28.172">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="13.394">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="16.525">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="10.568">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="12.416">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="6.779">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="6.773">
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="webkit" tests="10" failures="1" skipped="0" time="105.048" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="12.479">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="12.153">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="16.8">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="11.776">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="11.113">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="10.336">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="11.246">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="3.801">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [webkit] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-webkit\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-webkit\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-webkit\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-webkit\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="7.205">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="8.139">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="webkit" tests="8" failures="0" skipped="0" time="58.976" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="8.123">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="7.116">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="4.739">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="12.91">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="8.252">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="7.121">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="5.345">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="5.37">
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Mobile Chrome" tests="10" failures="1" skipped="0" time="107.166" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="15.997">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="16.042">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="19.404">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="15.731">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="12.89">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="5.224">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="8.685">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="2.282">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [Mobile Chrome] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Chrome\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="4.952">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="5.959">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Mobile Chrome" tests="8" failures="0" skipped="0" time="36.522" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="3.997">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="4.358">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="2.778">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="10.287">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="4.518">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="4.604">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="3.048">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="2.932">
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Mobile Safari" tests="10" failures="1" skipped="0" time="63.137" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="6.228">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="7.239">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="11.07">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="5.849">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="5.697">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="6.187">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="8.011">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="1.637">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [Mobile Safari] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Safari\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Safari\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Safari\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Mobile-Safari\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="3.667">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="7.552">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Mobile Safari" tests="8" failures="0" skipped="0" time="52.604" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="3.77">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="6.32">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="4.581">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="15.612">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="7.214">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="7.093">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="4.347">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="3.667">
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Microsoft Edge" tests="10" failures="1" skipped="0" time="161.768" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="28.076">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="25.509">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="30.675">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="23.476">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="22.833">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="7.83">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="9.897">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="4.202">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [Microsoft Edge] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Microsoft-Edge\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Microsoft-Edge\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Microsoft-Edge\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Microsoft-Edge\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="4.699">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="4.571">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Microsoft Edge" tests="8" failures="0" skipped="0" time="136.537" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="23.118">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="24.533">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="22.809">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="29.133">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="21.707">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="6.617">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="3.633">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="4.987">
+</testcase>
+</testsuite>
+<testsuite name="admin-autenticacion.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Google Chrome" tests="10" failures="1" skipped="0" time="56.781" errors="0">
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir a login cuando no hay sesión" classname="admin-autenticacion.spec.ts" time="5.699">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe redirigir usuarios no admin a home" classname="admin-autenticacion.spec.ts" time="12.952">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Protección de Rutas Admin › debe proteger rutas específicas del admin" classname="admin-autenticacion.spec.ts" time="9.103">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe permitir acceso con credenciales admin válidas" classname="admin-autenticacion.spec.ts" time="2.818">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Acceso con Sesión Admin › debe mantener sesión admin entre navegaciones" classname="admin-autenticacion.spec.ts" time="4.136">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe validar tokens de sesión" classname="admin-autenticacion.spec.ts" time="3.351">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe manejar sesiones expiradas" classname="admin-autenticacion.spec.ts" time="5.85">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin" classname="admin-autenticacion.spec.ts" time="1.52">
+<failure message="admin-autenticacion.spec.ts:175:9 debe prevenir acceso directo a APIs admin" type="FAILURE">
+<![CDATA[  [Google Chrome] › admin-autenticacion.spec.ts:175:9 › Panel de Administración - Autenticación › Validaciones de Seguridad › debe prevenir acceso directo a APIs admin 
+
+    Error: expect(received).toBeTruthy()
+
+    Received: false
+
+      189 |         const isUnauthorized = status === 401 || status === 403 || status === 302 || status === 404;
+      190 |         
+    > 191 |         expect(isUnauthorized).toBeTruthy();
+          |                                ^
+      192 |       }
+      193 |     });
+      194 |   });
+        at C:\Users\Chinoo\Documents\augment-projects\turnero de padel\tests\e2e\admin-autenticacion.spec.ts:191:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Google-Chrome\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Google-Chrome\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Google-Chrome\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\playwright\admin-autenticacion-Panel--84af1-acceso-directo-a-APIs-admin-Google-Chrome\video.webm]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en dispositivos móviles" classname="admin-autenticacion.spec.ts" time="5.977">
+</testcase>
+<testcase name="Panel de Administración - Autenticación › Responsividad de Autenticación › debe funcionar en tablets" classname="admin-autenticacion.spec.ts" time="5.375">
+</testcase>
+</testsuite>
+<testsuite name="auth.spec.ts" timestamp="2026-02-23T19:21:24.369Z" hostname="Google Chrome" tests="8" failures="0" skipped="0" time="84.648" errors="0">
+<testcase name="Sistema de Autenticación › Página de Login › debe cargar la página de login correctamente" classname="auth.spec.ts" time="3.759">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe mostrar formulario de login" classname="auth.spec.ts" time="11.492">
+</testcase>
+<testcase name="Sistema de Autenticación › Página de Login › debe manejar intentos de login inválidos" classname="auth.spec.ts" time="10.205">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe redirigir rutas protegidas a login cuando no autenticado" classname="auth.spec.ts" time="20.326">
+</testcase>
+<testcase name="Sistema de Autenticación › Protección de Rutas › debe permitir acceso a rutas públicas" classname="auth.spec.ts" time="13.809">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe mantener estado de sesión entre navegaciones" classname="auth.spec.ts" time="12.293">
+</testcase>
+<testcase name="Sistema de Autenticación › Estado de Autenticación › debe manejar logout correctamente" classname="auth.spec.ts" time="4.644">
+</testcase>
+<testcase name="Sistema de Autenticación › Responsividad de Autenticación › debe funcionar correctamente en móvil" classname="auth.spec.ts" time="8.12">
+</testcase>
+</testsuite>
 </testsuites>

@@ -17,8 +17,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams
 
   if (session) {
-    // Redirigir directamente a dashboard para evitar bucle con página principal
-    const callbackUrl = params.callbackUrl || '/dashboard'
+    const callbackUrl = params.callbackUrl ?? '/'
     redirect(callbackUrl)
   }
 

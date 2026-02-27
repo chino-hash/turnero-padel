@@ -285,7 +285,7 @@ export class BookingRepository {
     return bookings as BookingWithRelations[];
   }
 
-  // Verificar disponibilidad
+  // Verificar disponibilidad (Bookings + CourtBlocks por torneos)
   async checkAvailability(input: CheckAvailabilityInput): Promise<boolean> {
     const { courtId, bookingDate, startTime, endTime, excludeBookingId } = input;
     const [y, m, d] = String(bookingDate).split('-').map(Number)
@@ -298,26 +298,23 @@ export class BookingRepository {
         status: { not: 'CANCELLED' },
         ...(excludeBookingId && { id: { not: excludeBookingId } }),
         OR: [
-          // Caso 1: Nueva reserva empieza durante una existente
-          {
-            startTime: { lte: startTime },
-            endTime: { gt: startTime }
-          },
-          // Caso 2: Nueva reserva termina durante una existente
-          {
-            startTime: { lt: endTime },
-            endTime: { gte: endTime }
-          },
-          // Caso 3: Nueva reserva contiene completamente una existente
-          {
-            startTime: { gte: startTime },
-            endTime: { lte: endTime }
-          }
+          { startTime: { lte: startTime }, endTime: { gt: startTime } },
+          { startTime: { lt: endTime }, endTime: { gte: endTime } },
+          { startTime: { gte: startTime }, endTime: { lte: endTime } }
         ]
       }
     });
+    if (conflictingBooking) return false;
 
-    return !conflictingBooking;
+    const conflictingBlock = await this.prisma.courtBlock.findFirst({
+      where: {
+        courtId,
+        date: bookingDateLocal,
+        startTime: { lt: endTime },
+        endTime: { gt: startTime }
+      }
+    });
+    return !conflictingBlock;
   }
 
   // Crear reserva con transacción

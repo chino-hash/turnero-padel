@@ -1,9 +1,39 @@
 {
-  "timestamp": "2025-11-21T04:18:16.815Z",
+  "timestamp": "2026-02-23T19:20:24.292Z",
   "totalRuntime": 0,
   "slowestTests": [
     {
-      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
+      "file": "\\__tests__\\lib\\admin-system.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useAuth.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\booking-utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useBookings.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\bookings.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\courts.test.ts",
       "runtime": 0,
       "numTests": 0,
       "avgTimePerTest": null
@@ -16,6 +46,18 @@
     },
     {
       "file": "\\__tests__\\lib\\services\\booking-service.availability.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
       "runtime": 0,
       "numTests": 0,
       "avgTimePerTest": null
@@ -23,7 +65,37 @@
   ],
   "allTests": [
     {
-      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
+      "file": "\\__tests__\\lib\\admin-system.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useAuth.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\booking-utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useBookings.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\bookings.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\courts.test.ts",
       "runtime": 0,
       "numTests": 0,
       "avgTimePerTest": null
@@ -36,6 +108,18 @@
     },
     {
       "file": "\\__tests__\\lib\\services\\booking-service.availability.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
       "runtime": 0,
       "numTests": 0,
       "avgTimePerTest": null

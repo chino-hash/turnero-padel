@@ -63,8 +63,7 @@ export default auth((req) => {
   // Si está logueado y trata de acceder a login, redirigir según callbackUrl
   if (isLoggedIn && nextUrl.pathname === '/login') {
     const callbackUrl = nextUrl.searchParams.get('callbackUrl')
-    // Evitar redirección a la página principal para prevenir bucles
-    const redirectUrl = callbackUrl && callbackUrl !== '/login' && callbackUrl !== '/' ? callbackUrl : '/dashboard'
+    const redirectUrl = callbackUrl === '/' ? '/' : (callbackUrl && callbackUrl !== '/login' ? callbackUrl : '/dashboard')
     return NextResponse.redirect(new URL(redirectUrl, nextUrl))
   }
 

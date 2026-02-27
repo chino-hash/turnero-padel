@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-21T04:18:16.794Z",
+  "timestamp": "2026-02-23T19:20:24.243Z",
   "testRun": "completed",
   "environment": {
     "nodeVersion": "v22.17.1",
@@ -7,6 +7,6 @@
     "arch": "x64"
   },
   "coverage": {
-    "reportGenerated": true
+    "reportGenerated": false
   }
 }

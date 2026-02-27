@@ -211,20 +211,34 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Aplicar bloqueos virtuales (>7 días) para ADMIN usando reglas recurrentes
-    if (userRole === 'ADMIN') {
-      try {
-        const { virtualBlocks, thresholdDate } = await getAvailableSlots(courtId, dateStr, dateStr, userRole, userTenantId)
-        if (dateStr > thresholdDate && virtualBlocks.length > 0) {
-          const blockSet = new Set(virtualBlocks.filter(v => v.date === dateStr).map(v => `${v.startTime} - ${v.endTime}`))
-          for (const s of slots) {
-            if (blockSet.has(s.timeRange)) {
+    // Obtener bloqueos (virtuales para ADMIN + CourtBlocks por torneos para todos)
+    try {
+      const { virtualBlocks, courtBlocks, thresholdDate } = await getAvailableSlots(courtId, dateStr, dateStr, userRole, userTenantId ?? undefined)
+
+      // CourtBlocks (torneos): marcar slots que solapan con algún bloque como no disponibles
+      if (courtBlocks && courtBlocks.length > 0) {
+        const dayBlocks = courtBlocks.filter((b) => b.date === dateStr)
+        for (const s of slots) {
+          const [sStart, sEnd] = s.timeRange.split(' - ')
+          for (const b of dayBlocks) {
+            if (sStart < b.endTime && sEnd > b.startTime) {
               s.isAvailable = false
+              break
             }
           }
         }
-      } catch (_err) {
       }
+
+      // Bloqueos virtuales (>7 días) para ADMIN usando reglas recurrentes
+      if (userRole === 'ADMIN' && dateStr > thresholdDate && virtualBlocks.length > 0) {
+        const blockSet = new Set(virtualBlocks.filter(v => v.date === dateStr).map(v => `${v.startTime} - ${v.endTime}`))
+        for (const s of slots) {
+          if (blockSet.has(s.timeRange)) {
+            s.isAvailable = false
+          }
+        }
+      }
+    } catch (_err) {
     }
 
     // Calcular estadísticas

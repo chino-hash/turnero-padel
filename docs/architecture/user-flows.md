@@ -51,6 +51,20 @@ flowchart TD
     class B,G,K,Q decision
 ```
 
+### Login desde la landing y menú de usuario (feb 2026)
+
+Cuando el usuario inicia sesión **desde la página principal** (`/`), el destino tras el login es de nuevo la **landing** (`/`), no el dashboard. En la landing, si hay sesión:
+
+- En el header se muestra el **avatar** (imagen de Google o iniciales) en lugar del botón "Iniciar sesión".
+- Al hacer clic en el avatar se abre un menú con:
+  - **Ir a mi club**: si el usuario tiene un tenant asignado y activo; enlaza a `/dashboard?tenantSlug=<slug>`.
+  - **Panel Super Admin**: solo para usuarios con rol SUPER_ADMIN; enlaza a `/super-admin`.
+  - **Cerrar sesión**: cierra la sesión y redirige a `/`.
+
+El botón "Reservar Ahora" del hero es condicional: sin sesión lleva a login; con sesión y tenant lleva al dashboard del club; con sesión sin tenant lleva a la sección de clubs (`#clubs-list`).
+
+El flujo cuando el usuario llega con la **URL de un club** (`/club/[slug]`) no cambia: se redirige a login con `callbackUrl=/dashboard?tenantSlug=slug` y, tras autenticarse, se llega al dashboard de ese club. Ver [Landing: login y menú de usuario](../actualizaciones/landing-login-menu-usuario-2026-02.md) para el detalle de cambios.
+
 ### Cierre de Sesión
 
 ```mermaid

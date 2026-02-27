@@ -15,12 +15,16 @@ La pestaña Torneo tiene un historial de torneos con datos mock y un wizard para
 
 - [x] Vista historial de torneos (UI)
 - [x] Wizard de creación en 3 pasos
-- [x] Paso 1: título, categoría, premios, parejas mínimas
+- [x] Paso 1: título, categoría, premios, parejas mínimas y máximas
 - [x] Paso 2: selección de días y franjas horarias
 - [x] Paso 3: vista previa y publicación
 - [x] Categorías (8va, 7ma, 6ta, 5ta, 4ta, 3ra, 2da, 1ra, Mixto, Suma)
-- [x] Vista previa en vivo al crear
+- [x] Vista previa en vivo al crear (cronograma con rango horario completo)
 - [x] UI consistente con el resto del admin
+- [x] Paso 2: botón "Confirmar Horarios" habilitado cuando la franja tiene inicio y cierre
+- [x] Paso 3: botón "Volver al paso anterior" en esquina inferior izquierda de la tarjeta
+
+**Detalle:** [actualizaciones/admin-torneos-formulario-2026-02.md](../actualizaciones/admin-torneos-formulario-2026-02.md)
 
 ---
 

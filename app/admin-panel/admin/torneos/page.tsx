@@ -1,76 +1,164 @@
 "use client"
 
-import { useMemo, useState, Fragment } from "react"
-import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft } from "lucide-react"
+import { useMemo, useState, Fragment, useEffect, useCallback } from "react"
+import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft, Loader2, Pencil, UserPlus } from "lucide-react"
+import { useSession } from "next-auth/react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 type TorneoHistorialItem = {
   id: string
   title: string
   category: string
-  prizeFirst: string
-  prizeSecond: string
-  pairs?: number
+  prizeFirst: number
+  prizeSecond: number
+  minPairs: number
+  maxPairs: number
+  status?: string
   dayBlocks: { date: string; ranges: { start: string; end: string }[] }[]
-  fechaRealizacion: string
 }
 
-const TORNEOS_HISTORIAL_MOCK: TorneoHistorialItem[] = [
-  {
-    id: "1",
-    title: "Torneo Apertura 2024",
-    category: "6ta",
-    prizeFirst: "$ 150.000",
-    prizeSecond: "$ 80.000",
-    pairs: 16,
-    fechaRealizacion: "2024-03-15",
-    dayBlocks: [
-      { date: "2024-03-15", ranges: [{ start: "09:00", end: "14:00" }, { start: "16:00", end: "21:00" }] },
-      { date: "2024-03-16", ranges: [{ start: "10:00", end: "18:00" }] },
-    ],
-  },
-  {
-    id: "2",
-    title: "Copa Verano",
-    category: "7ma",
-    prizeFirst: "$ 90.000",
-    prizeSecond: "$ 45.000",
-    pairs: 12,
-    fechaRealizacion: "2024-01-20",
-    dayBlocks: [
-      { date: "2024-01-20", ranges: [{ start: "08:00", end: "20:00" }] },
-    ],
-  },
-  {
-    id: "3",
-    title: "Torneo Mixto Primavera",
-    category: "Mixto",
-    prizeFirst: "$ 120.000",
-    prizeSecond: "$ 60.000",
-    fechaRealizacion: "2024-09-08",
-    dayBlocks: [
-      { date: "2024-09-07", ranges: [{ start: "09:00", end: "13:00" }] },
-      { date: "2024-09-08", ranges: [{ start: "09:00", end: "18:00" }] },
-    ],
-  },
-]
+function prizeToDisplay(value: number): string {
+  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(value)
+}
+
+function getFirstDate(dayBlocks: TorneoHistorialItem["dayBlocks"]): string {
+  if (!dayBlocks.length) return ""
+  const first = dayBlocks[0]
+  return first.date
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Borrador",
+  OPEN_REGISTRATION: "Inscripciones abiertas",
+  CLOSED: "Inscripciones cerradas",
+  IN_PROGRESS: "En curso",
+  FINISHED: "Finalizado",
+  CANCELLED: "Cancelado",
+}
+function StatusBadge({ status }: { status?: string }) {
+  if (!status) return null
+  const label = STATUS_LABELS[status] ?? status
+  const variant = status === "OPEN_REGISTRATION" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" : status === "DRAFT" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300" : status === "CANCELLED" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+  return (
+    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium border", variant)}>
+      {label}
+    </span>
+  )
+}
+
+type TenantOption = { id: string; name: string; slug: string }
 
 export default function Page() {
-  const [view, setView] = useState<"historial" | "crear">("historial")
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const [tenants, setTenants] = useState<TenantOption[]>([])
+  const [selectedTenantId, setSelectedTenantId] = useState<string>("")
+  const [view, setView] = useState<"historial" | "crear" | "detalle">("historial")
+  const [selectedTorneo, setSelectedTorneo] = useState<TorneoHistorialItem | null>(null)
+  const [deleteTorneoId, setDeleteTorneoId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [detalleTab, setDetalleTab] = useState<"info" | "inscripciones">("info")
+  const [inscripciones, setInscripciones] = useState<{ list: Array<{ id: string; type: string; playerName: string; playerEmail: string | null; partnerName: string | null; status: string }>; currentPairs: number; minPairs: number; maxPairs: number } | null>(null)
+  const [inscripcionesError, setInscripcionesError] = useState<string | null>(null)
+  const [loadingInscripciones, setLoadingInscripciones] = useState(false)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [newRegType, setNewRegType] = useState<"SINGLE" | "PAIR">("PAIR")
+  const [newRegPlayer, setNewRegPlayer] = useState("")
+  const [newRegPartner, setNewRegPartner] = useState("")
+  const [submittingReg, setSubmittingReg] = useState(false)
+  const [editTorneoId, setEditTorneoId] = useState<string | null>(null)
   const [step, setStep] = useState(1)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
   const [prizeFirst, setPrizeFirst] = useState("")
   const [prizeSecond, setPrizeSecond] = useState("")
   const [pairs, setPairs] = useState<number | "">("")
+  const [maxPairs, setMaxPairs] = useState<number | "">("")
   const [dayBlocks, setDayBlocks] = useState<{ date: string; ranges: { start: string; end: string }[] }[]>([])
   const [publishStatus, setPublishStatus] = useState<'idle' | 'publishing' | 'success' | 'error'>('idle')
+  const [publishError, setPublishError] = useState<string | null>(null)
   const [showAllCategories, setShowAllCategories] = useState(false)
+
+  const [torneos, setTorneos] = useState<TorneoHistorialItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  const fetchTorneos = useCallback(async () => {
+    setLoading(true)
+    setFetchError(null)
+    try {
+      const res = await fetch("/api/torneos", { credentials: "include" })
+      const json = await res.json()
+      if (!res.ok) {
+        setFetchError(json?.message ?? "Error al cargar torneos")
+        setTorneos([])
+        return
+      }
+      const data = json?.data ?? []
+      setTorneos(Array.isArray(data) ? data : [])
+    } catch {
+      setFetchError("Error de conexión")
+      setTorneos([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (view === "historial") fetchTorneos()
+  }, [view, fetchTorneos])
+
+  useEffect(() => {
+    if (isSuperAdmin && view === "crear") {
+      fetch("/api/tenants", { credentials: "include" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.success && Array.isArray(data.data)) setTenants(data.data)
+        })
+        .catch(() => {})
+    }
+  }, [isSuperAdmin, view])
+
+  const fetchInscripciones = useCallback(async () => {
+    if (!selectedTorneo) return
+    setLoadingInscripciones(true)
+    setInscripcionesError(null)
+    try {
+      const res = await fetch(`/api/torneos/${selectedTorneo.id}/inscripciones`, { credentials: "include" })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        const msg = json?.message ?? json?.error ?? "Error al cargar inscripciones"
+        setInscripcionesError(msg)
+        toast.error(msg)
+        return
+      }
+      if (json?.data) setInscripciones(json.data)
+      setInscripcionesError(null)
+    } catch {
+      const msg = "Error de conexión"
+      setInscripcionesError(msg)
+      toast.error(msg)
+    } finally {
+      setLoadingInscripciones(false)
+    }
+  }, [selectedTorneo])
 
   const CATEGORIES = ["8va", "7ma", "6ta", "5ta", "4ta", "3ra", "2da", "1ra", "Mixto", "Suma"]
   const MAIN_CATEGORIES = ["8va", "7ma", "6ta"]
@@ -122,20 +210,86 @@ export default function Page() {
   const DEFAULT_END = "23:59"
   const getEndOrDefault = (end?: string) => end && end.length > 0 ? end : DEFAULT_END
 
-  const canContinueStep1 = title.trim().length > 0 && category.trim().length > 0
+  const minP = pairs === "" ? 1 : Number(pairs)
+  const maxP = maxPairs === "" ? 128 : Number(maxPairs)
+  const canContinueStep1 = title.trim().length > 0 && category.trim().length > 0 && minP <= maxP
   const canContinueStep2 = dayBlocks.length > 0
-  const canPublish = canContinueStep1 && canContinueStep2 && dayBlocks.every(d => d.ranges.length > 0 && d.ranges.every(r => r.start))
+  const canPublish = canContinueStep1 && canContinueStep2 && dayBlocks.length > 0 && dayBlocks.every(d => d.ranges.some(r => Boolean(r.start)))
 
-  const preview = useMemo(() => ({ title, category, prizeFirst, prizeSecond, pairs: pairs === "" ? undefined : Number(pairs), dayBlocks }), [title, category, prizeFirst, prizeSecond, pairs, dayBlocks])
+  const preview = useMemo(() => ({
+    title,
+    category,
+    prizeFirst,
+    prizeSecond,
+    minPairs: pairs === "" ? undefined : Number(pairs),
+    maxPairs: maxPairs === "" ? undefined : Number(maxPairs),
+    dayBlocks,
+  }), [title, category, prizeFirst, prizeSecond, pairs, maxPairs, dayBlocks])
 
   async function handlePublish() {
-    if (!canPublish) return
+    setPublishError(null)
+    if (!canPublish) {
+      toast.error("Completa todos los pasos: título, categoría, al menos un día y una franja horaria con hora de inicio por cada día.")
+      return
+    }
+    const isEdit = !!editTorneoId
+    if (!isEdit && isSuperAdmin && !selectedTenantId) {
+      const msg = "Seleccione el club para el cual crear el torneo."
+      setPublishError(msg)
+      toast.error(msg)
+      return
+    }
+    const payload: Record<string, unknown> = {
+      title: title.trim(),
+      category: category.trim(),
+      prizeFirst: Number(prizeFirst.replace(/\D/g, "")) || 0,
+      prizeSecond: Number(prizeSecond.replace(/\D/g, "")) || 0,
+      minPairs: pairs === "" ? 1 : Number(pairs),
+      maxPairs: maxPairs === "" ? 128 : Number(maxPairs),
+      dayBlocks: dayBlocks.map((d) => ({
+        date: d.date,
+        ranges: d.ranges.filter((r) => r.start).map((r) => ({ start: r.start, end: getEndOrDefault(r.end) })),
+      })).filter((d) => d.ranges.length > 0),
+    }
+    if (!isEdit && isSuperAdmin && selectedTenantId) payload.tenantId = selectedTenantId
     try {
-      setPublishStatus('publishing')
-      await new Promise(res => setTimeout(res, 600))
-      setPublishStatus('success')
+      setPublishStatus("publishing")
+      const url = isEdit ? `/api/torneos/${editTorneoId}` : "/api/torneos"
+      const res = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      })
+      const json = await res.json().catch(() => ({}))
+      const errorMessage = [json?.error, json?.message].filter(Boolean).join(" — ") || (isEdit ? "Error al actualizar torneo" : "Error al crear torneo")
+      if (!res.ok) {
+        setPublishError(errorMessage)
+        toast.error(errorMessage)
+        setPublishStatus("error")
+        return
+      }
+      setPublishStatus("success")
+      setPublishError(null)
+      toast.success(isEdit ? "Torneo actualizado correctamente" : "Torneo creado correctamente")
+      setEditTorneoId(null)
+      setView("historial")
+      await fetchTorneos()
+      setStep(1)
+      setTitle("")
+      setCategory("")
+      setPrizeFirst("")
+      setPrizeSecond("")
+      setPairs("")
+      setMaxPairs("")
+      setDayBlocks([])
+      setSelectedTenantId("")
+      setPublishStatus("idle")
     } catch {
-      setPublishStatus('error')
+      const msg = "Error de conexión"
+      setPublishError(msg)
+      toast.error(msg)
+      setPublishStatus("error")
     }
   }
 
@@ -147,22 +301,11 @@ export default function Page() {
     setDayBlocks(dayBlocks.map(d => d.date === date ? { ...d, ranges: [...d.ranges, { start: "", end: "23:59" }] } : d))
   }
 
-  function hasPendingRange(date: string) {
+  /** Hay al menos una franja con hora de inicio seleccionada (para mostrar "Horario confirmado"). */
+  function hasStartTimeSelected(date: string) {
     const d = dayBlocks.find(x => x.date === date)
     if (!d) return false
-    return d.ranges.some(r => !r.end || !r.start)
-  }
-
-  function acceptPendingRange(date: string) {
-    setDayBlocks(dayBlocks.map(d => {
-      if (d.date !== date) return d
-      const ranges = d.ranges.map(r => {
-        if (!r.start && !r.end) return r
-        return { ...r, end: getEndOrDefault(r.end) }
-      })
-      const cleaned = ranges.filter(r => r.start)
-      return { ...d, ranges: cleaned }
-    }))
+    return d.ranges.some(r => Boolean(r.start))
   }
 
   function updateRange(date: string, index: number, field: "start" | "end", value: string) {
@@ -183,23 +326,24 @@ export default function Page() {
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-light text-foreground mb-2">
-            {view === "historial" ? "Torneos" : "Crear Nuevo Torneo"}
+            {view === "historial" ? "Torneos" : view === "detalle" ? "Detalle del torneo" : editTorneoId ? "Editar torneo" : "Crear Nuevo Torneo"}
           </h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">
-            {view === "historial"
-              ? "Historial de torneos realizados."
-              : "Define categorías, premios y cronograma del torneo."}
+            {view === "historial" && "Historial de torneos realizados."}
+            {view === "detalle" && selectedTorneo && selectedTorneo.title}
+            {view === "crear" && "Define categorías, premios y cronograma del torneo."}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {view === "historial" ? (
+          {view === "historial" && (
             <Button onClick={() => setView("crear")} className="flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Crear torneo
             </Button>
-          ) : (
-            <Button variant="outline" onClick={() => setView("historial")} className="flex items-center gap-2">
+          )}
+          {(view === "detalle" || view === "crear") && (
+            <Button variant="outline" onClick={() => { setView("historial"); setSelectedTorneo(null); setDetalleTab("info"); setInscripciones(null); setInscripcionesError(null); setEditTorneoId(null); }} className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
@@ -208,78 +352,286 @@ export default function Page() {
       </div>
 
       {view === "historial" && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {TORNEOS_HISTORIAL_MOCK.map((t) => (
-            <div
-              key={t.id}
-              className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border"
-            >
-              <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-4 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-10">
-                  <Trophy className="w-16 h-16 transform rotate-12 -translate-y-2 translate-x-2" />
-                </div>
-                <div className="relative z-10 space-y-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
-                      <Trophy className="w-2.5 h-2.5 mr-0.5 text-yellow-300" />
-                      {t.category}
-                    </span>
-                    {t.pairs != null && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
-                        <Users className="w-2.5 h-2.5 mr-0.5" />
-                        Min {t.pairs}
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-sm font-bold tracking-tight text-white drop-shadow-md leading-tight line-clamp-2">
-                    {t.title}
-                  </h2>
-                  <p className="text-[10px] text-white/80">
-                    Realizado el {formatDateEs(t.fechaRealizacion)}
-                  </p>
-                </div>
-              </div>
-              <div className="p-3 space-y-3 bg-gradient-to-b from-card to-muted/20">
-                <div className="space-y-1.5">
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                    <Medal className="w-2.5 h-2.5" />
-                    Premios
-                  </p>
-                  <div className="flex gap-2">
-                    <div className="flex-1 rounded-md border border-yellow-100 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-900/10 px-2 py-1.5">
-                      <p className="text-[8px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">1°</p>
-                      <p className="text-xs font-bold text-foreground truncate">{t.prizeFirst}</p>
-                    </div>
-                    <div className="flex-1 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 px-2 py-1.5">
-                      <p className="text-[8px] text-gray-600 dark:text-gray-400 font-bold uppercase">2°</p>
-                      <p className="text-xs font-bold text-foreground truncate">{t.prizeSecond}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
-                    <CalendarIcon className="w-2.5 h-2.5" />
-                    Fechas
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {t.dayBlocks.slice(0, 3).map((d, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[9px] font-medium border border-blue-100 dark:border-blue-800"
-                      >
-                        {formatDateEs(d.date)}
-                      </span>
-                    ))}
-                    {t.dayBlocks.length > 3 && (
-                      <span className="text-[9px] text-muted-foreground">+{t.dayBlocks.length - 3}</span>
-                    )}
-                  </div>
-                </div>
+        <>
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!loading && torneos.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-xl bg-muted/80 dark:bg-muted border border-border/50 px-8 py-12 text-center max-w-md"
+              >
+                <p className="text-2xl sm:text-3xl font-bold text-foreground flex flex-wrap items-center justify-center gap-2">
+                  <span>no hay torneos por ahora, haz el primero!!</span>
+                </p>
               </div>
             </div>
-          ))}
+          )}
+          {!loading && !fetchError && torneos.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {torneos.map((t) => (
+                <div
+                  key={t.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { setSelectedTorneo(t); setView("detalle"); setInscripciones(null); setInscripcionesError(null); }}
+                  onKeyDown={(e) => e.key === "Enter" && (setSelectedTorneo(t), setView("detalle"), setInscripciones(null), setInscripcionesError(null))}
+                  className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border cursor-pointer"
+                >
+                  <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-4 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                      <Trophy className="w-16 h-16 transform rotate-12 -translate-y-2 translate-x-2" />
+                    </div>
+                    <div className="relative z-10 space-y-2">
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                          <Trophy className="w-2.5 h-2.5 mr-0.5 text-yellow-300" />
+                          {t.category}
+                        </span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                          <Users className="w-2.5 h-2.5 mr-0.5" />
+                          {t.minPairs === t.maxPairs ? t.minPairs : `${t.minPairs}-${t.maxPairs}`} parejas
+                        </span>
+                        {t.status && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                            {STATUS_LABELS[t.status] ?? t.status}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-sm font-bold tracking-tight text-white drop-shadow-md leading-tight line-clamp-2">
+                        {t.title}
+                      </h2>
+                      <p className="text-[10px] text-white/80">
+                        {getFirstDate(t.dayBlocks) ? `Realizado el ${formatDateEs(getFirstDate(t.dayBlocks))}` : "Sin fechas"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-3 space-y-3 bg-gradient-to-b from-card to-muted/20">
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                        <Medal className="w-2.5 h-2.5" />
+                        Premios
+                      </p>
+                      <div className="flex gap-2">
+                        <div className="flex-1 rounded-md border border-yellow-100 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-900/10 px-2 py-1.5">
+                          <p className="text-[8px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">1°</p>
+                          <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeFirst)}</p>
+                        </div>
+                        <div className="flex-1 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 px-2 py-1.5">
+                          <p className="text-[8px] text-gray-600 dark:text-gray-400 font-bold uppercase">2°</p>
+                          <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeSecond)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                        <CalendarIcon className="w-2.5 h-2.5" />
+                        Fechas
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {t.dayBlocks.slice(0, 3).map((d, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[9px] font-medium border border-blue-100 dark:border-blue-800"
+                          >
+                            {formatDateEs(d.date)}
+                          </span>
+                        ))}
+                        {t.dayBlocks.length > 3 && (
+                          <span className="text-[9px] text-muted-foreground">+{t.dayBlocks.length - 3}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {view === "detalle" && selectedTorneo && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge status={selectedTorneo.status} />
+            <span className="text-sm text-muted-foreground">
+              {selectedTorneo.minPairs === selectedTorneo.maxPairs ? selectedTorneo.maxPairs : `${selectedTorneo.minPairs}-${selectedTorneo.maxPairs}`} parejas
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedTorneo.status === "DRAFT" && (
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (!selectedTorneo) return
+                  setPublishingId(selectedTorneo.id)
+                  try {
+                    const res = await fetch(`/api/torneos/${selectedTorneo.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ status: "OPEN_REGISTRATION", publishedAt: new Date().toISOString() }),
+                      credentials: "include",
+                    })
+                    const json = await res.json()
+                    if (!res.ok) { toast.error(json?.message ?? "Error al publicar"); return }
+                    toast.success("Torneo publicado. Inscripciones abiertas.")
+                    fetchTorneos()
+                    setSelectedTorneo(prev => prev ? { ...prev, status: "OPEN_REGISTRATION" } : null)
+                  } catch { toast.error("Error de conexión") }
+                  finally { setPublishingId(null) }
+                }}
+                disabled={!!publishingId}
+              >
+                {publishingId === selectedTorneo.id ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Publicar torneo
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => { setEditTorneoId(selectedTorneo.id); setTitle(selectedTorneo.title); setCategory(selectedTorneo.category); setPrizeFirst(prizeToDisplay(selectedTorneo.prizeFirst)); setPrizeSecond(prizeToDisplay(selectedTorneo.prizeSecond)); setPairs(selectedTorneo.minPairs); setMaxPairs(selectedTorneo.maxPairs); setDayBlocks(selectedTorneo.dayBlocks); setView("crear"); }}>
+              <Pencil className="w-4 h-4 mr-1" />
+              Editar
+            </Button>
+            <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setDeleteTorneoId(selectedTorneo.id)}>
+              <Trash2 className="w-4 h-4 mr-1" />
+              Eliminar
+            </Button>
+            <Button variant="outline" size="sm" className={detalleTab === "inscripciones" ? "bg-primary/10" : ""} onClick={() => { setDetalleTab("inscripciones"); if (selectedTorneo && !inscripciones) fetchInscripciones(); }}>
+              <UserPlus className="w-4 h-4 mr-1" />
+              Gestionar inscripciones
+            </Button>
+          </div>
+          <div className="border-t pt-4">
+            {detalleTab === "info" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold">Premios</p>
+                  <p className="text-sm">1° {prizeToDisplay(selectedTorneo.prizeFirst)} — 2° {prizeToDisplay(selectedTorneo.prizeSecond)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold">Fechas</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedTorneo.dayBlocks.map((d, i) => (
+                      <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded">{formatDateEs(d.date)}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+            {detalleTab === "inscripciones" && (
+              <div className="space-y-4">
+                {loadingInscripciones && <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+                {!loadingInscripciones && inscripcionesError && (
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-3">
+                    <p className="text-sm text-destructive">{inscripcionesError}</p>
+                    <Button type="button" variant="outline" size="sm" onClick={fetchInscripciones}>Reintentar</Button>
+                  </div>
+                )}
+                {!loadingInscripciones && inscripciones && !inscripcionesError && (
+                  <>
+                    <p className="text-sm font-medium">Cupo: {inscripciones.currentPairs} / {inscripciones.maxPairs} parejas</p>
+                    <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase">Agregar inscripción</p>
+                      <div className="flex gap-2">
+                        <Button type="button" variant={newRegType === "PAIR" ? "default" : "outline"} size="sm" onClick={() => setNewRegType("PAIR")}>Pareja</Button>
+                        <Button type="button" variant={newRegType === "SINGLE" ? "default" : "outline"} size="sm" onClick={() => setNewRegType("SINGLE")}>Solo</Button>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <input placeholder="Nombre jugador" className="rounded-md border px-3 py-2 text-sm" value={newRegPlayer} onChange={e => setNewRegPlayer(e.target.value)} />
+                        {newRegType === "PAIR" && <input placeholder="Nombre compañero" className="rounded-md border px-3 py-2 text-sm" value={newRegPartner} onChange={e => setNewRegPartner(e.target.value)} />}
+                      </div>
+                      {inscripciones.currentPairs >= inscripciones.maxPairs && (
+                        <p className="text-sm text-muted-foreground font-medium">Cupo completo</p>
+                      )}
+                      <Button size="sm" disabled={!newRegPlayer.trim() || (newRegType === "PAIR" && !newRegPartner.trim()) || submittingReg || inscripciones.currentPairs >= inscripciones.maxPairs} onClick={async () => {
+                        if (!selectedTorneo) return
+                        setSubmittingReg(true)
+                        try {
+                          const res = await fetch(`/api/torneos/${selectedTorneo.id}/inscripciones`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: newRegType, playerName: newRegPlayer.trim(), partnerName: newRegType === "PAIR" ? newRegPartner.trim() : undefined }),
+                            credentials: "include",
+                          })
+                          const json = await res.json().catch(() => ({}))
+                          const errorMsg = json?.message ?? json?.error ?? "Error al inscribir"
+                          if (!res.ok) { toast.error(errorMsg); return }
+                          toast.success("Inscripción agregada")
+                          setNewRegPlayer(""); setNewRegPartner("")
+                          const next = await fetch(`/api/torneos/${selectedTorneo.id}/inscripciones`, { credentials: "include" }).then(r => r.json())
+                          if (next?.data) setInscripciones(next.data)
+                        } catch { toast.error("Error de conexión") }
+                        finally { setSubmittingReg(false) }
+                      }}>
+                        {submittingReg ? <Loader2 className="w-4 h-4 animate-spin" /> : "Agregar"}
+                      </Button>
+                    </div>
+                    <ul className="space-y-2 mt-4">
+                      {inscripciones.list.map((r) => (
+                        <li key={r.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                          <span>{r.type === "PAIR" ? `${r.playerName} + ${r.partnerName ?? "—"}` : r.playerName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground text-xs">{r.type === "PAIR" ? "Pareja" : "Solo"}</span>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={async () => {
+                              if (!selectedTorneo) return
+                              const res = await fetch(`/api/torneos/${selectedTorneo.id}/inscripciones/${r.id}`, { method: "DELETE", credentials: "include" })
+                              if (!res.ok) { toast.error("Error al eliminar"); return }
+                              toast.success("Inscripción eliminada")
+                              const next = await fetch(`/api/torneos/${selectedTorneo.id}/inscripciones`, { credentials: "include" }).then(rr => rr.json())
+                              if (next?.data) setInscripciones(next.data)
+                            }}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                    {inscripciones.list.length === 0 && <p className="text-muted-foreground text-sm">Sin inscripciones aún.</p>}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      <AlertDialog open={!!deleteTorneoId} onOpenChange={(open) => !open && setDeleteTorneoId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar torneo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se liberarán los bloqueos de canchas y se eliminarán las inscripciones asociadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={async () => {
+                if (!deleteTorneoId) return
+                setDeleting(true)
+                try {
+                  const res = await fetch(`/api/torneos/${deleteTorneoId}`, { method: "DELETE", credentials: "include" })
+                  const json = await res.json()
+                  if (!res.ok) { toast.error(json?.message ?? "Error al eliminar"); return }
+                  toast.success("Torneo eliminado")
+                  setDeleteTorneoId(null)
+                  setView("historial")
+                  setSelectedTorneo(null)
+                  fetchTorneos()
+                } catch { toast.error("Error de conexión") }
+                finally { setDeleting(false) }
+                setDeleteTorneoId(null)
+              }}
+            >
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {view === "crear" && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -328,7 +680,22 @@ export default function Page() {
           </div>
 
           {/* Form Card */}
-          <div className="bg-card border border-border/50 shadow-sm rounded-xl p-8 transition-all duration-300">
+          <div className="relative bg-card border border-border/50 shadow-sm rounded-xl p-8 transition-all duration-300">
+            {isSuperAdmin && !editTorneoId && (
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Club (tenant)</label>
+                <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
+                  <SelectTrigger className="w-full max-w-sm">
+                    <SelectValue placeholder="Seleccione el club para el torneo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tenants.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name} ({t.slug})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {step === 1 && (
               <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
 
@@ -456,14 +823,23 @@ export default function Page() {
                       <Users className="w-4 h-4" />
                       Reglas
                     </h3>
-                    <div className="pl-4 border-l-2 border-border/50 ml-1">
+                    <div className="pl-4 border-l-2 border-border/50 ml-1 space-y-4">
                       <div>
                         <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Parejas mínimas</label>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Users className="w-4 h-4 text-muted-foreground" />
                           </div>
-                          <input type="number" min={1} value={pairs} onChange={e => setPairs(e.target.value === "" ? "" : Number(e.target.value))} className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all" placeholder="Ej. 16" />
+                          <input type="number" min={1} value={pairs} onChange={e => setPairs(e.target.value === "" ? "" : Number(e.target.value))} className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all" placeholder="Ej. 12" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Parejas máximas</label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <input type="number" min={1} value={maxPairs} onChange={e => setMaxPairs(e.target.value === "" ? "" : Number(e.target.value))} className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all" placeholder="Ej. 32" />
                         </div>
                       </div>
                     </div>
@@ -582,12 +958,18 @@ export default function Page() {
                               </button>
                             </div>
                           ))}
+                          {hasStartTimeSelected(d.date) && (
+                            <p className="text-xs font-medium text-green-600 dark:text-green-400 flex items-center gap-1.5 py-1">
+                              <Check className="w-3.5 h-3.5 shrink-0" />
+                              Horario confirmado
+                            </p>
+                          )}
                           <button
-                            className={`w-full py-2 text-xs font-bold uppercase tracking-wider rounded-lg border border-dashed flex items-center justify-center gap-2 transition-all ${hasPendingRange(d.date) ? 'border-green-500 text-green-600 bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20' : 'border-gray-300 dark:border-gray-700 text-muted-foreground hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10'}`}
-                            onClick={() => (hasPendingRange(d.date) ? acceptPendingRange(d.date) : addRange(d.date))}
+                            className="w-full py-2 text-xs font-bold uppercase tracking-wider rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-muted-foreground hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 flex items-center justify-center gap-2 transition-all"
+                            onClick={() => addRange(d.date)}
                           >
-                            {hasPendingRange(d.date) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                            <span>{hasPendingRange(d.date) ? 'Confirmar Horarios' : 'Agregar Franja'}</span>
+                            <Plus className="w-3 h-3" />
+                            <span>Agregar Franja</span>
                           </button>
                         </div>
                       </div>
@@ -610,8 +992,8 @@ export default function Page() {
             )}
 
             {step === 3 && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 max-w-2xl mx-auto text-center">
-                <div className="space-y-4 py-8">
+              <div className="animate-in fade-in slide-in-from-right-4 duration-300 max-w-2xl mx-auto">
+                <div className="text-center space-y-4 py-8">
                   <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-500/20 animate-in zoom-in duration-500">
                     <Check className="w-10 h-10" />
                   </div>
@@ -619,14 +1001,37 @@ export default function Page() {
                   <p className="text-muted-foreground">Revisa cuidadosamente la vista previa a la derecha. Si todo es correcto, publica tu torneo para que los jugadores puedan inscribirse.</p>
                 </div>
 
-                <div className="flex gap-4 justify-center pt-4">
-                  <button
-                    className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg font-bold shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 flex items-center gap-2 transform hover:scale-105"
-                    onClick={handlePublish}
-                    disabled={!canPublish || publishStatus === 'publishing'}
+                <div className="flex flex-col gap-3 pt-4">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg font-bold shadow-lg shadow-green-500/20 transition-all disabled:opacity-50 flex items-center gap-2 transform hover:scale-105"
+                      onClick={handlePublish}
+                      disabled={publishStatus === 'publishing'}
+                    >
+                      {publishStatus === 'publishing' ? 'Publicando...' : 'Publicar Torneo Ahora'}
+                    </button>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setStep(2)}
+                    className="absolute bottom-8 left-8 h-8 px-3 text-xs font-medium gap-1.5"
                   >
-                    {publishStatus === 'publishing' ? 'Publicando...' : 'Publicar Torneo Ahora'}
-                  </button>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Volver al paso anterior
+                  </Button>
+                  {publishError && (
+                    <p className="text-sm text-destructive font-medium max-w-md text-center mx-auto">
+                      {publishError}
+                    </p>
+                  )}
+                  {!canPublish && !publishError && (
+                    <p className="text-xs text-muted-foreground max-w-sm text-center mx-auto">
+                      Completa el paso 1 (título, categoría, parejas) y en el paso 2 agrega al menos un día y una franja horaria con hora de inicio por cada día.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -649,10 +1054,14 @@ export default function Page() {
                     <Trophy className="w-3 h-3 mr-1 text-yellow-300" />
                     {preview.category || "Categoría"}
                   </div>
-                  {preview.pairs && (
+                  {(preview.minPairs != null || preview.maxPairs != null) && (
                     <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-medium border border-white/20 shadow-sm">
                       <Users className="w-3 h-3 mr-1 text-blue-200" />
-                      Min {preview.pairs}
+                      {preview.minPairs != null && preview.maxPairs != null && preview.minPairs !== preview.maxPairs
+                        ? `${preview.minPairs}-${preview.maxPairs} parejas`
+                        : preview.minPairs != null
+                          ? `Min ${preview.minPairs}`
+                          : `Max ${preview.maxPairs}`}
                     </div>
                   )}
                 </div>
@@ -713,11 +1122,15 @@ export default function Page() {
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-foreground capitalize truncate">{dateObj.toLocaleDateString('es-AR', { weekday: 'long' })}</p>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {d.ranges.map((r, j) => (
-                                <span key={j} className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-medium border border-blue-100 dark:border-blue-800">
-                                  {r.start}
-                                </span>
-                              ))}
+                              {d.ranges.map((r, j) => {
+                                const effectiveEnd = (r.end && r.end.trim()) ? r.end : (r.start ? getEndOrDefault(r.end) : "")
+                                const rangeLabel = effectiveEnd ? `${r.start} - ${effectiveEnd}` : (r.start || "—")
+                                return (
+                                  <span key={j} className="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-medium border border-blue-100 dark:border-blue-800">
+                                    {rangeLabel}
+                                  </span>
+                                )
+                              })}
                               {d.ranges.length === 0 && <span className="text-[10px] text-muted-foreground italic">Sin horarios</span>}
                             </div>
                           </div>

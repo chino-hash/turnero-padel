@@ -3,6 +3,15 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import type { Session } from 'next-auth'
+import { signOut } from 'next-auth/react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface Club {
   id: string
@@ -11,7 +20,20 @@ interface Club {
   description?: string | null
 }
 
-export default function LandingPage() {
+interface LandingPageProps {
+  session: Session | null
+  tenantSlug: string | null
+  tenantName: string | null
+}
+
+function getInitials(name: string | null | undefined): string {
+  if (!name?.trim()) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+export default function LandingPage({ session, tenantSlug, tenantName }: LandingPageProps) {
   const searchParams = useSearchParams()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [clubs, setClubs] = useState<Club[]>([])
@@ -96,12 +118,56 @@ export default function LandingPage() {
             <a href="#clubs" className="text-gray-300 hover:text-[#BEF264] transition-colors font-semibold">
               Para Clubes
             </a>
-            <Link 
-              href="/login?callbackUrl=/dashboard" 
-              className="bg-[#BEF264] text-[#0D0D0D] font-bold py-2.5 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)]"
-            >
-              Iniciar Sesión
-            </Link>
+            {!session?.user ? (
+              <Link 
+                href="/login?callbackUrl=/" 
+                className="bg-[#BEF264] text-[#0D0D0D] font-bold py-2.5 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)]"
+              >
+                Iniciar Sesión
+              </Link>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="rounded-full ring-2 ring-[#BEF264]/50 focus:ring-2 focus:ring-[#BEF264] focus:outline-offset-2"
+                    aria-label="Menú de usuario"
+                  >
+                    {session.user.image ? (
+                      <img
+                        src={session.user.image}
+                        alt=""
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#BEF264] text-[#0D0D0D] text-sm font-bold">
+                        {getInitials(session.user.name)}
+                      </span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-[#1A1A1A] border-gray-800 text-gray-200">
+                  {tenantSlug && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}>
+                        {tenantName ? `Ir a ${tenantName}` : 'Ir a mi club'}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {session.user.isSuperAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/super-admin">Panel Super Admin</Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  <DropdownMenuItem
+                    className="text-red-400 focus:text-red-300"
+                    onSelect={() => signOut({ callbackUrl: '/' })}
+                  >
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
           <div className="md:hidden">
             <button 
@@ -128,12 +194,56 @@ export default function LandingPage() {
             <a href="#clubs" className="block text-gray-300 hover:text-[#BEF264] transition-colors font-semibold">
               Para Clubes
             </a>
-            <Link 
-              href="/login?callbackUrl=/dashboard"
-              className="block bg-[#BEF264] text-[#0D0D0D] font-bold py-2.5 px-6 rounded-lg text-center"
-            >
-              Iniciar Sesión
-            </Link>
+            {!session?.user ? (
+              <Link 
+                href="/login?callbackUrl=/"
+                className="block bg-[#BEF264] text-[#0D0D0D] font-bold py-2.5 px-6 rounded-lg text-center"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Iniciar Sesión
+              </Link>
+            ) : (
+              <div className="space-y-2 pt-2 border-t border-gray-800">
+                <div className="flex items-center gap-3 px-2">
+                  {session.user.image ? (
+                    <img src={session.user.image} alt="" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#BEF264] text-[#0D0D0D] text-xs font-bold">
+                      {getInitials(session.user.name)}
+                    </span>
+                  )}
+                  <span className="text-sm text-gray-300 truncate">{session.user.name || session.user.email}</span>
+                </div>
+                {tenantSlug && (
+                  <Link
+                    href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-[#BEF264] font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {tenantName ? `Ir a ${tenantName}` : 'Ir a mi club'}
+                  </Link>
+                )}
+                {session.user.isSuperAdmin && (
+                  <Link
+                    href="/super-admin"
+                    className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-[#BEF264] font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Panel Super Admin
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  className="block w-full text-left py-2 px-3 rounded-lg text-red-400 hover:bg-gray-800 font-medium"
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    signOut({ callbackUrl: '/' })
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -153,12 +263,28 @@ export default function LandingPage() {
                 Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. padelbook es la app definitiva para jugadores y clubes.
               </p>
               <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 mt-8">
-                <Link 
-                  href="/login?callbackUrl=/dashboard"
-                  className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
-                >
-                  Reservar Ahora
-                </Link>
+                {!session?.user ? (
+                  <Link 
+                    href="/login?callbackUrl=/"
+                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
+                  >
+                    Reservar Ahora
+                  </Link>
+                ) : tenantSlug ? (
+                  <Link 
+                    href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}
+                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
+                  >
+                    Reservar Ahora
+                  </Link>
+                ) : (
+                  <a 
+                    href="#clubs-list"
+                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
+                  >
+                    Reservar Ahora
+                  </a>
+                )}
                 <a 
                   href="#clubs-list"
                   className="border-2 border-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 hover:border-[#BEF264]/50 transition-all duration-300 text-center"

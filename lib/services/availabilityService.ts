@@ -24,6 +24,20 @@ export async function getAvailableSlots(courtId: string, dateFrom: string, dateT
     select: { bookingDate: true, startTime: true, endTime: true }
   })
 
+  // 1b) CourtBlocks (torneos) que bloquean esta cancha en el rango
+  const courtBlocks = await prisma.courtBlock.findMany({
+    where: {
+      courtId,
+      date: { gte: from, lte: to }
+    },
+    select: { date: true, startTime: true, endTime: true }
+  })
+  const courtBlocksNormalized: Array<{ date: string; startTime: string; endTime: string }> = courtBlocks.map((b) => ({
+    date: (b.date instanceof Date ? b.date : new Date(b.date)).toISOString().split('T')[0],
+    startTime: b.startTime,
+    endTime: b.endTime
+  }))
+
   // 2) Bloqueos virtuales > 7 días para ADMIN
   let virtualBlocks: Array<{ date: string; startTime: string; endTime: string }> = []
   if (userRole === 'ADMIN') {
@@ -78,5 +92,10 @@ export async function getAvailableSlots(courtId: string, dateFrom: string, dateT
     }
   }
 
-  return { bookings, virtualBlocks, thresholdDate: threshold.toISOString().split('T')[0] }
+  return {
+    bookings,
+    virtualBlocks,
+    courtBlocks: courtBlocksNormalized,
+    thresholdDate: threshold.toISOString().split('T')[0]
+  }
 }
