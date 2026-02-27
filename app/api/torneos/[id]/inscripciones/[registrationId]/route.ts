@@ -22,11 +22,11 @@ async function resolveTenantIdForInscription(
     if (!tournament) return { status: 404, error: 'Torneo no encontrado' }
     const hasAccess = await canAccessTenant(user, tournament.tenantId)
     if (!hasAccess) return { status: 403, error: 'No tiene acceso a este torneo' }
-    return { tenantId: tournament.tenantId }
+    return { status: 200, tenantId: tournament.tenantId }
   }
   const userTenantId = await getUserTenantIdSafe(user)
   if (!userTenantId) return { status: 403, error: 'No tiene un tenant asignado' }
-  return { tenantId: userTenantId }
+  return { status: 200, tenantId: userTenantId }
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {

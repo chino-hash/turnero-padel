@@ -33,7 +33,7 @@ function isNotPastDate(dateStr: string): boolean {
 
 export const tournamentCreateSchema = z.object({
   title: z.string().min(1, 'Título requerido').max(200),
-  category: z.enum(categoryAllowlist, { errorMap: () => ({ message: 'Categoría no válida' }) }),
+  category: z.enum(categoryAllowlist, { message: 'Categoría no válida' }),
   prizeFirst: z.coerce.number().int().min(0, 'Premio primero debe ser >= 0'),
   prizeSecond: z.coerce.number().int().min(0, 'Premio segundo debe ser >= 0'),
   minPairs: z.coerce.number().int().min(1, 'Mínimo 1 pareja').max(128),
@@ -51,6 +51,7 @@ export const tournamentCreateSchema = z.object({
 
 export const tournamentUpdateSchema = tournamentCreateSchema.partial().extend({
   status: z.enum(['DRAFT', 'OPEN_REGISTRATION', 'CLOSED', 'IN_PROGRESS', 'FINISHED', 'CANCELLED']).optional(),
+  publishedAt: z.coerce.date().nullable().optional(),
 })
   .refine(
     (data) =>
