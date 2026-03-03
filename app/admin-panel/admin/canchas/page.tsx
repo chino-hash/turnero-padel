@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '../../../../components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
-import { Save, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { Save, Plus, Edit2, Trash2, X, Loader2, Calendar as CalendarIcon, Users } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { useAppState } from '../../../../components/providers/AppStateProvider'
@@ -294,65 +294,155 @@ export default function GestionCanchas() {
         )}
       </header>
 
-      {/* Canchas activas: grid completo */}
+      {/* Canchas activas: tarjetas con estilo de torneo */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {activeCourts.map((court) => (
-          <Card key={court.id} className="h-full flex flex-col">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center justify-between text-lg">
-                <span className="truncate">{court.name}</span>
-                {isSuperAdmin && (
-                  <Switch
-                    disabled={submitting}
-                    checked={court.isActive}
-                    onCheckedChange={() => handleToggleActive(court)}
-                  />
-                )}
-              </CardTitle>
-              <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
-                <span>Activa</span>
-                {isSuperAdmin && (court.tenantName || court.tenantSlug) && (
-                  <span className="px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                    {court.tenantName || court.tenantSlug}
-                  </span>
+          <div
+            key={court.id}
+            className="bg-card border border-border/50 rounded-2xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-border flex flex-col"
+          >
+            {/* Header estilo torneo (sin ícono de trofeo) */}
+            <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-5 text-white relative overflow-hidden h-[120px] flex flex-col">
+              <div className="relative z-10 flex-1 flex flex-col justify-between space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-medium border border-white/20 shadow-sm">
+                        <CalendarIcon className="w-3 h-3 mr-1 text-blue-100" />
+                        Cancha activa
+                      </span>
+                      {isSuperAdmin && (court.tenantName || court.tenantSlug) && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-medium border border-white/20 shadow-sm">
+                          {court.tenantName || court.tenantSlug}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-lg font-bold tracking-tight text-white drop-shadow-md leading-tight line-clamp-2">
+                      {court.name}
+                    </h2>
+                  </div>
+                  {isSuperAdmin && (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] uppercase tracking-widest text-white/70">Visible</span>
+                      <Switch
+                        disabled={submitting}
+                        checked={court.isActive}
+                        onCheckedChange={() => handleToggleActive(court)}
+                      />
+                    </div>
+                  )}
+                </div>
+                {court.description && court.description.trim() !== court.name.trim() && (
+                  <p className="text-xs text-white/80 line-clamp-2">
+                    {court.description}
+                  </p>
                 )}
               </div>
-            </CardHeader>
-            <CardContent className="p-4 flex-1 flex flex-col justify-between">
-              <div className="space-y-4 flex-1">
-                <div className="bg-muted p-3 rounded-md">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Precio Base</Label>
-                    <p className="font-bold text-lg text-foreground">${court.basePrice.toLocaleString('es-AR')}</p>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-5 bg-gradient-to-b from-card to-muted/20">
+              {/* Precios */}
+              <div>
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Users className="w-3 h-3" />
+                  Precios
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="group relative overflow-hidden bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-800 dark:text-yellow-300 shadow-inner text-xs font-bold">
+                      $
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-yellow-700 dark:text-yellow-400 font-bold uppercase tracking-wide">
+                        Precio base
+                      </p>
+                      <p className="text-sm font-bold text-foreground truncate">
+                        ${court.basePrice.toLocaleString('es-AR')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <Label className="text-sm font-medium text-muted-foreground">Precio por Persona</Label>
-                    <p className="font-bold text-lg text-green-600 dark:text-green-400">
-                      ${parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
+                  <div className="group relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 border border-gray-100 dark:border-gray-800 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-green-600 dark:text-green-400 shadow-inner">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wide">
+                        Precio por jugador
+                      </p>
+                      <p className="text-sm font-bold text-green-600 dark:text-green-400 truncate">
+                        $
+                        {parseFloat(calculatePricePerPerson(court.basePrice)).toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        Calculado para 4 jugadores
+                      </p>
+                    </div>
                   </div>
                 </div>
-                {court.description && (
-                  <div className="border-t pt-3">
-                    <Label className="text-sm font-medium text-muted-foreground block mb-2">Descripción</Label>
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{court.description}</p>
+              </div>
+
+              {/* Horarios */}
+              <div>
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <CalendarIcon className="w-3 h-3" />
+                  Horarios operativos
+                </h3>
+                {court.operatingHours ? (
+                  <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-background/60">
+                    <div className="flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-md p-1.5 w-16 text-center shadow-sm">
+                      <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider leading-none">
+                        Apertura
+                      </span>
+                      <span className="text-sm font-bold text-foreground leading-none mt-0.5">
+                        {roundTimeTo30Min(court.operatingHours.start)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-foreground">
+                        {roundTimeTo30Min(court.operatingHours.start)} - {roundTimeTo30Min(court.operatingHours.end)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Turnos de {court.operatingHours.slot_duration} minutos
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border p-4 text-center">
+                    <div className="mx-auto w-8 h-8 bg-muted rounded-full flex items-center justify-center mb-2">
+                      <CalendarIcon className="w-4 h-4 text-muted-foreground/50" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Define los horarios operativos al editar la cancha.
+                    </p>
                   </div>
                 )}
               </div>
-              <div className="flex gap-2 pt-4 mt-auto">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(court)}>
+
+              {/* Acciones */}
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-border/40 mt-2">
+                <Button variant="outline" size="sm" className="flex-1 min-w-[120px]" onClick={() => handleEdit(court)}>
                   <Edit2 className="w-3 h-3 mr-1" />
                   Editar
                 </Button>
                 {isSuperAdmin && (
-                  <Button variant="destructive" size="sm" className="flex-1" disabled={submitting} onClick={() => handleDeleteClick(court)}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1 min-w-[120px]"
+                    disabled={submitting}
+                    onClick={() => handleDeleteClick(court)}
+                  >
                     <Trash2 className="w-3 h-3 mr-1" />
                     Eliminar
                   </Button>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
 
