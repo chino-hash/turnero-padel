@@ -753,8 +753,8 @@ export default function HomeSection({
             </h3>
             <div className="flex flex-col space-y-2 lg:max-w-xs">
               {/* Mobile: Horizontal scroll for dates */}
-              <div className="lg:hidden w-full overflow-x-auto pb-2" data-testid="date-selection-mobile">
-                <div className="flex items-center justify-center gap-4 pl-4 pr-2 snap-x snap-mandatory">
+              <div className="lg:hidden w-full overflow-x-auto overflow-y-hidden pb-2 scroll-smooth" data-testid="date-selection-mobile" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex items-center gap-3 sm:gap-4 pl-4 pr-4 min-w-min snap-x snap-mandatory">
                   {availableDays.map((date, index) => {
                     const isSelected = selectedDate.toDateString() === date.toDateString()
                     const isToday = new Date().toDateString() === date.toDateString()
