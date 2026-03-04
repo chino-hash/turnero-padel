@@ -15,6 +15,12 @@ function requireAdminOrSuperAdmin(session: { user: { id?: string; isAdmin?: bool
   return null
 }
 
+function requireAdminTenant(session: { user: { id?: string; isAdmin?: boolean } } | null) {
+  if (!session?.user?.id) return { status: 401 as const, error: 'No autorizado' }
+  if (!session.user.isAdmin) return { status: 403 as const, error: 'Solo administradores del club pueden gestionar partidos' }
+  return null
+}
+
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const session = await auth()
