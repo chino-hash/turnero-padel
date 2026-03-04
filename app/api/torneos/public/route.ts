@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       filterTenantId = tenantId.trim()
     } else if (slug && slug.trim()) {
       const tenant = await prisma.tenant.findFirst({
-        where: { slug: slug.trim(), deletedAt: null },
+        where: { slug: slug.trim(), isActive: true },
         select: { id: true },
       })
       if (tenant) filterTenantId = tenant.id
