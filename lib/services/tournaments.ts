@@ -76,10 +76,23 @@ export type TournamentWithSchedule = {
   tenantId: string
   title: string
   category: string
+  tournamentFormat: string
+  prizeIsMonetary: boolean
   prizeFirst: number
   prizeSecond: number
+  prizeFirstDescription: string | null
+  prizeSecondDescription: string | null
   minPairs: number
   maxPairs: number
+  numberOfGroups: number | null
+  prizeGoldFirst: number | null
+  prizeGoldSecond: number | null
+  prizeSilverFirst: number | null
+  prizeSilverSecond: number | null
+  prizeGoldFirstDescription: string | null
+  prizeGoldSecondDescription: string | null
+  prizeSilverFirstDescription: string | null
+  prizeSilverSecondDescription: string | null
   status: TournamentStatus
   publishedAt: Date | null
   createdAt: Date
@@ -107,6 +120,53 @@ function scheduleToDayBlocks(
     .map(([date, ranges]) => ({ date, ranges }))
 }
 
+function toTournamentWithSchedule(
+  t: {
+    id: string
+    tenantId: string
+    title: string
+    category: string
+    prizeFirst: number
+    prizeSecond: number
+    minPairs: number
+    maxPairs: number
+    status: TournamentStatus
+    publishedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    schedule: Array<{ date: Date; startTime: string; endTime: string }>
+  } & Record<string, unknown>,
+): TournamentWithSchedule {
+  return {
+    id: t.id,
+    tenantId: t.tenantId,
+    title: t.title,
+    category: t.category,
+    tournamentFormat: (t.tournamentFormat as string) ?? 'DIRECT_ELIMINATION',
+    prizeIsMonetary: t.prizeIsMonetary !== false,
+    prizeFirst: t.prizeFirst,
+    prizeSecond: t.prizeSecond,
+    prizeFirstDescription: (t.prizeFirstDescription as string | null) ?? null,
+    prizeSecondDescription: (t.prizeSecondDescription as string | null) ?? null,
+    minPairs: t.minPairs,
+    maxPairs: t.maxPairs,
+    numberOfGroups: (t.numberOfGroups as number | null) ?? null,
+    prizeGoldFirst: (t.prizeGoldFirst as number | null) ?? null,
+    prizeGoldSecond: (t.prizeGoldSecond as number | null) ?? null,
+    prizeSilverFirst: (t.prizeSilverFirst as number | null) ?? null,
+    prizeSilverSecond: (t.prizeSilverSecond as number | null) ?? null,
+    prizeGoldFirstDescription: (t.prizeGoldFirstDescription as string | null) ?? null,
+    prizeGoldSecondDescription: (t.prizeGoldSecondDescription as string | null) ?? null,
+    prizeSilverFirstDescription: (t.prizeSilverFirstDescription as string | null) ?? null,
+    prizeSilverSecondDescription: (t.prizeSilverSecondDescription as string | null) ?? null,
+    status: t.status,
+    publishedAt: t.publishedAt,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+    dayBlocks: scheduleToDayBlocks(t.schedule),
+  }
+}
+
 export async function getTournamentsByTenant(tenantId: string): Promise<TournamentWithSchedule[]> {
   const list = await prisma.tournament.findMany({
     where: { tenantId },
@@ -115,21 +175,22 @@ export async function getTournamentsByTenant(tenantId: string): Promise<Tourname
       schedule: { orderBy: [{ date: 'asc' }, { startTime: 'asc' }] },
     },
   })
-  return list.map((t) => ({
-    id: t.id,
-    tenantId: t.tenantId,
-    title: t.title,
-    category: t.category,
-    prizeFirst: t.prizeFirst,
-    prizeSecond: t.prizeSecond,
-    minPairs: t.minPairs,
-    maxPairs: t.maxPairs,
-    status: t.status,
-    publishedAt: t.publishedAt,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-    dayBlocks: scheduleToDayBlocks(t.schedule),
-  }))
+  return list.map((t) => toTournamentWithSchedule(t))
+}
+
+/** Torneos con inscripciones abiertas para listado público. Opcionalmente filtrados por tenantId. */
+export async function getPublicTournaments(tenantId?: string): Promise<TournamentWithSchedule[]> {
+  const list = await prisma.tournament.findMany({
+    where: {
+      status: 'OPEN_REGISTRATION',
+      ...(tenantId ? { tenantId } : {}),
+    },
+    orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+    include: {
+      schedule: { orderBy: [{ date: 'asc' }, { startTime: 'asc' }] },
+    },
+  })
+  return list.map((t) => toTournamentWithSchedule(t))
 }
 
 export async function getTournamentById(
@@ -143,46 +204,44 @@ export async function getTournamentById(
     },
   })
   if (!t) return null
-  return {
-    id: t.id,
-    tenantId: t.tenantId,
-    title: t.title,
-    category: t.category,
-    prizeFirst: t.prizeFirst,
-    prizeSecond: t.prizeSecond,
-    minPairs: t.minPairs,
-    maxPairs: t.maxPairs,
-    status: t.status,
-    publishedAt: t.publishedAt,
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt,
-    dayBlocks: scheduleToDayBlocks(t.schedule),
-  }
+  return toTournamentWithSchedule(t)
 }
 
 export async function createTournament(
   tenantId: string,
   input: TournamentCreateInput,
 ): Promise<TournamentWithSchedule> {
+  const scheduleCreate = input.dayBlocks.flatMap((block) =>
+    block.ranges.map((r) => ({
+      date: new Date(block.date + 'T00:00:00'),
+      startTime: r.start,
+      endTime: r.end,
+    })),
+  )
   const tournament = await prisma.tournament.create({
     data: {
       tenantId,
       title: input.title,
       category: input.category,
+      tournamentFormat: (input.tournamentFormat ?? 'DIRECT_ELIMINATION') as 'DIRECT_ELIMINATION' | 'GROUPS_DOUBLE_ELIMINATION',
+      prizeIsMonetary: input.prizeIsMonetary !== false,
       prizeFirst: input.prizeFirst,
       prizeSecond: input.prizeSecond,
+      prizeFirstDescription: input.prizeFirstDescription ?? null,
+      prizeSecondDescription: input.prizeSecondDescription ?? null,
+      numberOfGroups: input.numberOfGroups ?? null,
+      prizeGoldFirst: input.prizeGoldFirst ?? null,
+      prizeGoldSecond: input.prizeGoldSecond ?? null,
+      prizeSilverFirst: input.prizeSilverFirst ?? null,
+      prizeSilverSecond: input.prizeSilverSecond ?? null,
+      prizeGoldFirstDescription: input.prizeGoldFirstDescription ?? null,
+      prizeGoldSecondDescription: input.prizeGoldSecondDescription ?? null,
+      prizeSilverFirstDescription: input.prizeSilverFirstDescription ?? null,
+      prizeSilverSecondDescription: input.prizeSilverSecondDescription ?? null,
       minPairs: input.minPairs,
       maxPairs: input.maxPairs,
       status: 'DRAFT',
-      schedule: {
-        create: input.dayBlocks.flatMap((block) =>
-          block.ranges.map((r) => ({
-            date: new Date(block.date + 'T00:00:00'),
-            startTime: r.start,
-            endTime: r.end,
-          })),
-        ),
-      },
+      schedule: { create: scheduleCreate },
     },
     include: {
       schedule: { orderBy: [{ date: 'asc' }, { startTime: 'asc' }] },
@@ -200,21 +259,7 @@ export async function createTournament(
     console.error('applyTournamentCourtBlocks failed (torneo ya creado):', err)
   }
 
-  return {
-    id: tournament.id,
-    tenantId: tournament.tenantId,
-    title: tournament.title,
-    category: tournament.category,
-    prizeFirst: tournament.prizeFirst,
-    prizeSecond: tournament.prizeSecond,
-    minPairs: tournament.minPairs,
-    maxPairs: tournament.maxPairs,
-    status: tournament.status,
-    publishedAt: tournament.publishedAt,
-    createdAt: tournament.createdAt,
-    updatedAt: tournament.updatedAt,
-    dayBlocks: scheduleToDayBlocks(tournament.schedule),
-  }
+  return toTournamentWithSchedule(tournament)
 }
 
 export async function updateTournament(
@@ -231,8 +276,21 @@ export async function updateTournament(
   const updateData: Parameters<typeof prisma.tournament.update>[0]['data'] = {}
   if (input.title != null) updateData.title = input.title
   if (input.category != null) updateData.category = input.category
+  if (input.tournamentFormat != null) updateData.tournamentFormat = input.tournamentFormat as 'DIRECT_ELIMINATION' | 'GROUPS_DOUBLE_ELIMINATION'
+  if (input.prizeIsMonetary !== undefined) updateData.prizeIsMonetary = input.prizeIsMonetary
   if (input.prizeFirst != null) updateData.prizeFirst = input.prizeFirst
   if (input.prizeSecond != null) updateData.prizeSecond = input.prizeSecond
+  if (input.prizeFirstDescription !== undefined) updateData.prizeFirstDescription = input.prizeFirstDescription ?? null
+  if (input.prizeSecondDescription !== undefined) updateData.prizeSecondDescription = input.prizeSecondDescription ?? null
+  if (input.numberOfGroups !== undefined) updateData.numberOfGroups = input.numberOfGroups
+  if (input.prizeGoldFirst !== undefined) updateData.prizeGoldFirst = input.prizeGoldFirst
+  if (input.prizeGoldSecond !== undefined) updateData.prizeGoldSecond = input.prizeGoldSecond
+  if (input.prizeSilverFirst !== undefined) updateData.prizeSilverFirst = input.prizeSilverFirst
+  if (input.prizeSilverSecond !== undefined) updateData.prizeSilverSecond = input.prizeSilverSecond
+  if (input.prizeGoldFirstDescription !== undefined) updateData.prizeGoldFirstDescription = input.prizeGoldFirstDescription
+  if (input.prizeGoldSecondDescription !== undefined) updateData.prizeGoldSecondDescription = input.prizeGoldSecondDescription
+  if (input.prizeSilverFirstDescription !== undefined) updateData.prizeSilverFirstDescription = input.prizeSilverFirstDescription
+  if (input.prizeSilverSecondDescription !== undefined) updateData.prizeSilverSecondDescription = input.prizeSilverSecondDescription
   if (input.minPairs != null) updateData.minPairs = input.minPairs
   if (input.maxPairs != null) updateData.maxPairs = input.maxPairs
   if (input.status != null) updateData.status = input.status
@@ -270,21 +328,7 @@ export async function updateTournament(
     )
   }
 
-  return {
-    id: tournament.id,
-    tenantId: tournament.tenantId,
-    title: tournament.title,
-    category: tournament.category,
-    prizeFirst: tournament.prizeFirst,
-    prizeSecond: tournament.prizeSecond,
-    minPairs: tournament.minPairs,
-    maxPairs: tournament.maxPairs,
-    status: tournament.status,
-    publishedAt: tournament.publishedAt,
-    createdAt: tournament.createdAt,
-    updatedAt: tournament.updatedAt,
-    dayBlocks: scheduleToDayBlocks(tournament.schedule),
-  }
+  return toTournamentWithSchedule(tournament)
 }
 
 export async function deleteTournament(
@@ -439,6 +483,167 @@ export async function deleteRegistration(
   return true
 }
 
+// --- Sorteo (Fase 4) ---
+function nextPowerOf2(n: number): number {
+  if (n <= 1) return 1
+  let p = 1
+  while (p < n) p *= 2
+  return p
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
+export type RunSorteoResult =
+  | { ok: true; matchesCreated: number }
+  | { ok: false; error: string }
+
+/** Genera el fixture (partidos) por sorteo aleatorio. Solo eliminatoria directa por ahora. */
+export async function runSorteo(
+  tournamentId: string,
+  tenantId: string,
+  _options?: { numberOfGroups?: number },
+): Promise<RunSorteoResult> {
+  const tournament = await prisma.tournament.findFirst({
+    where: { id: tournamentId, tenantId },
+    select: {
+      id: true,
+      tournamentFormat: true,
+      minPairs: true,
+      numberOfGroups: true,
+    },
+  })
+  if (!tournament) return { ok: false, error: 'Torneo no encontrado' }
+
+  const existingMatches = await prisma.tournamentMatch.count({
+    where: { tournamentId },
+  })
+  if (existingMatches > 0) {
+    return { ok: false, error: 'Ya se realizó el sorteo para este torneo. No se puede regenerar.' }
+  }
+
+  const registrations = await prisma.tournamentRegistration.findMany({
+    where: { tournamentId, status: { not: 'CANCELLED' } },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, type: true },
+  })
+  const currentPairs = computeCurrentPairs(registrations)
+  if (currentPairs < tournament.minPairs) {
+    return {
+      ok: false,
+      error: `Se necesitan al menos ${tournament.minPairs} parejas. Hay ${currentPairs} inscritas.`,
+    }
+  }
+
+  const format = (tournament.tournamentFormat as string) ?? 'DIRECT_ELIMINATION'
+  if (format === 'GROUPS_DOUBLE_ELIMINATION') {
+    return runSorteoGroupsDoubleElimination(tournamentId, registrations, tournament.numberOfGroups ?? 4)
+  }
+
+  return runSorteoDirectElimination(tournamentId, registrations)
+}
+
+async function runSorteoDirectElimination(
+  tournamentId: string,
+  registrations: Array<{ id: string; type: string }>,
+): Promise<RunSorteoResult> {
+  const pairIds = registrations.filter((r) => r.type === 'PAIR').map((r) => r.id)
+  if (pairIds.length < 2) {
+    return { ok: false, error: 'Se necesitan al menos 2 parejas (inscripciones tipo Pareja) para el sorteo.' }
+  }
+  const shuffled = shuffle(pairIds)
+  const slots = nextPowerOf2(shuffled.length)
+  const slotArray: (string | null)[] = [...shuffled, ...Array(slots - shuffled.length).fill(null)]
+
+  const numFirstRoundMatches = slots / 2
+  const roundNames: Array<'ROUND_1' | 'ROUND_2' | 'QUARTERFINAL' | 'SEMIFINAL' | 'FINAL'> =
+    numFirstRoundMatches >= 4 ? ['QUARTERFINAL', 'SEMIFINAL', 'FINAL'] : numFirstRoundMatches === 2 ? ['SEMIFINAL', 'FINAL'] : ['FINAL']
+
+  const rounds: Array<{ round: 'ROUND_1' | 'ROUND_2' | 'QUARTERFINAL' | 'SEMIFINAL' | 'FINAL'; positions: Array<[string | null, string | null]> }> = []
+  rounds.push({
+    round: roundNames[0],
+    positions: Array.from({ length: numFirstRoundMatches }, (_, i) => [
+      slotArray[2 * i] ?? null,
+      slotArray[2 * i + 1] ?? null,
+    ]),
+  })
+  for (let r = 1; r < roundNames.length; r++) {
+    const numMatches = numFirstRoundMatches / Math.pow(2, r)
+    rounds.push({
+      round: roundNames[r],
+      positions: Array.from({ length: numMatches }, () => [null, null] as [string | null, string | null]),
+    })
+  }
+
+  let created = 0
+  for (const { round, positions } of rounds) {
+    for (let pos = 0; pos < positions.length; pos++) {
+      const [r1, r2] = positions[pos]
+      await prisma.tournamentMatch.create({
+        data: {
+          tournamentId,
+          round,
+          positionInRound: pos,
+          registration1Id: r1,
+          registration2Id: r2,
+        },
+      })
+      created++
+    }
+  }
+  return { ok: true, matchesCreated: created }
+}
+
+async function runSorteoGroupsDoubleElimination(
+  tournamentId: string,
+  registrations: Array<{ id: string; type: string }>,
+  numberOfGroups: number,
+): Promise<RunSorteoResult> {
+  const pairIds = registrations.filter((r) => r.type === 'PAIR').map((r) => r.id)
+  if (pairIds.length < 2) {
+    return { ok: false, error: 'Se necesitan al menos 2 parejas para la fase de grupos.' }
+  }
+  const shuffled = shuffle(pairIds)
+  const groups = new Map<string, string[]>()
+  for (let g = 0; g < numberOfGroups; g++) {
+    groups.set(String(g + 1), [])
+  }
+  shuffled.forEach((id, i) => {
+    const g = (i % numberOfGroups) + 1
+    groups.get(String(g))!.push(id)
+  })
+
+  let totalCreated = 0
+  for (const [groupId, pairIdsInGroup] of groups) {
+    if (pairIdsInGroup.length < 2) continue
+    let posInRound = 0
+    for (let i = 0; i < pairIdsInGroup.length; i++) {
+      for (let j = i + 1; j < pairIdsInGroup.length; j++) {
+        await prisma.tournamentMatch.create({
+          data: {
+            tournamentId,
+            round: 'ROUND_1',
+            positionInRound: posInRound,
+            groupId,
+            bracketType: 'GROUP',
+            registration1Id: pairIdsInGroup[i],
+            registration2Id: pairIdsInGroup[j],
+          },
+        })
+        posInRound++
+        totalCreated++
+      }
+    }
+  }
+  return { ok: true, matchesCreated: totalCreated }
+}
+
 // --- Partidos (Fase 4) ---
 function registrationDisplayName(r: { type: string; playerName: string; partnerName: string | null }): string {
   if (r.type === 'PAIR' && r.partnerName) {
@@ -452,6 +657,8 @@ export type TournamentMatchWithDetails = {
   tournamentId: string
   round: string
   positionInRound: number
+  groupId: string | null
+  bracketType: string | null
   registration1Id: string | null
   registration2Id: string | null
   winnerRegistrationId: string | null
@@ -491,6 +698,8 @@ export async function getMatchesByTournament(
     tournamentId: m.tournamentId,
     round: m.round,
     positionInRound: m.positionInRound,
+    groupId: (m as { groupId?: string | null }).groupId ?? null,
+    bracketType: (m as { bracketType?: string | null }).bracketType ?? null,
     registration1Id: m.registration1Id,
     registration2Id: m.registration2Id,
     winnerRegistrationId: m.winnerRegistrationId,

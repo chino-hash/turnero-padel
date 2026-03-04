@@ -260,7 +260,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 </span>
               </h1>
               <p className="text-lg text-gray-300 mt-4 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. padelbook es la app definitiva para jugadores y clubes.
+                Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. PadelBook es la app definitiva para jugadores y clubes.
               </p>
               <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 mt-8">
                 {!session?.user ? (
@@ -329,7 +329,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 <div className="absolute inset-0 bg-[#BEF264]/20 blur-3xl rounded-full"></div>
                 <img 
                   src="https://placehold.co/350x700/1A1A1A/BEF264?text=App+Preview" 
-                  alt="Vista previa de la app padelbook" 
+                  alt="Vista previa de la app PadelBook" 
                   className="relative rounded-3xl shadow-2xl border-2 border-[#1A1A1A] shadow-[0_0_20px_rgba(190,242,100,0.3)] transform hover:scale-105 transition-transform duration-300 h-[65vh] md:h-[70vh] lg:h-[72vh] w-auto"
                 />
               </div>
@@ -418,12 +418,12 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
         <section id="about" className="container mx-auto px-6 mt-32 md:mt-48">
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="lg:w-1/2 text-center lg:text-left">
-              <span className="text-[#BEF264] font-semibold tracking-wider uppercase text-sm">Sobre Padel Listo</span>
+              <span className="text-[#BEF264] font-semibold tracking-wider uppercase text-sm">Sobre PadelBook</span>
               <h2 className="text-4xl md:text-5xl font-black mt-4 leading-tight">
                 Descubre una App Que Te Conecta con el <span className="bg-gradient-to-r from-[#BEF264] to-[#a1d94f] bg-clip-text text-transparent">Mejor Pádel</span> de Tu Ciudad.
               </h2>
               <p className="text-lg text-gray-300 mt-6 leading-relaxed">
-                En Padel Listo, combinamos tecnología de vanguardia con una comunidad apasionada. No solo te ofrecemos la forma más rápida de reservar canchas, sino también la oportunidad de conectar con jugadores de tu nivel y formar parte de una red creciente de amantes del pádel.
+                En PadelBook, combinamos tecnología de vanguardia con una comunidad apasionada. No solo te ofrecemos la forma más rápida de reservar canchas, sino también la oportunidad de conectar con jugadores de tu nivel y formar parte de una red creciente de amantes del pádel.
               </p>
               <p className="text-lg text-gray-300 mt-4 leading-relaxed">
                 Desde clubes boutique hasta los centros más grandes, nuestra plataforma digitaliza y optimiza cada aspecto de tu experiencia con el pádel. Únete a miles de jugadores que ya están transformando cómo juegan y gestionan sus partidos.
@@ -450,7 +450,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
         {/* Features Section */}
         <section id="features" className="container mx-auto px-6 mt-32 md:mt-48">
           <div className="text-center max-w-3xl mx-auto">
-            <span className="text-[#BEF264] font-semibold tracking-wider uppercase text-sm">Por qué Padel Listo</span>
+            <span className="text-[#BEF264] font-semibold tracking-wider uppercase text-sm">Por qué PadelBook</span>
             <h2 className="text-4xl md:text-5xl font-black mt-2">
               Hecho para Jugadores. <span className="bg-gradient-to-r from-[#BEF264] to-[#a1d94f] bg-clip-text text-transparent">Diseñado para Resultados.</span>
             </h2>
@@ -500,7 +500,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
               Lo Que Dicen <span className="bg-gradient-to-r from-[#BEF264] to-[#a1d94f] bg-clip-text text-transparent">Nuestros Usuarios</span>
             </h2>
             <p className="text-lg text-gray-400 mt-4">
-              Miles de jugadores y clubes confían en Padel Listo para gestionar sus partidos.
+              Miles de jugadores y clubes confían en PadelBook para gestionar sus partidos.
             </p>
           </div>
 
@@ -514,7 +514,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 ))}
               </div>
               <p className="text-gray-300 leading-relaxed mb-6 italic">
-                "Antes de usar Padel Listo, tenía que llamar a varios clubes para encontrar cancha. Ahora reservo en segundos y siempre encuentro el mejor horario. ¡La app es increíble!"
+                "Antes de usar PadelBook, tenía que llamar a varios clubes para encontrar cancha. Ahora reservo en segundos y siempre encuentro el mejor horario. ¡La app es increíble!"
               </p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-[#BEF264]/20 border-2 border-[#BEF264]/30"></div>
@@ -534,7 +534,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 ))}
               </div>
               <p className="text-gray-300 leading-relaxed mb-6 italic">
-                "Como dueño de club, Padel Listo ha transformado nuestra operación. Las reservas se gestionan solas, los pagos son automáticos y nuestros clientes están más satisfechos. Ha aumentado nuestras reservas un 40%."
+                "Como dueño de club, PadelBook ha transformado nuestra operación. Las reservas se gestionan solas, los pagos son automáticos y nuestros clientes están más satisfechos. Ha aumentado nuestras reservas un 40%."
               </p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-[#BEF264]/20 border-2 border-[#BEF264]/30"></div>
@@ -574,7 +574,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
               <div className="relative">
                 <div className="absolute inset-0 bg-[#BEF264]/10 blur-3xl rounded-3xl"></div>
                 <img src="https://placehold.co/600x400/1A1A1A/BEF264?text=Gesti%C3%B3n+de+Club" 
-                     alt="Panel de gestión para clubes de Padel Listo" 
+                     alt="Panel de gestión para clubes de PadelBook" 
                      className="relative rounded-2xl shadow-2xl border-4 border-[#1A1A1A] shadow-[0_0_20px_rgba(190,242,100,0.3)] transform hover:scale-105 transition-transform duration-300"
                 />
               </div>
@@ -618,7 +618,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
               ¿Listo para Jugar?
             </h2>
             <p className="text-xl text-gray-300 mt-6 max-w-2xl mx-auto leading-relaxed">
-              Descarga Padel Listo hoy mismo y lleva tu juego al siguiente nivel. Disponible en iOS y Android.
+              Descarga PadelBook hoy mismo y lleva tu juego al siguiente nivel. Disponible en iOS y Android.
             </p>
             <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-12">
               <a href="#" className="inline-block transform hover:scale-105 transition-transform duration-300">
@@ -666,7 +666,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
             <div className="space-y-3 text-gray-400">
               <p>
                 <span className="text-[#BEF264] font-semibold">Email:</span><br />
-                contacto@padellisto.com
+                contacto@padelbook.com
               </p>
               <p>
                 <span className="text-[#BEF264] font-semibold">Horarios de Atención:</span><br />
@@ -678,7 +678,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
         </div>
 
         <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
-          <p>© 2025 Padel Listo. Todos los derechos reservados.</p>
+          <p>© 2025 PadelBook. Todos los derechos reservados.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-[#BEF264] transition-colors">Términos de Servicio</a>
             <a href="#" className="hover:text-[#BEF264] transition-colors">Política de Privacidad</a>

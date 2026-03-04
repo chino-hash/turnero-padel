@@ -102,8 +102,9 @@ export const config = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: isProduction,
-        domain: isProduction ? authConfig.url?.replace(/https?:\/\//, '') : undefined
+        secure: isProduction
+        // No fijar 'domain' en producción: en Vercel el host puede ser la URL de deployment
+        // (p. ej. xxx.vercel.app). Si domain no coincide con el host real, signOut no borra la cookie.
       }
     },
     callbackUrl: {

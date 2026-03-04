@@ -31,15 +31,37 @@ function isNotPastDate(dateStr: string): boolean {
   return d.getTime() >= today.getTime()
 }
 
-export const tournamentCreateSchema = z.object({
-  title: z.string().min(1, 'Título requerido').max(200),
-  category: z.enum(categoryAllowlist, { message: 'Categoría no válida' }),
+const tournamentFormatEnum = z.enum(['DIRECT_ELIMINATION', 'GROUPS_DOUBLE_ELIMINATION'], {
+  message: 'Formato de torneo no válido',
+})
+
+const basePrizeFields = {
   prizeFirst: z.coerce.number().int().min(0, 'Premio primero debe ser >= 0'),
   prizeSecond: z.coerce.number().int().min(0, 'Premio segundo debe ser >= 0'),
-  minPairs: z.coerce.number().int().min(1, 'Mínimo 1 pareja').max(128),
-  maxPairs: z.coerce.number().int().min(1, 'Máximo de parejas >= 1').max(128),
-  dayBlocks: tournamentDayBlocksSchema,
-})
+  prizeFirstDescription: z.string().max(500).optional(),
+  prizeSecondDescription: z.string().max(500).optional(),
+  prizeGoldFirst: z.coerce.number().int().min(0).optional().nullable(),
+  prizeGoldSecond: z.coerce.number().int().min(0).optional().nullable(),
+  prizeSilverFirst: z.coerce.number().int().min(0).optional().nullable(),
+  prizeSilverSecond: z.coerce.number().int().min(0).optional().nullable(),
+  prizeGoldFirstDescription: z.string().max(500).optional().nullable(),
+  prizeGoldSecondDescription: z.string().max(500).optional().nullable(),
+  prizeSilverFirstDescription: z.string().max(500).optional().nullable(),
+  prizeSilverSecondDescription: z.string().max(500).optional().nullable(),
+}
+
+export const tournamentCreateSchema = z
+  .object({
+    title: z.string().min(1, 'Título requerido').max(200),
+    category: z.enum(categoryAllowlist, { message: 'Categoría no válida' }),
+    tournamentFormat: tournamentFormatEnum.optional().default('DIRECT_ELIMINATION'),
+    prizeIsMonetary: z.boolean().optional().default(true),
+    numberOfGroups: z.coerce.number().int().min(2).max(16).optional().nullable(),
+    minPairs: z.coerce.number().int().min(1, 'Mínimo 1 pareja').max(128),
+    maxPairs: z.coerce.number().int().min(1, 'Máximo de parejas >= 1').max(128),
+    dayBlocks: tournamentDayBlocksSchema,
+    ...basePrizeFields,
+  })
   .refine((data) => data.minPairs <= data.maxPairs, {
     message: 'minPairs debe ser menor o igual a maxPairs',
     path: ['maxPairs'],

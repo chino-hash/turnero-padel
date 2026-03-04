@@ -1,7 +1,7 @@
 # DOCUMENTO DE CAMBIOS NO DOCUMENTADOS - Turnero de Pádel
 
 **Fecha de creación:** Enero 2026  
-**Última actualización:** Enero 2026
+**Última actualización:** Marzo 2026
 
 ---
 
@@ -16,6 +16,7 @@
 7. [Sección de Estadísticas](#7-sección-de-estadísticas)
 8. [Script de Limpieza de Canchas](#8-script-de-limpieza-de-canchas)
 9. [Recomendaciones](#9-recomendaciones)
+10. [Fix Cerrar sesión en Vercel](#10-fix-cerrar-sesión-en-vercel)
 
 ---
 
@@ -371,6 +372,16 @@ Script para identificar y desactivar canchas duplicadas en la base de datos.
 ```bash
 node cleanup-courts.js
 ```
+
+---
+
+## 10. FIX CERRAR SESIÓN EN VERCEL (Marzo 2026)
+
+El botón "Cerrar sesión" no funcionaba en producción (Vercel) aunque sí en local. Se corrigió eliminando la opción `domain` de la cookie de sesión de NextAuth en `lib/auth.ts`, para que la cookie se asocie al host de la petición y se borre correctamente en signOut.
+
+**Documentación detallada:** `docs/actualizaciones/fix-signout-vercel-2026-03.md`
+
+**Archivo modificado:** `lib/auth.ts` (opciones de la cookie `sessionToken`).
 
 ---
 

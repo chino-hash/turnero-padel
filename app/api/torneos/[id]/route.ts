@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/database/neon-config'
 import {
   getTournamentById,
   updateTournament,
   deleteTournament,
 } from '@/lib/services/tournaments'
-import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getUserTenantIdSafe, isSuperAdminUser, canAccessTenant, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { tournamentUpdateSchema } from '@/lib/validations/tournament'
 import { createErrorResponse, createSuccessResponse, formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
@@ -34,16 +35,41 @@ export async function GET(
       tenantId: session.user.tenantId ?? null,
     }
 
-    const userTenantId = await getUserTenantIdSafe(user)
-    if (!userTenantId) {
-      return NextResponse.json(
-        createErrorResponse('No tiene un tenant asignado'),
-        { status: 403 },
-      )
+    const { id } = await context.params
+    const isSuperAdmin = await isSuperAdminUser(user)
+    let tenantId: string
+
+    if (isSuperAdmin) {
+      const t = await prisma.tournament.findUnique({
+        where: { id },
+        select: { tenantId: true },
+      })
+      if (!t) {
+        return NextResponse.json(
+          createErrorResponse('Torneo no encontrado'),
+          { status: 404 },
+        )
+      }
+      const hasAccess = await canAccessTenant(user, t.tenantId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          createErrorResponse('No tiene acceso a este torneo'),
+          { status: 403 },
+        )
+      }
+      tenantId = t.tenantId
+    } else {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (!userTenantId) {
+        return NextResponse.json(
+          createErrorResponse('No tiene un tenant asignado'),
+          { status: 403 },
+        )
+      }
+      tenantId = userTenantId
     }
 
-    const { id } = await context.params
-    const tournament = await getTournamentById(id, userTenantId)
+    const tournament = await getTournamentById(id, tenantId)
     if (!tournament) {
       return NextResponse.json(
         createErrorResponse('Torneo no encontrado'),
@@ -86,22 +112,6 @@ export async function PATCH(
       tenantId: session.user.tenantId ?? null,
     }
 
-    const isSuperAdmin = await isSuperAdminUser(user)
-    if (isSuperAdmin) {
-      return NextResponse.json(
-        createErrorResponse('El super administrador no puede editar torneos'),
-        { status: 403 },
-      )
-    }
-
-    const userTenantId = await getUserTenantIdSafe(user)
-    if (!userTenantId) {
-      return NextResponse.json(
-        createErrorResponse('No tiene un tenant asignado'),
-        { status: 403 },
-      )
-    }
-
     if (!session.user.isAdmin) {
       return NextResponse.json(
         createErrorResponse('Solo administradores del club pueden editar torneos'),
@@ -119,7 +129,40 @@ export async function PATCH(
       )
     }
 
-    const tournament = await updateTournament(id, userTenantId, parsed.data)
+    const isSuperAdmin = await isSuperAdminUser(user)
+    let tenantId: string
+
+    if (isSuperAdmin) {
+      const t = await prisma.tournament.findUnique({
+        where: { id },
+        select: { tenantId: true },
+      })
+      if (!t) {
+        return NextResponse.json(
+          createErrorResponse('Torneo no encontrado'),
+          { status: 404 },
+        )
+      }
+      const hasAccess = await canAccessTenant(user, t.tenantId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          createErrorResponse('No tiene acceso a este torneo'),
+          { status: 403 },
+        )
+      }
+      tenantId = t.tenantId
+    } else {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (!userTenantId) {
+        return NextResponse.json(
+          createErrorResponse('No tiene un tenant asignado'),
+          { status: 403 },
+        )
+      }
+      tenantId = userTenantId
+    }
+
+    const tournament = await updateTournament(id, tenantId, parsed.data)
     if (!tournament) {
       return NextResponse.json(
         createErrorResponse('Torneo no encontrado'),
@@ -168,22 +211,6 @@ export async function DELETE(
       tenantId: session.user.tenantId ?? null,
     }
 
-    const isSuperAdmin = await isSuperAdminUser(user)
-    if (isSuperAdmin) {
-      return NextResponse.json(
-        createErrorResponse('El super administrador no puede eliminar torneos'),
-        { status: 403 },
-      )
-    }
-
-    const userTenantId = await getUserTenantIdSafe(user)
-    if (!userTenantId) {
-      return NextResponse.json(
-        createErrorResponse('No tiene un tenant asignado'),
-        { status: 403 },
-      )
-    }
-
     if (!session.user.isAdmin) {
       return NextResponse.json(
         createErrorResponse('Solo administradores del club pueden eliminar torneos'),
@@ -192,7 +219,40 @@ export async function DELETE(
     }
 
     const { id } = await context.params
-    const deleted = await deleteTournament(id, userTenantId)
+    const isSuperAdmin = await isSuperAdminUser(user)
+    let tenantId: string
+
+    if (isSuperAdmin) {
+      const t = await prisma.tournament.findUnique({
+        where: { id },
+        select: { tenantId: true },
+      })
+      if (!t) {
+        return NextResponse.json(
+          createErrorResponse('Torneo no encontrado'),
+          { status: 404 },
+        )
+      }
+      const hasAccess = await canAccessTenant(user, t.tenantId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          createErrorResponse('No tiene acceso a este torneo'),
+          { status: 403 },
+        )
+      }
+      tenantId = t.tenantId
+    } else {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (!userTenantId) {
+        return NextResponse.json(
+          createErrorResponse('No tiene un tenant asignado'),
+          { status: 403 },
+        )
+      }
+      tenantId = userTenantId
+    }
+
+    const deleted = await deleteTournament(id, tenantId)
     if (!deleted) {
       return NextResponse.json(
         createErrorResponse('Torneo no encontrado'),

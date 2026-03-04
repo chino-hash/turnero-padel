@@ -471,6 +471,17 @@ enum TournamentStatus {
   CANCELLED
 }
 
+enum TournamentFormat {
+  DIRECT_ELIMINATION
+  GROUPS_DOUBLE_ELIMINATION
+}
+
+enum MatchBracketType {
+  GROUP
+  ORO
+  PLATA
+}
+
 enum RegistrationType {
   SINGLE
   PAIR
@@ -483,14 +494,27 @@ enum RegistrationStatus {
 }
 
 model Tournament {
-  id           String           @id @default(cuid())
+  id           String            @id @default(cuid())
   tenantId     String
   title        String
   category     String
+  tournamentFormat TournamentFormat @default(DIRECT_ELIMINATION)
+  prizeIsMonetary  Boolean         @default(true)
   prizeFirst   Int
   prizeSecond  Int
+  prizeFirstDescription  String?
+  prizeSecondDescription String?
   minPairs     Int
   maxPairs     Int
+  numberOfGroups Int?             // fase de grupos (ej. 4)
+  prizeGoldFirst   Int?
+  prizeGoldSecond  Int?
+  prizeSilverFirst Int?
+  prizeSilverSecond Int?
+  prizeGoldFirstDescription   String?
+  prizeGoldSecondDescription  String?
+  prizeSilverFirstDescription String?
+  prizeSilverSecondDescription String?
   status       TournamentStatus @default(DRAFT)
   publishedAt  DateTime?
   createdAt    DateTime         @default(now())
@@ -579,19 +603,21 @@ enum MatchStatus {
 }
 
 model TournamentMatch {
-  id                   String        @id @default(cuid())
+  id                   String          @id @default(cuid())
   tournamentId         String
   round                MatchRound
-  positionInRound      Int           // orden dentro de la ronda (ej. partido 1, 2, 3...)
-  registration1Id      String?       // null = bye
-  registration2Id      String?       // null = bye
+  positionInRound      Int             // orden dentro de la ronda (ej. partido 1, 2, 3...)
+  groupId              String?         // fase de grupos (ej. "1", "A")
+  bracketType          MatchBracketType? // ORO, PLATA, GROUP
+  registration1Id      String?         // null = bye
+  registration2Id      String?         // null = bye
   winnerRegistrationId String?
-  score                String?       // ej. "6-4, 6-3"
+  score                String?         // ej. "6-4, 6-3"
   courtId              String?
   scheduledAt          DateTime?
-  status               MatchStatus   @default(PENDING)
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  status               MatchStatus     @default(PENDING)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   tournament   Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   registration1 TournamentRegistration? @relation("MatchRegistration1", fields: [registration1Id], references: [id], onDelete: SetNull)
@@ -601,6 +627,7 @@ model TournamentMatch {
 
   @@index([tournamentId])
   @@index([tournamentId, round])
+  @@index([tournamentId, groupId])
   @@index([registration1Id])
   @@index([registration2Id])
 }

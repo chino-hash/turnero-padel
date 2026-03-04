@@ -26,10 +26,23 @@ type TorneoHistorialItem = {
   id: string
   title: string
   category: string
+  tournamentFormat?: string
+  prizeIsMonetary?: boolean
   prizeFirst: number
   prizeSecond: number
+  prizeFirstDescription?: string | null
+  prizeSecondDescription?: string | null
   minPairs: number
   maxPairs: number
+  numberOfGroups?: number | null
+  prizeGoldFirst?: number | null
+  prizeGoldSecond?: number | null
+  prizeSilverFirst?: number | null
+  prizeSilverSecond?: number | null
+  prizeGoldFirstDescription?: string | null
+  prizeGoldSecondDescription?: string | null
+  prizeSilverFirstDescription?: string | null
+  prizeSilverSecondDescription?: string | null
   status?: string
   dayBlocks: { date: string; ranges: { start: string; end: string }[] }[]
 }
@@ -74,10 +87,13 @@ export default function Page() {
   const [selectedTorneo, setSelectedTorneo] = useState<TorneoHistorialItem | null>(null)
   const [deleteTorneoId, setDeleteTorneoId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [detalleTab, setDetalleTab] = useState<"info" | "inscripciones">("info")
+  const [detalleTab, setDetalleTab] = useState<"info" | "inscripciones" | "fixture">("info")
   const [inscripciones, setInscripciones] = useState<{ list: Array<{ id: string; type: string; playerName: string; playerEmail: string | null; partnerName: string | null; status: string }>; currentPairs: number; minPairs: number; maxPairs: number } | null>(null)
   const [inscripcionesError, setInscripcionesError] = useState<string | null>(null)
   const [loadingInscripciones, setLoadingInscripciones] = useState(false)
+  const [partidos, setPartidos] = useState<Array<{ id: string; round: string; positionInRound: number; registration1Label: string | null; registration2Label: string | null; winnerLabel: string | null; score: string | null }>>([])
+  const [loadingPartidos, setLoadingPartidos] = useState(false)
+  const [sorteoLoading, setSorteoLoading] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [newRegType, setNewRegType] = useState<"SINGLE" | "PAIR">("PAIR")
   const [newRegPlayer, setNewRegPlayer] = useState("")
@@ -87,8 +103,21 @@ export default function Page() {
   const [step, setStep] = useState(1)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
+  const [tournamentFormat, setTournamentFormat] = useState<"DIRECT_ELIMINATION" | "GROUPS_DOUBLE_ELIMINATION">("DIRECT_ELIMINATION")
+  const [prizeIsMonetary, setPrizeIsMonetary] = useState(true)
   const [prizeFirst, setPrizeFirst] = useState("")
   const [prizeSecond, setPrizeSecond] = useState("")
+  const [prizeFirstDescription, setPrizeFirstDescription] = useState("")
+  const [prizeSecondDescription, setPrizeSecondDescription] = useState("")
+  const [numberOfGroups, setNumberOfGroups] = useState<number | "">(4)
+  const [prizeGoldFirst, setPrizeGoldFirst] = useState("")
+  const [prizeGoldSecond, setPrizeGoldSecond] = useState("")
+  const [prizeSilverFirst, setPrizeSilverFirst] = useState("")
+  const [prizeSilverSecond, setPrizeSilverSecond] = useState("")
+  const [prizeGoldFirstDesc, setPrizeGoldFirstDesc] = useState("")
+  const [prizeGoldSecondDesc, setPrizeGoldSecondDesc] = useState("")
+  const [prizeSilverFirstDesc, setPrizeSilverFirstDesc] = useState("")
+  const [prizeSilverSecondDesc, setPrizeSilverSecondDesc] = useState("")
   const [pairs, setPairs] = useState<number | "">("")
   const [maxPairs, setMaxPairs] = useState<number | "">("")
   const [dayBlocks, setDayBlocks] = useState<{ date: string; ranges: { start: string; end: string }[] }[]>([])
@@ -157,6 +186,21 @@ export default function Page() {
       toast.error(msg)
     } finally {
       setLoadingInscripciones(false)
+    }
+  }, [selectedTorneo])
+
+  const fetchPartidos = useCallback(async () => {
+    if (!selectedTorneo) return
+    setLoadingPartidos(true)
+    try {
+      const res = await fetch(`/api/torneos/${selectedTorneo.id}/partidos`, { credentials: "include" })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.data) setPartidos(json.data)
+      else setPartidos([])
+    } catch {
+      setPartidos([])
+    } finally {
+      setLoadingPartidos(false)
     }
   }, [selectedTorneo])
 
@@ -242,14 +286,32 @@ export default function Page() {
     const payload: Record<string, unknown> = {
       title: title.trim(),
       category: category.trim(),
-      prizeFirst: Number(prizeFirst.replace(/\D/g, "")) || 0,
-      prizeSecond: Number(prizeSecond.replace(/\D/g, "")) || 0,
+      tournamentFormat,
+      prizeIsMonetary,
+      prizeFirst: prizeIsMonetary ? (Number(prizeFirst.replace(/\D/g, "")) || 0) : 0,
+      prizeSecond: prizeIsMonetary ? (Number(prizeSecond.replace(/\D/g, "")) || 0) : 0,
+      prizeFirstDescription: prizeIsMonetary ? undefined : (prizeFirstDescription.trim() || undefined),
+      prizeSecondDescription: prizeIsMonetary ? undefined : (prizeSecondDescription.trim() || undefined),
       minPairs: pairs === "" ? 1 : Number(pairs),
       maxPairs: maxPairs === "" ? 128 : Number(maxPairs),
       dayBlocks: dayBlocks.map((d) => ({
         date: d.date,
         ranges: d.ranges.filter((r) => r.start).map((r) => ({ start: r.start, end: getEndOrDefault(r.end) })),
       })).filter((d) => d.ranges.length > 0),
+    }
+    if (tournamentFormat === "GROUPS_DOUBLE_ELIMINATION") {
+      payload.numberOfGroups = numberOfGroups === "" ? 4 : Number(numberOfGroups)
+      if (prizeIsMonetary) {
+        payload.prizeGoldFirst = Number(prizeGoldFirst.replace(/\D/g, "")) || 0
+        payload.prizeGoldSecond = Number(prizeGoldSecond.replace(/\D/g, "")) || 0
+        payload.prizeSilverFirst = Number(prizeSilverFirst.replace(/\D/g, "")) || 0
+        payload.prizeSilverSecond = Number(prizeSilverSecond.replace(/\D/g, "")) || 0
+      } else {
+        payload.prizeGoldFirstDescription = prizeGoldFirstDesc.trim() || null
+        payload.prizeGoldSecondDescription = prizeGoldSecondDesc.trim() || null
+        payload.prizeSilverFirstDescription = prizeSilverFirstDesc.trim() || null
+        payload.prizeSilverSecondDescription = prizeSilverSecondDesc.trim() || null
+      }
     }
     if (!isEdit && isSuperAdmin && selectedTenantId) payload.tenantId = selectedTenantId
     try {
@@ -278,8 +340,21 @@ export default function Page() {
       setStep(1)
       setTitle("")
       setCategory("")
+      setTournamentFormat("DIRECT_ELIMINATION")
+      setPrizeIsMonetary(true)
       setPrizeFirst("")
       setPrizeSecond("")
+      setPrizeFirstDescription("")
+      setPrizeSecondDescription("")
+      setNumberOfGroups(4)
+      setPrizeGoldFirst("")
+      setPrizeGoldSecond("")
+      setPrizeSilverFirst("")
+      setPrizeSilverSecond("")
+      setPrizeGoldFirstDesc("")
+      setPrizeGoldSecondDesc("")
+      setPrizeSilverFirstDesc("")
+      setPrizeSilverSecondDesc("")
       setPairs("")
       setMaxPairs("")
       setDayBlocks([])
@@ -343,7 +418,27 @@ export default function Page() {
             </Button>
           )}
           {(view === "detalle" || view === "crear") && (
-            <Button variant="outline" onClick={() => { setView("historial"); setSelectedTorneo(null); setDetalleTab("info"); setInscripciones(null); setInscripcionesError(null); setEditTorneoId(null); }} className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => {
+              setView("historial")
+              setSelectedTorneo(null)
+              setDetalleTab("info")
+              setInscripciones(null)
+              setInscripcionesError(null)
+              setEditTorneoId(null)
+              setTournamentFormat("DIRECT_ELIMINATION")
+              setPrizeIsMonetary(true)
+              setPrizeFirstDescription("")
+              setPrizeSecondDescription("")
+              setNumberOfGroups(4)
+              setPrizeGoldFirst("")
+              setPrizeGoldSecond("")
+              setPrizeSilverFirst("")
+              setPrizeSilverSecond("")
+              setPrizeGoldFirstDesc("")
+              setPrizeGoldSecondDesc("")
+              setPrizeSilverFirstDesc("")
+              setPrizeSilverSecondDesc("")
+            }} className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
@@ -378,8 +473,8 @@ export default function Page() {
                   key={t.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => { setSelectedTorneo(t); setView("detalle"); setInscripciones(null); setInscripcionesError(null); }}
-                  onKeyDown={(e) => e.key === "Enter" && (setSelectedTorneo(t), setView("detalle"), setInscripciones(null), setInscripcionesError(null))}
+                  onClick={() => { setSelectedTorneo(t); setView("detalle"); setInscripciones(null); setInscripcionesError(null); setPartidos([]); setDetalleTab("info"); }}
+                  onKeyDown={(e) => e.key === "Enter" && (setSelectedTorneo(t), setView("detalle"), setInscripciones(null), setInscripcionesError(null), setPartidos([]), setDetalleTab("info"))}
                   className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:border-border cursor-pointer"
                 >
                   <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-4 text-white relative overflow-hidden">
@@ -490,7 +585,30 @@ export default function Page() {
                 Publicar torneo
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setEditTorneoId(selectedTorneo.id); setTitle(selectedTorneo.title); setCategory(selectedTorneo.category); setPrizeFirst(prizeToDisplay(selectedTorneo.prizeFirst)); setPrizeSecond(prizeToDisplay(selectedTorneo.prizeSecond)); setPairs(selectedTorneo.minPairs); setMaxPairs(selectedTorneo.maxPairs); setDayBlocks(selectedTorneo.dayBlocks); setView("crear"); }}>
+            <Button variant="outline" size="sm" onClick={() => {
+                  setEditTorneoId(selectedTorneo.id)
+                  setTitle(selectedTorneo.title)
+                  setCategory(selectedTorneo.category)
+                  setTournamentFormat((selectedTorneo.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" ? "GROUPS_DOUBLE_ELIMINATION" : "DIRECT_ELIMINATION"))
+                  setPrizeIsMonetary(selectedTorneo.prizeIsMonetary !== false)
+                  setPrizeFirst(prizeToDisplay(selectedTorneo.prizeFirst))
+                  setPrizeSecond(prizeToDisplay(selectedTorneo.prizeSecond))
+                  setPrizeFirstDescription(selectedTorneo.prizeFirstDescription ?? "")
+                  setPrizeSecondDescription(selectedTorneo.prizeSecondDescription ?? "")
+                  setNumberOfGroups(selectedTorneo.numberOfGroups ?? 4)
+                  setPrizeGoldFirst(selectedTorneo.prizeGoldFirst != null ? prizeToDisplay(selectedTorneo.prizeGoldFirst) : "")
+                  setPrizeGoldSecond(selectedTorneo.prizeGoldSecond != null ? prizeToDisplay(selectedTorneo.prizeGoldSecond) : "")
+                  setPrizeSilverFirst(selectedTorneo.prizeSilverFirst != null ? prizeToDisplay(selectedTorneo.prizeSilverFirst) : "")
+                  setPrizeSilverSecond(selectedTorneo.prizeSilverSecond != null ? prizeToDisplay(selectedTorneo.prizeSilverSecond) : "")
+                  setPrizeGoldFirstDesc(selectedTorneo.prizeGoldFirstDescription ?? "")
+                  setPrizeGoldSecondDesc(selectedTorneo.prizeGoldSecondDescription ?? "")
+                  setPrizeSilverFirstDesc(selectedTorneo.prizeSilverFirstDescription ?? "")
+                  setPrizeSilverSecondDesc(selectedTorneo.prizeSilverSecondDescription ?? "")
+                  setPairs(selectedTorneo.minPairs)
+                  setMaxPairs(selectedTorneo.maxPairs)
+                  setDayBlocks(selectedTorneo.dayBlocks)
+                  setView("crear")
+                }}>
               <Pencil className="w-4 h-4 mr-1" />
               Editar
             </Button>
@@ -501,6 +619,10 @@ export default function Page() {
             <Button variant="outline" size="sm" className={detalleTab === "inscripciones" ? "bg-primary/10" : ""} onClick={() => { setDetalleTab("inscripciones"); if (selectedTorneo && !inscripciones) fetchInscripciones(); }}>
               <UserPlus className="w-4 h-4 mr-1" />
               Gestionar inscripciones
+            </Button>
+            <Button variant="outline" size="sm" className={detalleTab === "fixture" ? "bg-primary/10" : ""} onClick={() => { setDetalleTab("fixture"); if (selectedTorneo) { if (partidos.length === 0) fetchPartidos(); if (!inscripciones) fetchInscripciones(); } }}>
+              <Trophy className="w-4 h-4 mr-1" />
+              Fixture / Cuadro
             </Button>
           </div>
           <div className="border-t pt-4">
@@ -590,6 +712,55 @@ export default function Page() {
                     </ul>
                     {inscripciones.list.length === 0 && <p className="text-muted-foreground text-sm">Sin inscripciones aún.</p>}
                   </>
+                )}
+              </div>
+            )}
+            {detalleTab === "fixture" && (
+              <div className="space-y-4">
+                {loadingPartidos && <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+                {!loadingPartidos && partidos.length === 0 && (
+                  <div className="rounded-lg border border-border/50 bg-muted/30 p-6 space-y-4">
+                    <p className="text-sm text-muted-foreground">Realiza el sorteo para ver el cuadro de partidos.</p>
+                    {inscripciones && inscripciones.currentPairs >= inscripciones.minPairs && (
+                      <>
+                        <p className="text-sm font-medium">Ya puedes realizar el sorteo con {inscripciones.currentPairs} parejas.</p>
+                        <Button size="sm" disabled={sorteoLoading} onClick={async () => {
+                          if (!selectedTorneo) return
+                          setSorteoLoading(true)
+                          try {
+                            const res = await fetch(`/api/torneos/${selectedTorneo.id}/sorteo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "include" })
+                            const json = await res.json().catch(() => ({}))
+                            if (!res.ok) { toast.error(json?.message ?? "Error al realizar el sorteo"); return }
+                            toast.success("Sorteo realizado. Ya puedes ver el cuadro.")
+                            await fetchPartidos()
+                          } catch { toast.error("Error de conexión") }
+                          finally { setSorteoLoading(false) }
+                        }}>
+                          {sorteoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                          Realizar sorteo
+                        </Button>
+                      </>
+                    )}
+                    {inscripciones && inscripciones.currentPairs < inscripciones.minPairs && (
+                      <p className="text-sm text-muted-foreground">Se necesitan al menos {inscripciones.minPairs} parejas para realizar el sorteo (hay {inscripciones.currentPairs}).</p>
+                    )}
+                    {!inscripciones && !loadingInscripciones && <p className="text-sm text-muted-foreground">Cargando datos de inscripciones...</p>}
+                  </div>
+                )}
+                {!loadingPartidos && partidos.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-sm font-medium">Cuadro de partidos ({partidos.length} partidos)</p>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {partidos.map((m) => (
+                        <div key={m.id} className="rounded-lg border border-border/50 p-3 text-sm">
+                          <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">{m.round.replace(/_/g, " ")} · Partido {m.positionInRound + 1}</p>
+                          <p className="font-medium">{(m.registration1Label ?? "Bye")} vs {(m.registration2Label ?? "Bye")}</p>
+                          {m.score && <p className="text-muted-foreground mt-1">Resultado: {m.score}</p>}
+                          {m.winnerLabel && <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">Ganador: {m.winnerLabel}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -788,6 +959,36 @@ export default function Page() {
                   </div>
                 </div>
 
+                {/* Formato del torneo */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Trophy className="w-4 h-4" />
+                    Formato del torneo
+                  </h3>
+                  <div className="flex flex-wrap gap-2 pl-4 border-l-2 border-border/50 ml-1">
+                    <button
+                      type="button"
+                      onClick={() => setTournamentFormat("DIRECT_ELIMINATION")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${tournamentFormat === "DIRECT_ELIMINATION" ? "bg-blue-600 text-white border-blue-600" : "bg-background border-input hover:border-blue-500"}`}
+                    >
+                      Eliminatoria directa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTournamentFormat("GROUPS_DOUBLE_ELIMINATION")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" ? "bg-blue-600 text-white border-blue-600" : "bg-background border-input hover:border-blue-500"}`}
+                    >
+                      Fase de grupos + Doble Eliminatoria
+                    </button>
+                  </div>
+                  {tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" && (
+                    <div className="pl-4 border-l-2 border-border/50 ml-1">
+                      <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Cantidad de grupos</label>
+                      <input type="number" min={2} max={16} value={numberOfGroups} onChange={e => setNumberOfGroups(e.target.value === "" ? "" : Number(e.target.value))} className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Group 2: Incentivos */}
                   <div className="space-y-4">
@@ -795,25 +996,77 @@ export default function Page() {
                       <Medal className="w-4 h-4" />
                       Incentivos
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4 border-l-2 border-border/50 ml-1">
-                      <div>
-                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio (1er lugar)</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Medal className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <input value={prizeFirst} onChange={e => handlePrizeChange(setPrizeFirst, e.target.value)} className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all" placeholder="$ 0" />
-                        </div>
+                    <div className="pl-4 border-l-2 border-border/50 ml-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => setPrizeIsMonetary(true)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${prizeIsMonetary ? "bg-blue-600 text-white border-blue-600" : "border-input"}`}>Monetario</button>
+                        <button type="button" onClick={() => setPrizeIsMonetary(false)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${!prizeIsMonetary ? "bg-blue-600 text-white border-blue-600" : "border-input"}`}>No monetario (descripción)</button>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio (2do lugar)</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Medal className="w-4 h-4 text-muted-foreground" />
-                          </div>
-                          <input value={prizeSecond} onChange={e => handlePrizeChange(setPrizeSecond, e.target.value)} className="w-full rounded-lg border border-input bg-background pl-9 pr-3 py-2.5 text-base font-medium ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-all" placeholder="$ 0" />
+                      {tournamentFormat === "DIRECT_ELIMINATION" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {prizeIsMonetary ? (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio 1° lugar</label>
+                                <input value={prizeFirst} onChange={e => handlePrizeChange(setPrizeFirst, e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base" placeholder="$ 0" />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio 2° lugar</label>
+                                <input value={prizeSecond} onChange={e => handlePrizeChange(setPrizeSecond, e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base" placeholder="$ 0" />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio 1° lugar (descripción)</label>
+                                <input value={prizeFirstDescription} onChange={e => setPrizeFirstDescription(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base" placeholder="Ej. Trofeo, beca..." />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premio 2° lugar (descripción)</label>
+                                <input value={prizeSecondDescription} onChange={e => setPrizeSecondDescription(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base" placeholder="Ej. Medalla..." />
+                              </div>
+                            </>
+                          )}
                         </div>
-                      </div>
+                      )}
+                      {tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" && (
+                        <div className="space-y-6">
+                          <div>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premios Liga de Oro</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {prizeIsMonetary ? (
+                                <>
+                                  <input value={prizeGoldFirst} onChange={e => handlePrizeChange(setPrizeGoldFirst, e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="1° $" />
+                                  <input value={prizeGoldSecond} onChange={e => handlePrizeChange(setPrizeGoldSecond, e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="2° $" />
+                                </>
+                              ) : (
+                                <>
+                                  <input value={prizeGoldFirstDesc} onChange={e => setPrizeGoldFirstDesc(e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="1° descripción" />
+                                  <input value={prizeGoldSecondDesc} onChange={e => setPrizeGoldSecondDesc(e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="2° descripción" />
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Premios Liga de Plata</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {prizeIsMonetary ? (
+                                <>
+                                  <input value={prizeSilverFirst} onChange={e => handlePrizeChange(setPrizeSilverFirst, e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="1° $" />
+                                  <input value={prizeSilverSecond} onChange={e => handlePrizeChange(setPrizeSilverSecond, e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="2° $" />
+                                </>
+                              ) : (
+                                <>
+                                  <input value={prizeSilverFirstDesc} onChange={e => setPrizeSilverFirstDesc(e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="1° descripción" />
+                                  <input value={prizeSilverSecondDesc} onChange={e => setPrizeSilverSecondDesc(e.target.value)} className="rounded-lg border border-input px-3 py-2 text-sm" placeholder="2° descripción" />
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {tournamentFormat === "DIRECT_ELIMINATION" && !prizeIsMonetary && (
+                        <p className="text-xs text-muted-foreground">Opcional: puedes indicar un monto 0 para 1° y 2° si solo usas descripción.</p>
+                      )}
                     </div>
                   </div>
 

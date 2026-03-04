@@ -31,6 +31,7 @@ export default auth((req) => {
     '/api/courts',
     '/api/slots',
     '/api/tenants/public',
+    '/api/torneos/public',
     '/api/webhooks/payments',
     '/api/system-settings/public'
   ]

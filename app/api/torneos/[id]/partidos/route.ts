@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { prisma } from '@/lib/database/neon-config'
 import { getMatchesByTournament, createMatch } from '@/lib/services/tournaments'
-import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getUserTenantIdSafe, isSuperAdminUser, canAccessTenant, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { tournamentMatchCreateSchema } from '@/lib/validations/tournament'
 import { createErrorResponse, createSuccessResponse, formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-function requireAdminTenant(session: { user: { id?: string; isAdmin?: boolean } }) {
+function requireAdminOrSuperAdmin(session: { user: { id?: string; isAdmin?: boolean; isSuperAdmin?: boolean } }) {
   if (!session?.user?.id) return { status: 401 as const, error: 'No autorizado' }
-  if (!session.user.isAdmin) return { status: 403 as const, error: 'Solo administradores del club pueden gestionar partidos' }
+  if (!session.user.isAdmin && !session.user.isSuperAdmin) return { status: 403 as const, error: 'Solo administradores pueden ver partidos' }
   return null
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const session = await auth()
-    const authError = requireAdminTenant(session!)
+    const authError = requireAdminOrSuperAdmin(session!)
     if (authError) {
       return NextResponse.json(createErrorResponse(authError.error), { status: authError.status })
     }
@@ -30,13 +31,22 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       isSuperAdmin: session!.user.isSuperAdmin ?? false,
       tenantId: session!.user.tenantId ?? null,
     }
-    const userTenantId = await getUserTenantIdSafe(user)
-    if (!userTenantId) {
-      return NextResponse.json(createErrorResponse('No tiene un tenant asignado'), { status: 403 })
+    const { id } = await context.params
+    const isSuperAdmin = await isSuperAdminUser(user)
+    let tenantId: string
+    if (isSuperAdmin) {
+      const t = await prisma.tournament.findUnique({ where: { id }, select: { tenantId: true } })
+      if (!t) return NextResponse.json(createErrorResponse('Torneo no encontrado'), { status: 404 })
+      const hasAccess = await canAccessTenant(user, t.tenantId)
+      if (!hasAccess) return NextResponse.json(createErrorResponse('No tiene acceso a este torneo'), { status: 403 })
+      tenantId = t.tenantId
+    } else {
+      const userTenantId = await getUserTenantIdSafe(user)
+      if (!userTenantId) return NextResponse.json(createErrorResponse('No tiene un tenant asignado'), { status: 403 })
+      tenantId = userTenantId
     }
 
-    const { id } = await context.params
-    const matches = await getMatchesByTournament(id, userTenantId)
+    const matches = await getMatchesByTournament(id, tenantId)
     if (matches === null) {
       return NextResponse.json(createErrorResponse('Torneo no encontrado'), { status: 404 })
     }
