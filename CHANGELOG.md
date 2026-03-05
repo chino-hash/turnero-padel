@@ -7,18 +7,35 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### Corregido
+- **Navbar del panel de administración – icono de Canchas visible**
+  - En la barra superior del admin, el icono de "Canchas" dejaba de verse (tapado por el botón "Admin" o recortado). Se ajustó el layout: `gap` entre logo/título y nav, bloque izquierdo con `shrink-0`, nav con `justify-start` y `pl-2`, y enlaces con `shrink-0` para que el primer ítem (Canchas) y su icono se muestren correctamente.
+  - Archivo: `app/admin-panel/components/AdminLayoutContent.tsx`.
+
+---
+
+## [2026-03-05] - Admin: layout, Sheet UI, torneos y script Radix
+
+### Agregado
+- **Componente `Sheet` (UI)**  
+  - Nuevo `components/ui/sheet.tsx` basado en Radix UI para paneles deslizantes (drawer/sheet). Usado en el panel de administración para la navegación móvil.
+- **Script `fix-radix-primitive`**  
+  - `scripts/fix-radix-primitive.js`: elimina la copia anidada de `@radix-ui/primitive` dentro de `react-dropdown-menu` para evitar ENOENT en build y que Node use la versión en `node_modules/@radix-ui/primitive`.
+
 ### Cambiado
 - **Admin Torneos – orden y preselección de botones de formato**
   - En el Paso 1 del formulario de torneos se invirtió el orden de los botones "Formato del torneo": a la izquierda queda "Fase de grupos + Doble Eliminatoria" y a la derecha "Eliminatoria directa".
   - El valor por defecto del formato pasó a ser "Fase de grupos + Doble Eliminatoria" (`GROUPS_DOUBLE_ELIMINATION`) para que el botón de la izquierda siga preseleccionado; los resets del formulario (tras publicar o al volver) usan el mismo valor.
-- **Panel de administración – posición de títulos unificada**
-  - Contenedor común en `AdminLayoutContent`: todo el contenido del panel se renderiza dentro de `max-w-7xl mx-auto px-4 sm:px-6 py-6`, de modo que el título de cada pestaña quede en la misma posición al cambiar de sección.
+- **Panel de administración – layout y navegación**
+  - `AdminLayoutContent`: contenedor común `max-w-7xl mx-auto px-4 sm:px-6 py-6` para que el título de cada pestaña quede en la misma posición; navegación móvil con `Sheet` (menú lateral deslizante) en lugar de dropdown.
   - Estructura unificada del bloque de título en todas las páginas del admin: `min-h-[5.5rem]`, mismo `h1` (text-3xl font-light), línea naranja y descripción (text-xs); botones opcionales a la derecha con `flex-shrink-0`.
   - Páginas actualizadas: Turnos, Canchas, Usuarios, Productos, Ventas, Torneos, Panel de Administración (dashboard), Estadísticas.
+- **Dependencias**  
+  - Actualizaciones en `package.json` y `package-lock.json` (incl. Radix UI y dependencias relacionadas).
 
 ### Documentación
 - Añadido `docs/actualizaciones/admin-torneos-formato-botones-2026-03.md` con el detalle del orden y preselección de los botones de formato del torneo.
-- Añadido `docs/actualizaciones/unificacion-titulos-admin-2026-02.md` con el detalle de la unificación de títulos del panel admin.
+- Añadido `docs/actualizaciones/admin-panel-sheet-layout-2026-03.md` con el resumen de esta actualización (layout, Sheet, script, torneos).
 
 ---
 

@@ -51,20 +51,20 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
         aria-label="Navegación del panel de administración"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 lg:h-20">
-            {/* Logo y título */}
-            <div className="flex items-center gap-2 lg:gap-4 min-w-0">
+          <div className="flex items-center justify-between gap-3 lg:gap-4 h-14 lg:h-20">
+            {/* Logo y título: shrink-0 para que no invada el nav */}
+            <div className="flex items-center gap-2 lg:gap-4 shrink-0 min-w-0">
               <div className="flex items-center gap-2 lg:gap-3 shrink-0">
-                <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shrink-0">
                   <BarChart3 className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
                 <AdminTitleButton />
               </div>
             </div>
 
-            {/* Navegación desktop: visible solo lg+ */}
+            {/* Navegación desktop: justify-start + padding para que el icono de Canchas no se recorte */}
             <nav
-              className="hidden lg:flex flex-1 items-center justify-center gap-1 overflow-x-auto"
+              className="hidden lg:flex flex-1 items-center justify-start gap-1 overflow-x-auto min-w-0 pl-2"
               role="navigation"
               aria-labelledby="admin-nav-title"
               data-testid="admin-navigation"
@@ -74,22 +74,22 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                 <Link
                   key={href}
                   href={href}
-                  className={linkClass(href)}
+                  className={`${linkClass(href)} shrink-0`}
                   aria-current={pathname.startsWith(href) ? "page" : undefined}
                   data-testid={testId}
                 >
-                  <Icon className="w-5 h-5 shrink-0" />
+                  <Icon className="w-5 h-5 shrink-0" aria-hidden />
                   <span>{label}</span>
                 </Link>
               ))}
               {isSuperAdmin && (
                 <Link
                   href="/super-admin"
-                  className={linkClass("/super-admin")}
+                  className={`${linkClass("/super-admin")} shrink-0`}
                   aria-current={pathname.startsWith("/super-admin") ? "page" : undefined}
                   data-testid="super-admin-link"
                 >
-                  <Building2 className="w-5 h-5 shrink-0" />
+                  <Building2 className="w-5 h-5 shrink-0" aria-hidden />
                   <span>Super Admin</span>
                 </Link>
               )}
