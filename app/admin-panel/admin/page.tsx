@@ -777,13 +777,13 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">Panel de Administración</h1>
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">Panel de Administración</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Resumen general y accesos rápidos a todas las secciones.</p>
           <p className="text-muted-foreground text-xs mt-1">Última actualización: {new Date().toLocaleString('es-ES')}</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Button variant="outline" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          <Button variant="outline" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2 min-h-[44px]">
             <Filter className="w-4 h-4" />
             Preferencias
           </Button>
@@ -798,7 +798,7 @@ export default function AdminDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-[#55C5FF] dark:text-[#55C5FF]">{filteredBookings.length}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">{labelTurnosHoy}</div>
@@ -1037,17 +1037,17 @@ export default function AdminDashboard() {
 
       {/* Vista rápida de turnos por categorías (compacta) */}
       <div className="space-y-6" data-testid="admin-bookings-compact">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-300 flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Vista rápida de turnos
           </h2>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2" data-testid="admin-filters-open-btn">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)} className="flex items-center gap-2 min-h-[44px] sm:min-h-0" data-testid="admin-filters-open-btn">
               <Filter className="w-4 h-4" />
               Filtros
             </Button>
-            <Button asChild variant="outline" size="sm"><Link href="/admin-panel/admin/turnos">Ver sección de turnos</Link></Button>
+            <Button asChild variant="outline" size="sm" className="min-h-[44px] sm:min-h-0"><Link href="/admin-panel/admin/turnos">Ver sección de turnos</Link></Button>
           </div>
         </div>
 
@@ -1105,8 +1105,8 @@ export default function AdminDashboard() {
 
       {/* Modal de Filtros y Preferencias */}
       {showFilterModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" data-testid="filters-modal">
-          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" data-testid="filters-modal">
+          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Filtros y Preferencias</h3>
               <Button
@@ -1167,8 +1167,8 @@ export default function AdminDashboard() {
 
       {/* Modal de Extras */}
       {showExtrasModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-foreground">Agregar Extra</h3>
               <Button variant="ghost" size="sm" onClick={closeExtrasModal}>

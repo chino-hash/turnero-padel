@@ -280,13 +280,13 @@ export default function GestionCanchas() {
     <div className="space-y-6">
       <header className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">Gestión de Canchas</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Activa, edita y configura precios de canchas.</p>
         </div>
         {isSuperAdmin && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+            <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 min-h-[44px] sm:min-h-0">
               <Plus className="w-4 h-4" />
               Nueva Cancha
             </Button>

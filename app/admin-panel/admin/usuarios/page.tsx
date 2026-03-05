@@ -97,7 +97,7 @@ export default function UsuariosPage() {
     <div className="space-y-6">
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">Gestión de Usuarios</h1>
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">Gestión de Usuarios</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">
             Consulta y organiza usuarios por actividad y beneficios.
@@ -108,7 +108,7 @@ export default function UsuariosPage() {
             onClick={refetch}
             variant="outline"
             disabled={loading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 min-h-[44px] sm:min-h-0"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualizar
@@ -259,50 +259,87 @@ export default function UsuariosPage() {
           </CardHeader>
           <CardContent>
             {analisis.clientesMasFrecuentes.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-2 text-muted-foreground">Usuario</th>
-                      <th className="text-left p-2 text-muted-foreground">Email</th>
-                      <th className="text-left p-2 text-muted-foreground">Reservas</th>
-                      <th className="text-left p-2 text-muted-foreground">Frecuencia</th>
-                      <th className="text-left p-2 text-muted-foreground">Cancha Preferida</th>
-                      <th className="text-left p-2 text-muted-foreground">Última Reserva</th>
-                      <th className="text-left p-2 text-muted-foreground">Categoría</th>
-                      <th className="text-left p-2 text-muted-foreground">Descuento</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analisis.clientesMasFrecuentes.map((usuario, index) => (
-                      <tr key={usuario.id || index} className="border-b hover:bg-muted/50">
-                        <td className="p-2 font-medium text-foreground">{usuario.nombre}</td>
-                        <td className="p-2 text-muted-foreground">{usuario.email}</td>
-                        <td className="p-2">
-                          <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-1 rounded-full text-xs">
-                            {usuario.reservas}
-                          </span>
-                        </td>
-                        <td className="p-2">{usuario.frecuencia}</td>
-                        <td className="p-2">{usuario.canchaPreferida}</td>
-                        <td className="p-2 text-muted-foreground">
-                          {usuario.ultimaReserva
+              <>
+                {/* Vista cards: móvil (< md) */}
+                <div className="block md:hidden space-y-4">
+                  {analisis.clientesMasFrecuentes.map((usuario, index) => (
+                    <div
+                      key={usuario.id || index}
+                      className="border rounded-lg p-4 space-y-2 bg-card text-card-foreground"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium text-foreground truncate">{usuario.nombre}</p>
+                        <Badge className={getCategoriaColor(usuario.categoria)}>{usuario.categoria}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground break-all">{usuario.email}</p>
+                      <div className="flex flex-wrap gap-2 text-sm">
+                        <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-1 rounded-full">
+                          {usuario.reservas} reservas
+                        </span>
+                        <span className="text-muted-foreground">{usuario.frecuencia}</span>
+                        {usuario.canchaPreferida && (
+                          <span className="text-muted-foreground">· {usuario.canchaPreferida}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Última: {usuario.ultimaReserva
                             ? new Date(usuario.ultimaReserva).toLocaleDateString('es-ES')
                             : 'N/A'}
-                        </td>
-                        <td className="p-2">
-                          <Badge className={getCategoriaColor(usuario.categoria)}>{usuario.categoria}</Badge>
-                        </td>
-                        <td className="p-2">
-                          <span className="font-medium text-green-600 dark:text-green-400">
-                            {usuario.descuento}%
-                          </span>
-                        </td>
+                        </span>
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          {usuario.descuento}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Vista tabla: tablet y desktop (md+) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm min-w-[600px]">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2 text-muted-foreground">Usuario</th>
+                        <th className="text-left p-2 text-muted-foreground">Email</th>
+                        <th className="text-left p-2 text-muted-foreground">Reservas</th>
+                        <th className="text-left p-2 text-muted-foreground">Frecuencia</th>
+                        <th className="text-left p-2 text-muted-foreground">Cancha Preferida</th>
+                        <th className="text-left p-2 text-muted-foreground">Última Reserva</th>
+                        <th className="text-left p-2 text-muted-foreground">Categoría</th>
+                        <th className="text-left p-2 text-muted-foreground">Descuento</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {analisis.clientesMasFrecuentes.map((usuario, index) => (
+                        <tr key={usuario.id || index} className="border-b hover:bg-muted/50">
+                          <td className="p-2 font-medium text-foreground">{usuario.nombre}</td>
+                          <td className="p-2 text-muted-foreground">{usuario.email}</td>
+                          <td className="p-2">
+                            <span className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 px-2 py-1 rounded-full text-xs">
+                              {usuario.reservas}
+                            </span>
+                          </td>
+                          <td className="p-2">{usuario.frecuencia}</td>
+                          <td className="p-2">{usuario.canchaPreferida}</td>
+                          <td className="p-2 text-muted-foreground">
+                            {usuario.ultimaReserva
+                              ? new Date(usuario.ultimaReserva).toLocaleDateString('es-ES')
+                              : 'N/A'}
+                          </td>
+                          <td className="p-2">
+                            <Badge className={getCategoriaColor(usuario.categoria)}>{usuario.categoria}</Badge>
+                          </td>
+                          <td className="p-2">
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              {usuario.descuento}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No hay usuarios frecuentes registrados

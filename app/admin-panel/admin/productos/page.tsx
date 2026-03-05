@@ -387,17 +387,17 @@ export default function ProductosPage() {
       {/* Header (misma posición que el resto de pestañas) */}
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">
             <span className="border-b-2 border-orange-500 pb-0.5">Gestión</span> de Productos
           </h1>
           <p className="text-muted-foreground text-xs mt-2">Administra catálogo, stock y precios de productos.</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-              <Button onClick={handleAbrirVenta} variant="outline" className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+              <Button onClick={handleAbrirVenta} variant="outline" className="flex items-center gap-2 min-h-[44px] sm:min-h-0">
                 <ShoppingCart className="w-4 h-4" />
                 Ventas
               </Button>
-              <Button onClick={handleNuevoProducto} className="flex items-center gap-2">
+              <Button onClick={handleNuevoProducto} className="flex items-center gap-2 min-h-[44px] sm:min-h-0">
                 <Plus className="w-4 h-4" />
                 Nuevo Producto
               </Button>

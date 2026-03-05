@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, Fragment, useEffect, useCallback } from "react"
-import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft, Loader2, Pencil, UserPlus } from "lucide-react"
+import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft, Loader2, Pencil, UserPlus, GripVertical } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -78,6 +78,20 @@ function StatusBadge({ status }: { status?: string }) {
 
 type TenantOption = { id: string; name: string; slug: string }
 
+type PartidoItem = {
+  id: string
+  round: string
+  positionInRound: number
+  groupId: string | null
+  bracketType: string | null
+  registration1Id: string | null
+  registration2Id: string | null
+  registration1Label: string | null
+  registration2Label: string | null
+  winnerLabel: string | null
+  score: string | null
+}
+
 export default function Page() {
   const { data: session } = useSession()
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
@@ -91,7 +105,7 @@ export default function Page() {
   const [inscripciones, setInscripciones] = useState<{ list: Array<{ id: string; type: string; playerName: string; playerEmail: string | null; partnerName: string | null; status: string }>; currentPairs: number; minPairs: number; maxPairs: number } | null>(null)
   const [inscripcionesError, setInscripcionesError] = useState<string | null>(null)
   const [loadingInscripciones, setLoadingInscripciones] = useState(false)
-  const [partidos, setPartidos] = useState<Array<{ id: string; round: string; positionInRound: number; registration1Label: string | null; registration2Label: string | null; winnerLabel: string | null; score: string | null }>>([])
+  const [partidos, setPartidos] = useState<PartidoItem[]>([])
   const [loadingPartidos, setLoadingPartidos] = useState(false)
   const [sorteoLoading, setSorteoLoading] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
@@ -103,7 +117,7 @@ export default function Page() {
   const [step, setStep] = useState(1)
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
-  const [tournamentFormat, setTournamentFormat] = useState<"DIRECT_ELIMINATION" | "GROUPS_DOUBLE_ELIMINATION">("DIRECT_ELIMINATION")
+  const [tournamentFormat, setTournamentFormat] = useState<"DIRECT_ELIMINATION" | "GROUPS_DOUBLE_ELIMINATION">("GROUPS_DOUBLE_ELIMINATION")
   const [prizeIsMonetary, setPrizeIsMonetary] = useState(true)
   const [prizeFirst, setPrizeFirst] = useState("")
   const [prizeSecond, setPrizeSecond] = useState("")
@@ -189,6 +203,12 @@ export default function Page() {
     }
   }, [selectedTorneo])
 
+  useEffect(() => {
+    if (view === "detalle" && selectedTorneo && inscripciones === null && !loadingInscripciones) {
+      fetchInscripciones()
+    }
+  }, [view, selectedTorneo, inscripciones, loadingInscripciones, fetchInscripciones])
+
   const fetchPartidos = useCallback(async () => {
     if (!selectedTorneo) return
     setLoadingPartidos(true)
@@ -203,6 +223,13 @@ export default function Page() {
       setLoadingPartidos(false)
     }
   }, [selectedTorneo])
+
+  // Al entrar al detalle del torneo, cargar inscripciones para mostrar en la pestaña Info
+  useEffect(() => {
+    if (view === "detalle" && selectedTorneo && !inscripciones && !loadingInscripciones) {
+      fetchInscripciones()
+    }
+  }, [view, selectedTorneo, fetchInscripciones, inscripciones, loadingInscripciones])
 
   const CATEGORIES = ["8va", "7ma", "6ta", "5ta", "4ta", "3ra", "2da", "1ra", "Mixto", "Suma"]
   const MAIN_CATEGORIES = ["8va", "7ma", "6ta"]
@@ -269,6 +296,25 @@ export default function Page() {
     maxPairs: maxPairs === "" ? undefined : Number(maxPairs),
     dayBlocks,
   }), [title, category, prizeFirst, prizeSecond, pairs, maxPairs, dayBlocks])
+
+  const participantsByGroup = useMemo((): Record<string, Array<{ id: string; label: string }>> => {
+    const withGroup = partidos.filter((p) => p.groupId != null)
+    const acc: Record<string, Array<{ id: string; label: string }>> = {}
+    for (const p of withGroup) {
+      const g = p.groupId!
+      if (!acc[g]) acc[g] = []
+      const seen = new Set(acc[g].map((x) => x.id))
+      if (p.registration1Id && !seen.has(p.registration1Id)) {
+        acc[g].push({ id: p.registration1Id, label: p.registration1Label ?? "—" })
+        seen.add(p.registration1Id)
+      }
+      if (p.registration2Id && !seen.has(p.registration2Id)) {
+        acc[g].push({ id: p.registration2Id, label: p.registration2Label ?? "—" })
+        seen.add(p.registration2Id)
+      }
+    }
+    return acc
+  }, [partidos])
 
   async function handlePublish() {
     setPublishError(null)
@@ -340,7 +386,7 @@ export default function Page() {
       setStep(1)
       setTitle("")
       setCategory("")
-      setTournamentFormat("DIRECT_ELIMINATION")
+      setTournamentFormat("GROUPS_DOUBLE_ELIMINATION")
       setPrizeIsMonetary(true)
       setPrizeFirst("")
       setPrizeSecond("")
@@ -400,7 +446,7 @@ export default function Page() {
       {/* Header */}
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">
             {view === "historial" ? "Torneos" : view === "detalle" ? "Detalle del torneo" : editTorneoId ? "Editar torneo" : "Crear Nuevo Torneo"}
           </h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
@@ -410,22 +456,22 @@ export default function Page() {
             {view === "crear" && "Define categorías, premios y cronograma del torneo."}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
           {view === "historial" && (
-            <Button onClick={() => setView("crear")} className="flex items-center gap-2">
+            <Button onClick={() => setView("crear")} className="flex items-center gap-2 min-h-[44px] sm:min-h-0">
               <Plus className="w-4 h-4" />
               Crear torneo
             </Button>
           )}
           {(view === "detalle" || view === "crear") && (
-            <Button variant="outline" onClick={() => {
+            <Button variant="outline" className="flex items-center gap-2 min-h-[44px] sm:min-h-0" onClick={() => {
               setView("historial")
               setSelectedTorneo(null)
               setDetalleTab("info")
               setInscripciones(null)
               setInscripcionesError(null)
               setEditTorneoId(null)
-              setTournamentFormat("DIRECT_ELIMINATION")
+              setTournamentFormat("GROUPS_DOUBLE_ELIMINATION")
               setPrizeIsMonetary(true)
               setPrizeFirstDescription("")
               setPrizeSecondDescription("")
@@ -438,7 +484,7 @@ export default function Page() {
               setPrizeGoldSecondDesc("")
               setPrizeSilverFirstDesc("")
               setPrizeSilverSecondDesc("")
-            }} className="flex items-center gap-2">
+            }}>
               <ArrowLeft className="w-4 h-4" />
               Volver
             </Button>
@@ -496,6 +542,13 @@ export default function Page() {
                             {STATUS_LABELS[t.status] ?? t.status}
                           </span>
                         )}
+                        {(t.tournamentFormat || t.numberOfGroups != null) && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-medium border border-white/20">
+                            {t.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" || (t.numberOfGroups != null && t.numberOfGroups > 0)
+                              ? "Fase de grupos"
+                              : "Eliminación directa"}
+                          </span>
+                        )}
                       </div>
                       <h2 className="text-sm font-bold tracking-tight text-white drop-shadow-md leading-tight line-clamp-2">
                         {t.title}
@@ -511,16 +564,37 @@ export default function Page() {
                         <Medal className="w-2.5 h-2.5" />
                         Premios
                       </p>
-                      <div className="flex gap-2">
-                        <div className="flex-1 rounded-md border border-yellow-100 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-900/10 px-2 py-1.5">
-                          <p className="text-[8px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">1°</p>
-                          <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeFirst)}</p>
+                      {t.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" || (t.numberOfGroups != null && t.numberOfGroups > 0) ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-md border border-amber-200/50 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10 px-2 py-1.5">
+                            <p className="text-[8px] text-amber-600 dark:text-amber-400 font-bold uppercase">Liga oro</p>
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {t.prizeGoldFirst != null || t.prizeGoldSecond != null
+                                ? [t.prizeGoldFirst, t.prizeGoldSecond].filter((v) => v != null).map((v) => prizeToDisplay(v)).join(" / ")
+                                : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20 px-2 py-1.5">
+                            <p className="text-[8px] text-slate-600 dark:text-slate-400 font-bold uppercase">Liga plata</p>
+                            <p className="text-xs font-bold text-foreground truncate">
+                              {t.prizeSilverFirst != null || t.prizeSilverSecond != null
+                                ? [t.prizeSilverFirst, t.prizeSilverSecond].filter((v) => v != null).map((v) => prizeToDisplay(v)).join(" / ")
+                                : "—"}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 px-2 py-1.5">
-                          <p className="text-[8px] text-gray-600 dark:text-gray-400 font-bold uppercase">2°</p>
-                          <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeSecond)}</p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <div className="flex-1 rounded-md border border-yellow-100 dark:border-yellow-900/30 bg-yellow-50/50 dark:bg-yellow-900/10 px-2 py-1.5">
+                            <p className="text-[8px] text-yellow-600 dark:text-yellow-400 font-bold uppercase">1°</p>
+                            <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeFirst)}</p>
+                          </div>
+                          <div className="flex-1 rounded-md border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 px-2 py-1.5">
+                            <p className="text-[8px] text-gray-600 dark:text-gray-400 font-bold uppercase">2°</p>
+                            <p className="text-xs font-bold text-foreground truncate">{prizeToDisplay(t.prizeSecond)}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
@@ -589,7 +663,11 @@ export default function Page() {
                   setEditTorneoId(selectedTorneo.id)
                   setTitle(selectedTorneo.title)
                   setCategory(selectedTorneo.category)
-                  setTournamentFormat((selectedTorneo.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" ? "GROUPS_DOUBLE_ELIMINATION" : "DIRECT_ELIMINATION"))
+                  setTournamentFormat(
+                    selectedTorneo.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" || (selectedTorneo.numberOfGroups != null && selectedTorneo.numberOfGroups > 0)
+                      ? "GROUPS_DOUBLE_ELIMINATION"
+                      : "DIRECT_ELIMINATION"
+                  )
                   setPrizeIsMonetary(selectedTorneo.prizeIsMonetary !== false)
                   setPrizeFirst(prizeToDisplay(selectedTorneo.prizeFirst))
                   setPrizeSecond(prizeToDisplay(selectedTorneo.prizeSecond))
@@ -627,18 +705,62 @@ export default function Page() {
           </div>
           <div className="border-t pt-4">
             {detalleTab === "info" && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase font-semibold">Premios</p>
-                  <p className="text-sm">1° {prizeToDisplay(selectedTorneo.prizeFirst)} — 2° {prizeToDisplay(selectedTorneo.prizeSecond)}</p>
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Premios</p>
+                    {selectedTorneo.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" || (selectedTorneo.numberOfGroups != null && selectedTorneo.numberOfGroups > 0) ? (
+                      <div className="text-sm space-y-1">
+                        <p>Liga oro: {[selectedTorneo.prizeGoldFirst, selectedTorneo.prizeGoldSecond].filter((v) => v != null).length > 0 ? [selectedTorneo.prizeGoldFirst, selectedTorneo.prizeGoldSecond].filter((v) => v != null).map((v) => prizeToDisplay(v)).join(" / ") : "—"}</p>
+                        <p>Liga plata: {[selectedTorneo.prizeSilverFirst, selectedTorneo.prizeSilverSecond].filter((v) => v != null).length > 0 ? [selectedTorneo.prizeSilverFirst, selectedTorneo.prizeSilverSecond].filter((v) => v != null).map((v) => prizeToDisplay(v)).join(" / ") : "—"}</p>
+                      </div>
+                    ) : (
+                      <p className="text-sm">1° {prizeToDisplay(selectedTorneo.prizeFirst)} — 2° {prizeToDisplay(selectedTorneo.prizeSecond)}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase font-semibold">Fechas</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {selectedTorneo.dayBlocks.map((d, i) => (
+                        <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded">{formatDateEs(d.date)}</span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase font-semibold">Fechas</p>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedTorneo.dayBlocks.map((d, i) => (
-                      <span key={i} className="text-xs bg-muted px-2 py-0.5 rounded">{formatDateEs(d.date)}</span>
-                    ))}
-                  </div>
+                  <p className="text-xs text-muted-foreground uppercase font-semibold mb-2">
+                    Parejas inscritas
+                    {!loadingInscripciones && inscripciones && !inscripcionesError && (
+                      <span className="normal-case font-normal text-foreground ml-1">
+                        ({inscripciones.currentPairs} {inscripciones.currentPairs === 1 ? "pareja" : "parejas"})
+                      </span>
+                    )}
+                  </p>
+                  {loadingInscripciones && (
+                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cargando inscripciones…
+                    </div>
+                  )}
+                  {!loadingInscripciones && inscripcionesError && (
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 space-y-2">
+                      <p className="text-sm text-destructive">{inscripcionesError}</p>
+                      <Button type="button" variant="outline" size="sm" onClick={fetchInscripciones}>Reintentar</Button>
+                    </div>
+                  )}
+                  {!loadingInscripciones && inscripciones && !inscripcionesError && inscripciones.list.length === 0 && (
+                    <p className="text-sm text-muted-foreground py-4 rounded-lg border border-dashed border-border bg-muted/20 px-4">No hay parejas anotadas.</p>
+                  )}
+                  {!loadingInscripciones && inscripciones && !inscripcionesError && inscripciones.list.length > 0 && (
+                    <ul className="space-y-2 rounded-lg border border-border/50 bg-muted/20 p-4">
+                      {inscripciones.list.map((r) => (
+                        <li key={r.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-3 py-2 text-sm">
+                          <span>{r.type === "PAIR" ? `${r.playerName} + ${r.partnerName ?? "—"}` : r.playerName}</span>
+                          <span className="text-muted-foreground text-xs">{r.type === "PAIR" ? "Pareja" : "Solo"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             )}
@@ -718,49 +840,127 @@ export default function Page() {
             {detalleTab === "fixture" && (
               <div className="space-y-4">
                 {loadingPartidos && <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-                {!loadingPartidos && partidos.length === 0 && (
-                  <div className="rounded-lg border border-border/50 bg-muted/30 p-6 space-y-4">
-                    <p className="text-sm text-muted-foreground">Realiza el sorteo para ver el cuadro de partidos.</p>
-                    {inscripciones && inscripciones.currentPairs >= inscripciones.minPairs && (
-                      <>
-                        <p className="text-sm font-medium">Ya puedes realizar el sorteo con {inscripciones.currentPairs} parejas.</p>
-                        <Button size="sm" disabled={sorteoLoading} onClick={async () => {
-                          if (!selectedTorneo) return
-                          setSorteoLoading(true)
-                          try {
-                            const res = await fetch(`/api/torneos/${selectedTorneo.id}/sorteo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "include" })
-                            const json = await res.json().catch(() => ({}))
-                            if (!res.ok) { toast.error(json?.message ?? "Error al realizar el sorteo"); return }
-                            toast.success("Sorteo realizado. Ya puedes ver el cuadro.")
-                            await fetchPartidos()
-                          } catch { toast.error("Error de conexión") }
-                          finally { setSorteoLoading(false) }
-                        }}>
-                          {sorteoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                          Realizar sorteo
-                        </Button>
-                      </>
+                {!loadingPartidos && selectedTorneo?.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" && (
+                  <>
+                    {partidos.length === 0 && (
+                      <div className="rounded-lg border border-border/50 bg-muted/30 p-6 space-y-4">
+                        <p className="text-sm text-muted-foreground">Realiza el sorteo para ver el cuadro de partidos por grupos.</p>
+                        {inscripciones && inscripciones.currentPairs >= inscripciones.minPairs && (
+                          <>
+                            <p className="text-sm font-medium">Ya puedes realizar el sorteo con {inscripciones.currentPairs} parejas.</p>
+                            <Button size="sm" disabled={sorteoLoading} onClick={async () => {
+                              if (!selectedTorneo) return
+                              setSorteoLoading(true)
+                              try {
+                                const res = await fetch(`/api/torneos/${selectedTorneo.id}/sorteo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "include" })
+                                const json = await res.json().catch(() => ({}))
+                                if (!res.ok) { toast.error(json?.message ?? "Error al realizar el sorteo"); return }
+                                toast.success("Sorteo realizado. Ya puedes ver el cuadro.")
+                                await fetchPartidos()
+                              } catch { toast.error("Error de conexión") }
+                              finally { setSorteoLoading(false) }
+                            }}>
+                              {sorteoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                              Realizar sorteo
+                            </Button>
+                          </>
+                        )}
+                        {inscripciones && inscripciones.currentPairs < inscripciones.minPairs && (
+                          <p className="text-sm text-muted-foreground">Se necesitan al menos {inscripciones.minPairs} parejas para realizar el sorteo (hay {inscripciones.currentPairs}).</p>
+                        )}
+                        {!inscripciones && !loadingInscripciones && <p className="text-sm text-muted-foreground">Cargando datos de inscripciones...</p>}
+                      </div>
                     )}
-                    {inscripciones && inscripciones.currentPairs < inscripciones.minPairs && (
-                      <p className="text-sm text-muted-foreground">Se necesitan al menos {inscripciones.minPairs} parejas para realizar el sorteo (hay {inscripciones.currentPairs}).</p>
-                    )}
-                    {!inscripciones && !loadingInscripciones && <p className="text-sm text-muted-foreground">Cargando datos de inscripciones...</p>}
-                  </div>
-                )}
-                {!loadingPartidos && partidos.length > 0 && (
-                  <div className="space-y-4">
-                    <p className="text-sm font-medium">Cuadro de partidos ({partidos.length} partidos)</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {partidos.map((m) => (
-                        <div key={m.id} className="rounded-lg border border-border/50 p-3 text-sm">
-                          <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">{m.round.replace(/_/g, " ")} · Partido {m.positionInRound + 1}</p>
-                          <p className="font-medium">{(m.registration1Label ?? "Bye")} vs {(m.registration2Label ?? "Bye")}</p>
-                          {m.score && <p className="text-muted-foreground mt-1">Resultado: {m.score}</p>}
-                          {m.winnerLabel && <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">Ganador: {m.winnerLabel}</p>}
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Array.from({ length: selectedTorneo?.numberOfGroups ?? 4 }, (_, i) => i + 1).map((g) => {
+                        const groupId = String(g)
+                        const letter = String.fromCharCode(64 + g)
+                        const participants = participantsByGroup[groupId] ?? []
+                        return (
+                          <div key={groupId} className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-2xl font-bold text-foreground">{letter}</p>
+                                <p className="text-sm text-green-600 dark:text-green-400 font-medium">{participants.length} Participants</p>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-50 cursor-not-allowed" disabled aria-label="Eliminar grupo">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <div className="rounded-lg border border-dashed border-border bg-muted/30 py-6 flex items-center justify-center">
+                              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Asignar participantes</span>
+                            </div>
+                            <ul className="space-y-2">
+                              {participants.map((participant, idx) => (
+                                <li key={participant.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/20 px-3 py-2">
+                                  <GripVertical className="w-4 h-4 shrink-0 text-muted-foreground" />
+                                  <span className="text-sm font-medium tabular-nums w-7">{String(idx + 1).padStart(2, "0")}</span>
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                    <Users className="w-4 h-4 text-muted-foreground" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium truncate">{participant.label}</p>
+                                    <p className="text-xs text-muted-foreground">{idx + 1}º en grupo</p>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
+                  </>
+                )}
+                {!loadingPartidos && selectedTorneo?.tournamentFormat !== "GROUPS_DOUBLE_ELIMINATION" && (
+                  <>
+                    <p className="text-sm text-muted-foreground rounded-lg bg-muted/40 border border-border/50 px-3 py-2">
+                      Este torneo usa <strong>Eliminatoria directa</strong>. La vista por grupos (Grupo A, B, C, D) solo aparece en torneos con formato &quot;Fase de grupos + Doble Eliminatoria&quot;. Puedes editar el torneo y cambiar el formato si deseas ver el cuadro por grupos (luego deberás realizar el sorteo de nuevo).
+                    </p>
+                    {partidos.length === 0 && (
+                      <div className="rounded-lg border border-border/50 bg-muted/30 p-6 space-y-4">
+                        <p className="text-sm text-muted-foreground">Realiza el sorteo para ver el cuadro de partidos.</p>
+                        {inscripciones && inscripciones.currentPairs >= inscripciones.minPairs && (
+                          <>
+                            <p className="text-sm font-medium">Ya puedes realizar el sorteo con {inscripciones.currentPairs} parejas.</p>
+                            <Button size="sm" disabled={sorteoLoading} onClick={async () => {
+                              if (!selectedTorneo) return
+                              setSorteoLoading(true)
+                              try {
+                                const res = await fetch(`/api/torneos/${selectedTorneo.id}/sorteo`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}), credentials: "include" })
+                                const json = await res.json().catch(() => ({}))
+                                if (!res.ok) { toast.error(json?.message ?? "Error al realizar el sorteo"); return }
+                                toast.success("Sorteo realizado. Ya puedes ver el cuadro.")
+                                await fetchPartidos()
+                              } catch { toast.error("Error de conexión") }
+                              finally { setSorteoLoading(false) }
+                            }}>
+                              {sorteoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                              Realizar sorteo
+                            </Button>
+                          </>
+                        )}
+                        {inscripciones && inscripciones.currentPairs < inscripciones.minPairs && (
+                          <p className="text-sm text-muted-foreground">Se necesitan al menos {inscripciones.minPairs} parejas para realizar el sorteo (hay {inscripciones.currentPairs}).</p>
+                        )}
+                        {!inscripciones && !loadingInscripciones && <p className="text-sm text-muted-foreground">Cargando datos de inscripciones...</p>}
+                      </div>
+                    )}
+                    {partidos.length > 0 && (
+                      <div className="space-y-4">
+                        <p className="text-sm font-medium">Cuadro de partidos ({partidos.length} partidos)</p>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {partidos.map((m) => (
+                            <div key={m.id} className="rounded-lg border border-border/50 p-3 text-sm">
+                              <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">{m.round.replace(/_/g, " ")} · Partido {m.positionInRound + 1}</p>
+                              <p className="font-medium">{(m.registration1Label ?? "Bye")} vs {(m.registration2Label ?? "Bye")}</p>
+                              {m.score && <p className="text-muted-foreground mt-1">Resultado: {m.score}</p>}
+                              {m.winnerLabel && <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">Ganador: {m.winnerLabel}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -968,17 +1168,17 @@ export default function Page() {
                   <div className="flex flex-wrap gap-2 pl-4 border-l-2 border-border/50 ml-1">
                     <button
                       type="button"
-                      onClick={() => setTournamentFormat("DIRECT_ELIMINATION")}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${tournamentFormat === "DIRECT_ELIMINATION" ? "bg-blue-600 text-white border-blue-600" : "bg-background border-input hover:border-blue-500"}`}
-                    >
-                      Eliminatoria directa
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setTournamentFormat("GROUPS_DOUBLE_ELIMINATION")}
                       className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" ? "bg-blue-600 text-white border-blue-600" : "bg-background border-input hover:border-blue-500"}`}
                     >
                       Fase de grupos + Doble Eliminatoria
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTournamentFormat("DIRECT_ELIMINATION")}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${tournamentFormat === "DIRECT_ELIMINATION" ? "bg-blue-600 text-white border-blue-600" : "bg-background border-input hover:border-blue-500"}`}
+                    >
+                      Eliminatoria directa
                     </button>
                   </div>
                   {tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" && (

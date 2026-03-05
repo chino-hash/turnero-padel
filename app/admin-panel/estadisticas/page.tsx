@@ -47,16 +47,16 @@ export default function EstadisticasPage() {
       {/* Header (misma posición que el resto de pestañas) */}
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-light text-foreground mb-2">Estadísticas</h1>
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">Estadísticas</h1>
           <div className="w-16 h-0.5 bg-orange-500"></div>
           <p className="text-muted-foreground text-xs mt-2">Análisis de ocupación y rendimiento del complejo.</p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
           <Button
             onClick={refetch}
             variant="outline"
             disabled={loading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 min-h-[44px] sm:min-h-0"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Actualizar

@@ -8,12 +8,16 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [Unreleased]
 
 ### Cambiado
+- **Admin Torneos – orden y preselección de botones de formato**
+  - En el Paso 1 del formulario de torneos se invirtió el orden de los botones "Formato del torneo": a la izquierda queda "Fase de grupos + Doble Eliminatoria" y a la derecha "Eliminatoria directa".
+  - El valor por defecto del formato pasó a ser "Fase de grupos + Doble Eliminatoria" (`GROUPS_DOUBLE_ELIMINATION`) para que el botón de la izquierda siga preseleccionado; los resets del formulario (tras publicar o al volver) usan el mismo valor.
 - **Panel de administración – posición de títulos unificada**
   - Contenedor común en `AdminLayoutContent`: todo el contenido del panel se renderiza dentro de `max-w-7xl mx-auto px-4 sm:px-6 py-6`, de modo que el título de cada pestaña quede en la misma posición al cambiar de sección.
   - Estructura unificada del bloque de título en todas las páginas del admin: `min-h-[5.5rem]`, mismo `h1` (text-3xl font-light), línea naranja y descripción (text-xs); botones opcionales a la derecha con `flex-shrink-0`.
   - Páginas actualizadas: Turnos, Canchas, Usuarios, Productos, Ventas, Torneos, Panel de Administración (dashboard), Estadísticas.
 
 ### Documentación
+- Añadido `docs/actualizaciones/admin-torneos-formato-botones-2026-03.md` con el detalle del orden y preselección de los botones de formato del torneo.
 - Añadido `docs/actualizaciones/unificacion-titulos-admin-2026-02.md` con el detalle de la unificación de títulos del panel admin.
 
 ---
