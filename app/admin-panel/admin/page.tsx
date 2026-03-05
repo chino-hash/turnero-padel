@@ -10,12 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
+import { Textarea } from '../../../components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent } from '../../../components/ui/popover'
 import { splitEven } from '../../../lib/utils/extras'
 import { 
   Calendar, 
-  Clock, 
   Users, 
   DollarSign, 
   Search, 
@@ -30,7 +30,11 @@ import {
   MapPin,
   User,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Tag,
+  MessageCircle,
+  Link as LinkIcon,
+  Camera
 } from 'lucide-react'
 import Link from 'next/link'
 import { useAppState } from '../../../components/providers/AppStateProvider'
@@ -185,17 +189,6 @@ export default function AdminDashboard() {
     } catch {}
     return ''
   })
-  const [homeSessionText, setHomeSessionText] = useState(() => {
-    if (typeof window === 'undefined') return '1:30 hour sessions'
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.sessionText || '1:30 hour sessions'
-      }
-    } catch {}
-    return '1:30 hour sessions'
-  })
   const [homeDescriptionText, setHomeDescriptionText] = useState(() => {
     if (typeof window === 'undefined') return 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
     try {
@@ -299,7 +292,6 @@ export default function AdminDashboard() {
             setHomeLabelCourtName(parsed2?.labelCourtName || 'Nombre de la cancha')
             setHomeLocationName(parsed2?.locationName || 'Downtown Sports Center')
             setHomeMapUrl(parsed2?.mapUrl || '')
-            setHomeSessionText(parsed2?.sessionText || '1:30 hour sessions')
             setHomeDescriptionText(parsed2?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.')
             setHomeIconImage(parsed2?.iconImage || '')
           } catch {}
@@ -823,135 +815,267 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Editar información del dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-2" htmlFor="home-label-court">Nombre de la cancha (etiqueta)</Label>
-              <Input id="home-label-court" value={homeLabelCourtName} onChange={(e) => setHomeLabelCourtName(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label className="mb-2" htmlFor="home-location-name">Dirección / Nombre del lugar</Label>
-                <Input id="home-location-name" value={homeLocationName} onChange={(e) => setHomeLocationName(e.target.value)} />
+      <Card className="mt-4 shadow-sm border rounded-xl flex flex-col gap-3 py-3 bg-card text-card-foreground">
+        <CardContent className="px-3 pb-3 pt-0 space-y-3">
+          {/* Sección 1: Detalles Generales */}
+          <Card className="rounded-lg border shadow-sm bg-card">
+            <CardHeader className="py-2 px-3 pb-1.5">
+              <CardTitle className="text-base font-medium">Detalles Generales</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3 pt-0 space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="home-label-court" className="flex items-center gap-2 text-sm font-medium">
+                  <Tag className="w-4 h-4 text-muted-foreground" />
+                  Nombre de la cancha
+                </Label>
+                <Input
+                  id="home-label-court"
+                  value={homeLabelCourtName}
+                  onChange={(e) => setHomeLabelCourtName(e.target.value)}
+                  placeholder="Ej: Cancha 1 - Norte"
+                  className="border-input bg-background rounded-md"
+                />
               </div>
-              <div>
-                <Label className="mb-2" htmlFor="home-map-url">URL de Google Maps</Label>
-                <Input id="home-map-url" value={homeMapUrl} onChange={(e) => setHomeMapUrl(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <Label className="mb-2" htmlFor="home-session-text">Horarios / Duración</Label>
-              <Input id="home-session-text" value={homeSessionText} onChange={(e) => setHomeSessionText(e.target.value)} />
-            </div>
-            <div>
-              <Label className="mb-2" htmlFor="home-description-text">Información visible</Label>
-              <Input id="home-description-text" value={homeDescriptionText} onChange={(e) => setHomeDescriptionText(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label className="mb-2" htmlFor="home-icon-file">Imagen del icono</Label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  const reader = new FileReader()
-                  reader.onload = () => {
-                    const result = reader.result
-                    if (typeof result === 'string') setHomeIconImage(result)
-                  }
-                  reader.readAsDataURL(file)
-                }}
-                id="home-icon-file"
-                className="w-full px-3 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              />
-              {homeIconImage && (
-                <div className="mt-2">
-                  <img src={homeIconImage} alt="Previsualización" className="w-16 h-16 object-cover rounded-md border" />
+              <div className="space-y-1">
+                <Label htmlFor="home-description-text" className="flex items-center gap-2 text-sm font-medium">
+                  <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                  Mensaje visible
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    id="home-description-text"
+                    value={homeDescriptionText}
+                    onChange={(e) => setHomeDescriptionText(e.target.value.slice(0, 120))}
+                    placeholder="Ingresar mensaje para clientes (ej. Usar esta app)"
+                    rows={2}
+                    className="resize-none border-input bg-background rounded-md pr-16"
+                    maxLength={120}
+                  />
+                  <span className="absolute bottom-2 right-3 text-xs text-muted-foreground">
+                    {homeDescriptionText.length} / 120
+                  </span>
                 </div>
-              )}
-            </div>
-            <div className="flex gap-2 mt-2">
-              <Button 
-                onClick={async () => {
-                  const homePayload = {
-                    labelCourtName: homeLabelCourtName.trim(),
-                    locationName: homeLocationName.trim(),
-                    mapUrl: homeMapUrl.trim(),
-                    sessionText: homeSessionText.trim(),
-                    descriptionText: homeDescriptionText.trim(),
-                    iconImage: homeIconImage.trim()
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Sección 2: Dos columnas - Ubicación | Configuración y Multimedia */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <Card className="rounded-lg border shadow-sm bg-card">
+              <CardHeader className="py-2 px-3 pb-1.5">
+                <CardTitle className="text-base font-medium">Ubicación</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3 pt-0 space-y-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="home-location-name" className="flex items-center gap-2 text-sm font-medium">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    Dirección física
+                  </Label>
+                  <Input
+                    id="home-location-name"
+                    value={homeLocationName}
+                    onChange={(e) => setHomeLocationName(e.target.value)}
+                    placeholder="Avenida Libertador"
+                    className="border-input bg-background rounded-md"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="home-map-url" className="flex items-center gap-2 text-sm font-medium">
+                    <LinkIcon className="w-4 h-4 text-muted-foreground" />
+                    URL de Google Maps
+                  </Label>
+                  <Input
+                    id="home-map-url"
+                    value={homeMapUrl}
+                    onChange={(e) => setHomeMapUrl(e.target.value)}
+                    placeholder="Pega la URL para compartir, ej. https://maps.app.goo.gl/..."
+                    className="border-input bg-background rounded-md"
+                  />
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Para asegurar la navegación, pega el enlace corto de la ubicación.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-lg border shadow-sm bg-card">
+              <CardHeader className="py-2 px-3 pb-1.5">
+                <CardTitle className="text-base font-medium">Configuración y Multimedia</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3 pt-0 space-y-2.5">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Camera className="w-4 h-4 text-muted-foreground" />
+                    Imagen del Icono
+                  </Label>
+                  <div className="flex flex-col sm:flex-row gap-2 items-start">
+                    {homeIconImage ? (
+                      <>
+                        <img
+                          src={homeIconImage}
+                          alt="Icono de la cancha"
+                          className="w-16 h-16 object-cover rounded-lg border border-input shrink-0"
+                        />
+                        <div className="flex gap-1.5 flex-wrap">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="default"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            onClick={() => document.getElementById('home-icon-file')?.click()}
+                          >
+                            Cambiar imagen
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            className="bg-red-600/90 hover:bg-red-700/90 text-white border-0"
+                            onClick={() => setHomeIconImage('')}
+                          >
+                            Eliminar imagen
+                          </Button>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="home-icon-file"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      const reader = new FileReader()
+                      reader.onload = () => {
+                        const result = reader.result
+                        if (typeof result === 'string') setHomeIconImage(result)
+                      }
+                      reader.readAsDataURL(file)
+                    }}
+                  />
+                  <div
+                    className="border border-dashed border-input rounded-lg p-3 flex flex-col items-center justify-center gap-1 text-center cursor-pointer hover:bg-muted/50 transition-colors min-h-[80px]"
+                    onClick={() => document.getElementById('home-icon-file')?.click()}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-muted/50') }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('bg-muted/50') }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.classList.remove('bg-muted/50')
+                      const file = e.dataTransfer.files?.[0]
+                      if (file?.type.startsWith('image/')) {
+                        const reader = new FileReader()
+                        reader.onload = () => {
+                          const result = reader.result
+                          if (typeof result === 'string') setHomeIconImage(result)
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  >
+                    <Camera className="w-6 h-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Arrastrar imagen aquí o subir archivo</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Este icono se mostrará en la lista de canchas.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Footer de acciones */}
+          <footer className="flex flex-col sm:flex-row gap-2 justify-end pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full sm:w-auto bg-muted text-muted-foreground hover:bg-muted/80"
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem('home_card_settings_latest')
+                  if (raw) {
+                    const parsed = JSON.parse(raw)
+                    setHomeLabelCourtName(parsed?.labelCourtName ?? '')
+                    setHomeLocationName(parsed?.locationName ?? '')
+                    setHomeMapUrl(parsed?.mapUrl ?? '')
+                    setHomeDescriptionText(parsed?.descriptionText ?? '')
+                    setHomeIconImage(parsed?.iconImage ?? '')
                   }
-                  try {
-                    localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
-                    localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
-                    window.dispatchEvent(new Event('home_card_settings_updated'))
-                  } catch {}
-                  try {
-                    let resHome
-                    if (homeSettingsId) {
-                      resHome = await fetch(`/api/crud/systemSetting/${homeSettingsId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          value: JSON.stringify(homePayload),
-                          dataType: 'JSON',
-                          description: 'Configuración de tarjeta principal',
-                          category: 'home_card'
-                        })
+                } catch {}
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={async () => {
+                const homePayload = {
+                  labelCourtName: homeLabelCourtName.trim(),
+                  locationName: homeLocationName.trim(),
+                  mapUrl: homeMapUrl.trim(),
+                  sessionText: '90 minutos',
+                  descriptionText: homeDescriptionText.trim(),
+                  iconImage: homeIconImage.trim()
+                }
+                try {
+                  localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
+                  localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                  window.dispatchEvent(new Event('home_card_settings_updated'))
+                } catch {}
+                try {
+                  let resHome
+                  if (homeSettingsId) {
+                    resHome = await fetch(`/api/crud/systemSetting/${homeSettingsId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        value: JSON.stringify(homePayload),
+                        dataType: 'JSON',
+                        description: 'Configuración de tarjeta principal',
+                        category: 'home_card'
                       })
-                    } else {
-                      resHome = await fetch('/api/crud/systemSetting', {
+                    })
+                  } else {
+                    resHome = await fetch('/api/crud/systemSetting', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        key: 'home_card_settings',
+                        value: JSON.stringify(homePayload),
+                        dataType: 'JSON',
+                        description: 'Configuración de tarjeta principal',
+                        category: 'home_card',
+                        isPublic: true
+                      })
+                    })
+                  }
+                  const jsonHome = await resHome.json()
+                  if (resHome.ok && jsonHome?.success) {
+                    if (!homeSettingsId && jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
+                    try {
+                      localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
+                      localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                      window.dispatchEvent(new Event('home_card_settings_updated'))
+                      fetch('/api/admin/test-event', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          key: 'home_card_settings',
-                          value: JSON.stringify(homePayload),
-                          dataType: 'JSON',
-                          description: 'Configuración de tarjeta principal',
-                          category: 'home_card',
-                          isPublic: true
-                        })
-                      })
-                    }
-                    const jsonHome = await resHome.json()
-                    if (resHome.ok && jsonHome?.success) {
-                      if (!homeSettingsId && jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
-                      try {
-                        const homePayload = {
-                          labelCourtName: homeLabelCourtName.trim(),
-                          locationName: homeLocationName.trim(),
-                          mapUrl: homeMapUrl.trim(),
-                          sessionText: homeSessionText.trim(),
-                          descriptionText: homeDescriptionText.trim(),
-                          iconImage: homeIconImage.trim()
-                        }
-                        localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
-                        localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
-                        window.dispatchEvent(new Event('home_card_settings_updated'))
-                        fetch('/api/admin/test-event', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ type: 'admin_change', message: 'home_card_settings updated', key: 'home_card_settings' })
-                        }).catch(() => {})
-                      } catch {}
-                      toast.success('Cambios guardados')
-                    } else {
-                      toast.error(String(jsonHome?.error || 'Error al guardar tarjeta principal'))
-                    }
-                  } catch (e) {
-                    toast.error('Error de conexión al guardar')
+                        body: JSON.stringify({ type: 'admin_change', message: 'home_card_settings updated', key: 'home_card_settings' })
+                      }).catch(() => {})
+                    } catch {}
+                    toast.success('Cambios guardados')
+                  } else {
+                    toast.error(String(jsonHome?.error || 'Error al guardar tarjeta principal'))
                   }
-                }} 
-              >
-                Guardar
-              </Button>
-            </div>
-          </div>
+                } catch (e) {
+                  toast.error('Error de conexión al guardar')
+                }
+              }}
+            >
+              Guardar Cambios
+            </Button>
+          </footer>
         </CardContent>
       </Card>
 
