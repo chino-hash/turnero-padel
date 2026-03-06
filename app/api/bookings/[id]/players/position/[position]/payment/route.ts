@@ -124,10 +124,12 @@ export async function PATCH(
         const effective = p.hasPaid ? (amount > 0 ? amount : Math.round(sharePerPlayer)) : amount
         return s + effective
       }, 0)
-      const setting = await prisma.systemSetting.findFirst({
-        where: { tenantId: bookingTenantId, key: 'depositConfirmPercent' },
-        select: { value: true }
-      })
+      const setting = bookingTenantId
+        ? await prisma.systemSetting.findFirst({
+            where: { tenantId: bookingTenantId, key: 'depositConfirmPercent' },
+            select: { value: true }
+          })
+        : null
       const percent = setting?.value ? Math.min(100, Math.max(0, parseInt(setting.value, 10) || 0)) : 0
       if (percent > 0 && total > 0 && totalPaid >= (total * percent) / 100) {
         const confirmResult = await bookingService.updateBooking(
