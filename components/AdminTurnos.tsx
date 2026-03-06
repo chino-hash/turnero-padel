@@ -804,13 +804,13 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       if (!res.ok) throw new Error('Error al obtener datos')
       const payload = await res.json()
       const list = Array.isArray(payload?.data) ? payload.data : []
-      let mapped: Booking[] = list.map(mapApiBookingToLocal).filter(b => b.status !== 'pendiente')
+      let mapped: Booking[] = list.map(mapApiBookingToLocal).filter((b: Booking) => b.status !== 'pendiente')
       if (statusFilter === 'in_progress') {
-        mapped = mapped.filter(b => getCategoryAndRemaining(b).category === 'in_progress')
+        mapped = mapped.filter((b: Booking) => getCategoryAndRemaining(b).category === 'in_progress')
       }
       if (searchTermDebounced) {
         const term = searchTermDebounced.toLowerCase()
-        mapped = mapped.filter(b =>
+        mapped = mapped.filter((b: Booking) =>
           b.userName.toLowerCase().includes(term) ||
           b.userEmail.toLowerCase().includes(term) ||
           b.courtName.toLowerCase().includes(term)
