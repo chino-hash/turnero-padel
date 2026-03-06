@@ -772,11 +772,11 @@ export class BookingService {
           pending: stats.pending,
           revenue: stats.revenue,
           occupancyRate: Math.round(occupancyRate * 100) / 100,
-          byDay: statsData.byDay ?? {},
+          byDay: (statsData.byDay as Record<string, number> | undefined) ?? ({} as Record<string, number>),
           activeUsers: statsData.activeUsers ?? 0,
-          byStatus: (statsData.byStatus as Record<string, number>) ?? {},
-          byCourt: (statsData.byCourt as Record<string, number>) ?? {},
-          byHour: (statsData.byHour as Record<string, number>) ?? {},
+          byStatus: (statsData.byStatus as Record<string, number> | undefined) ?? ({} as Record<string, number>),
+          byCourt: (statsData.byCourt as Record<string, number> | undefined) ?? ({} as Record<string, number>),
+          byHour: (statsData.byHour as Record<string, number> | undefined) ?? ({} as Record<string, number>),
           averagePlayersPerBooking: (statsData.averagePlayersPerBooking as number) ?? 0,
           trends: (statsData.trends as Array<{ month: string; bookings: number; revenue: number }>) ?? []
         }
