@@ -105,7 +105,7 @@
   - Canchas (`/admin/canchas`)
   - Turnos (`/admin/turnos`)
   - Usuarios (`/admin/usuarios`)
-  - Estadísticas (`/admin/estadisticas`)
+  - Estadísticas (`/admin-panel/estadisticas`)
   - Productos (`/admin/productos`)
 
 #### Navegación Móvil
@@ -199,7 +199,7 @@ interface Extra {
 - Permisos y roles
 - Historial de actividad
 
-#### Estadísticas (`/admin/estadisticas`)
+#### Estadísticas (`/admin-panel/estadisticas`)
 - Reportes de ocupación
 - Ingresos por período
 - Métricas de uso

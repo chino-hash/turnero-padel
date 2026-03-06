@@ -184,7 +184,7 @@ const adminNavItems = [
   { href: '/admin/canchas', icon: Settings, label: 'Canchas' },
   { href: '/admin/turnos', icon: Calendar, label: 'Turnos' },
   { href: '/admin/usuarios', icon: Users, label: 'Usuarios' },
-  { href: '/admin/estadisticas', icon: BarChart3, label: 'Estadísticas' },
+  { href: '/admin-panel/estadisticas', icon: BarChart3, label: 'Estadísticas' },
   { href: '/admin/productos', icon: Package, label: 'Productos' }
 ]
 ```
@@ -262,7 +262,7 @@ const adminNavItems = [
   - Historial de reservas por usuario
   - Bloqueo/desbloqueo de cuentas
 
-#### Estadísticas (`/admin/estadisticas`)
+#### Estadísticas (`/admin-panel/estadisticas`)
 - **Funcionalidad**: Reportes y métricas
 - **Características**:
   - Ocupación por cancha y horario

@@ -574,7 +574,8 @@ export const getValidationRules = (model: string) => {
       { field: 'name', required: true, type: 'string', minLength: 2, maxLength: 100 },
       { field: 'email', required: true, type: 'email' },
       { field: 'phone', type: 'string', pattern: /^\+?[1-9]\d{1,14}$/ },
-      { field: 'role', required: true, custom: (value: any) => ['USER', 'ADMIN'].includes(value) }
+      { field: 'role', required: true, custom: (value: any) => ['USER', 'ADMIN', 'SUPER_ADMIN'].includes(value) },
+      { field: 'discountPercent', type: 'number', min: 0, max: 100 }
     ],
     court: [
       { field: 'name', required: true, type: 'string', minLength: 3, maxLength: 100 },

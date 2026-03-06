@@ -8,12 +8,13 @@
 - **`/auth/*`** - Rutas de autenticación (PROTEGIDO)
 
 ### 🔧 RUTAS ADMINISTRATIVAS
-- **`/admin`** - Panel principal de administración (MODIFICABLE)
-- **`/admin/canchas`** - Gestión de canchas (MODIFICABLE)
-- **`/admin/turnos`** - Gestión de turnos (MODIFICABLE)
-- **`/admin/usuarios`** - Gestión de usuarios (MODIFICABLE)
-- **`/admin/estadisticas`** - Reportes y estadísticas (MODIFICABLE)
-- **`/admin/productos`** - Gestión de productos (MODIFICABLE)
+Las rutas del panel de administración están bajo **`/admin-panel`** (y subrutas `/admin-panel/admin/*` para canchas, turnos, usuarios, productos, torneos). Estadísticas tiene ruta propia:
+- **`/admin-panel`** - Panel principal de administración (MODIFICABLE)
+- **`/admin-panel/admin/canchas`** - Gestión de canchas (MODIFICABLE)
+- **`/admin-panel/admin/turnos`** - Gestión de turnos (MODIFICABLE)
+- **`/admin-panel/admin/usuarios`** - Gestión de usuarios (MODIFICABLE)
+- **`/admin-panel/estadisticas`** - Reportes y estadísticas (MODIFICABLE; `/admin-panel/admin/estadisticas` redirige aquí)
+- **`/admin-panel/admin/productos`** - Gestión de productos (MODIFICABLE)
 
 ## Archivos y Componentes Protegidos
 
@@ -77,35 +78,34 @@
 
 #### 2. Páginas de Administración
 ```
-/app/(admin)/             # ✅ PERMITIDO - Todas las páginas admin
-├── admin/page.tsx        # ✅ PERMITIDO - Dashboard administrativo
-├── layout.tsx           # ✅ PERMITIDO - Layout admin
-├── canchas/
-├── estadisticas/
+/app/admin-panel/                    # ✅ PERMITIDO - Panel de administración
+├── admin/                           # Dashboard y pestañas bajo /admin-panel/admin/*
+│   ├── page.tsx, canchas/, turnos/, usuarios/, productos/, torneos/, ventas/
+│   └── estadisticas/page.tsx         # Redirige a /admin-panel/estadisticas
+├── estadisticas/page.tsx             # ✅ Estadísticas con datos reales
 ├── productos/
-└── usuarios/
+└── components/AdminLayoutContent.tsx
 ```
 
-#### 2.1 Detalles del Panel de Administración (`/admin`)
-- **Layout Principal**: `app/(admin)/layout.tsx`
-  - Header con navegación horizontal (desktop)
-  - Navegación móvil responsiva
+#### 2.1 Detalles del Panel de Administración (`/admin-panel`)
+- **Layout y navegación**: `app/admin-panel/components/AdminLayoutContent.tsx`
+  - Contenedor común, header con título unificado, navegación desktop y móvil (Sheet)
+  - Enlaces a Canchas, Turnos, Usuarios, Estadísticas (`/admin-panel/estadisticas`), Productos, Torneo
   - Verificación de permisos de administrador
-  - Avatar y información del usuario admin
 
-- **Dashboard Admin**: `app/(admin)/admin/page.tsx`
+- **Dashboard Admin**: `app/admin-panel/admin/page.tsx`
   - Gestión completa de turnos y reservas
   - Sistema de filtros avanzados (estado, fecha, usuario)
   - Gestión de pagos individuales por jugador
   - Sistema de extras y servicios adicionales
-  - Reportes y estadísticas en tiempo real
+  - Enlace a Estadísticas (ruta `/admin-panel/estadisticas` con datos reales)
 
 - **Secciones Disponibles**:
-  - **Canchas**: Gestión de canchas y precios
-  - **Turnos**: Administración de reservas
-  - **Usuarios**: Gestión de usuarios y permisos
-  - **Estadísticas**: Reportes de ocupación e ingresos
-  - **Productos**: Gestión de extras y servicios
+  - **Canchas**: `/admin-panel/admin/canchas`
+  - **Turnos**: `/admin-panel/admin/turnos`
+  - **Usuarios**: `/admin-panel/admin/usuarios`
+  - **Estadísticas**: `/admin-panel/estadisticas` (reportes de ocupación e ingresos)
+  - **Productos**: `/admin-panel/admin/productos`
 
 #### 3. APIs Administrativas
 ```

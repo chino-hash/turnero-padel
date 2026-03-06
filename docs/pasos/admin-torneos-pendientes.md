@@ -5,43 +5,53 @@
 
 ---
 
+## Cambios realizados (alineados con el proyecto)
+
+- **Backend y persistencia:** APIs reales para torneos, inscripciones, partidos y sorteos; modelo en Prisma. Super Admin puede seleccionar tenant al crear torneo. Ver [admin-torneos-superadmin-inscripciones-2026-02.md](../actualizaciones/admin-torneos-superadmin-inscripciones-2026-02.md).
+- **Cuadro visual (bracket):** En la pestaña Fixture, torneos en formato Eliminatoria directa muestran cuadro eliminatorio visual con rondas y conectores. Ver [admin-torneos-bracket-y-vista-previa-premios-2026-03.md](../actualizaciones/admin-torneos-bracket-y-vista-previa-premios-2026-03.md).
+- **Vista previa de premios:** En el wizard de creación, el panel derecho muestra premios según formato (Liga de Oro/Plata para fase de grupos + doble eliminatoria, o 1er/2do lugar para eliminatoria directa).
+- **Formato del torneo:** Orden visual de botones (Fase de grupos + Doble Eliminatoria a la izquierda, Eliminatoria directa a la derecha); valor por defecto `GROUPS_DOUBLE_ELIMINATION`. Ver [admin-torneos-formato-botones-2026-03.md](../actualizaciones/admin-torneos-formato-botones-2026-03.md).
+- **Layout unificado:** Mismo bloque de título que Usuarios, Turnos y Estadísticas (admin-panel-sheet-layout, unificación títulos).
+
+---
+
 ## Estado actual
 
-La pestaña Torneo tiene un historial de torneos con datos mock y un wizard para crear nuevos torneos (datos, días/franjas, vista previa). No hay persistencia ni APIs reales.
+La pestaña Torneo tiene historial de torneos con datos de API, wizard de creación con persistencia, detalle con pestañas (Info, Inscripciones, Fixture/Cuadro), cuadro eliminatorio visual para formato eliminatoria directa, vista previa de premios en el wizard e inscripciones gestionadas por API. Parte del flujo (bloqueo de canchas, publicación, pagos de inscripción) sigue pendiente.
 
 ---
 
 ## Implementado
 
-- [x] Vista historial de torneos (UI)
-- [x] Wizard de creación en 3 pasos
-- [x] Paso 1: título, categoría, premios, parejas mínimas y máximas
+- [x] Vista historial de torneos con datos de API
+- [x] Wizard de creación en 3 pasos con persistencia
+- [x] Paso 1: título, categoría, premios, parejas mínimas y máximas; formato (Fase de grupos + Doble Eliminatoria / Eliminatoria directa) con valor por defecto y orden visual unificado
 - [x] Paso 2: selección de días y franjas horarias
-- [x] Paso 3: vista previa y publicación
+- [x] Paso 3: vista previa (cronograma, premios según formato: Liga Oro/Plata o 1er/2do) y publicación
 - [x] Categorías (8va, 7ma, 6ta, 5ta, 4ta, 3ra, 2da, 1ra, Mixto, Suma)
-- [x] Vista previa en vivo al crear (cronograma con rango horario completo)
-- [x] UI consistente con el resto del admin
+- [x] Detalle de torneo con pestañas: Info, Inscripciones, Fixture/Cuadro
+- [x] Cuadro eliminatorio visual (bracket) para formato Eliminatoria directa
+- [x] Inscripciones: APIs y gestión desde el detalle; Super Admin puede elegir tenant al crear
+- [x] UI y header consistentes con el resto del admin
 - [x] Paso 2: botón "Confirmar Horarios" habilitado cuando la franja tiene inicio y cierre
 - [x] Paso 3: botón "Volver al paso anterior" en esquina inferior izquierda de la tarjeta
 
-**Detalle:** [actualizaciones/admin-torneos-formulario-2026-02.md](../actualizaciones/admin-torneos-formulario-2026-02.md)
+**Detalle:** [admin-torneos-formulario-2026-02.md](../actualizaciones/admin-torneos-formulario-2026-02.md), [admin-torneos-bracket-y-vista-previa-premios-2026-03.md](../actualizaciones/admin-torneos-bracket-y-vista-previa-premios-2026-03.md), [admin-torneos-formato-botones-2026-03.md](../actualizaciones/admin-torneos-formato-botones-2026-03.md)
 
 ---
 
 ## Pendiente para dar por terminada
 
-### 1. Backend completo
+### 1. Backend completo (parcialmente implementado)
 
-- Modelo de datos para Torneo en Prisma (si no existe).
-- APIs: crear, listar, obtener, actualizar torneos.
-- Persistir en base de datos en lugar de mock.
+- Modelo y APIs de torneos, inscripciones, partidos y sorteos ya existen.
+- Pendiente: completar reglas de negocio que falten (ej. edición/eliminación con restricciones).
 
-### 2. Eliminar datos mock
+### 2. ~~Eliminar datos mock~~ (hecho)
 
-- Sustituir `TORNEOS_HISTORIAL_MOCK` por datos de la API.
-- Conectar el wizard de creación con el endpoint real.
+- Historial y wizard usan datos de API.
 
-### 3. Inscripción de jugadores
+### 3. Inscripción de jugadores (parcialmente implementado)
 
 - Sistema para que jugadores se inscriban al torneo.
 - Gestión de parejas (formar parejas o inscribir parejas).
@@ -77,5 +87,6 @@ La pestaña Torneo tiene un historial de torneos con datos mock y un wizard para
 ## Referencias
 
 - Skill dominio: `.cursor/skills/turnero-padel-domain/SKILL.md`
-- Schema Prisma: verificar si existe modelo Tournament/Torneo
+- Schema Prisma: modelo Tournament y relaciones (inscripciones, partidos, etc.)
+- Actualizaciones: [admin-torneos-bracket-y-vista-previa-premios-2026-03.md](../actualizaciones/admin-torneos-bracket-y-vista-previa-premios-2026-03.md), [admin-torneos-formato-botones-2026-03.md](../actualizaciones/admin-torneos-formato-botones-2026-03.md), [admin-torneos-superadmin-inscripciones-2026-02.md](../actualizaciones/admin-torneos-superadmin-inscripciones-2026-02.md), [dashboard-torneos-canchas-fechas-2026-03.md](../actualizaciones/dashboard-torneos-canchas-fechas-2026-03.md)
 - APIs de bookings para bloqueo de canchas

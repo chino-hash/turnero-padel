@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getUmbralesCategoria, getCategoriaFromReservas } from '@/lib/services/categorias-usuario'
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +24,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const tenantId = await getUserTenantIdSafe(session.user as PermissionsUser)
+    let tenantId = await getUserTenantIdSafe(session.user as PermissionsUser)
+    if (!tenantId && isSuper) {
+      const xTenantId = request.headers.get('x-tenant-id')
+      if (xTenantId) tenantId = xTenantId
+    }
     if (!tenantId) {
       return NextResponse.json(
         { success: false, error: 'Contexto de tenant no disponible' },
@@ -31,6 +36,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const umbrales = await getUmbralesCategoria(tenantId)
     const hoy = new Date()
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
     const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59)
@@ -178,15 +184,10 @@ export async function GET(request: NextRequest) {
           : null
 
         const totalReservas = todasLasReservas.length
-        let categoria = 'Regular'
+        const categoria = getCategoriaFromReservas(totalReservas, umbrales)
         let descuento = 5
-        if (totalReservas >= 20) {
-          categoria = 'VIP'
-          descuento = 15
-        } else if (totalReservas >= 10) {
-          categoria = 'Premium'
-          descuento = 10
-        }
+        if (categoria === 'VIP') descuento = 15
+        else if (categoria === 'Premium') descuento = 10
 
         return {
           id: usuario.id,

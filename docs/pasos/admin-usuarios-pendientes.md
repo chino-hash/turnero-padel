@@ -2,7 +2,15 @@
 
 **Ruta:** `/admin-panel/admin/usuarios`  
 **Archivo principal:** `app/admin-panel/admin/usuarios/page.tsx`  
-**API:** `app/api/usuarios/analisis/route.ts`
+**APIs:** `/api/usuarios/analisis`, `/api/usuarios`, `/api/consumibles`, `/api/crud/user/*`, `/api/admin/config/categorias-usuario`, `/api/productos`
+
+---
+
+## Cambios realizados (alineados con el proyecto)
+
+- **Layout unificado:** Header con título, barra naranja, descripción y botones siguiendo el mismo patrón que Turnos y Torneos (ver `docs/actualizaciones/admin-panel-sheet-layout-2026-03.md`, `unificacion-titulos-admin-2026-02.md`).
+- **Programa de descuentos (consumibles):** Tarjetas VIP, Premium y Regular con requisitos, tipo de beneficio (descuento/consumible), producto asociado y toggle Activar/Desactivar; modal para editar categoría y configurar umbrales. Ver `docs/actualizaciones/admin-usuarios-consumibles-modal-2026-03.md`.
+- **Análisis y listado:** Fallback de tenant para super-admin en `/api/usuarios/analisis`; listado paginado con búsqueda, filtros por categoría y actividad; en la tabla de usuarios las acciones **Ver detalle**, **Editar** y **Activar/Desactivar** por fila. Ver `docs/actualizaciones/revision-admin-usuarios-y-login-2026-03.md`.
 
 ---
 
@@ -43,7 +51,7 @@ Para mantener coherencia, la pestaña Usuarios debe alinearse con los patrones y
 
 ## Estado actual
 
-La pestaña Usuarios muestra un análisis de clientes: métricas, categorías VIP/Premium/Regular, tabla de usuarios frecuentes y programa de descuentos. Es mayormente de solo lectura. La estructura de header aún no sigue el patrón unificado de Turnos/Torneos (título + barra naranja + descripción + acciones en la misma línea).
+La pestaña Usuarios muestra análisis de clientes (métricas, clientes nuevos vs recurrentes, valor promedio), programa de descuentos con tarjetas VIP/Premium/Regular editables (consumibles), listado paginado de usuarios con búsqueda y filtros, y en la tabla las acciones Ver detalle, Editar y Activar/Desactivar. El header ya sigue el patrón unificado del panel (título + barra naranja + descripción + botones).
 
 ---
 
@@ -54,24 +62,26 @@ La pestaña Usuarios muestra un análisis de clientes: métricas, categorías VI
 - [x] Valor promedio por cliente
 - [x] Programa de descuentos (VIP, Premium, Regular)
 - [x] Tabla de usuarios frecuentes (nombre, email, reservas, frecuencia, cancha preferida, categoría, descuento)
+- [x] Acciones en tabla: Ver detalle, Editar, Activar/Desactivar (modales y AlertDialog integrados)
+- [x] Programa de consumibles/descuentos (tarjetas VIP/Premium/Regular con modal de edición y toggles)
+- [x] Header unificado (título, barra naranja, descripción, botón Actualizar)
 - [x] Botón actualizar datos
 
 ---
 
 ## Pendiente para dar por terminada
 
-### 0. Alineación UI con Torneos y Turnos
+### 0. Alineación UI con Torneos y Turnos (parcialmente cubierto)
 
-- Header unificado: mismo layout que Turnos/Torneos (título, barra naranja `bg-orange-500`, descripción, botones a la derecha con `min-h-[44px] sm:min-h-0`).
-- Métricas en grid de Cards (4 columnas en desktop) con el mismo estilo que la sección Turnos.
+- ~~Header unificado~~: ya aplicado.
+- Métricas en grid de Cards (4 columnas en desktop) con el mismo estilo que la sección Turnos (opcional refinar).
 - Espaciado general `space-y-8` y estructura de página consistente con el resto del admin.
 
 ### 1. Gestión de usuarios
 
-- CRUD o al menos edición de usuarios.
-- Activar/desactivar usuarios.
-- Cambiar rol (USER, ADMIN) si el admin tiene permisos.
-- Ver y editar datos de contacto (teléfono, email).
+- Edición de usuarios y activar/desactivar ya disponibles desde la tabla (modales y AlertDialog).
+- Pendiente: cambiar rol (USER, ADMIN) si el admin tiene permisos.
+- Ver y editar datos de contacto (teléfono, email) según alcance del modal Editar.
 
 ### 2. Búsqueda y filtros
 
@@ -107,6 +117,7 @@ La pestaña Usuarios muestra un análisis de clientes: métricas, categorías VI
 
 - Skill dominio: `.cursor/skills/turnero-padel-domain/SKILL.md`
 - Roles: USER, ADMIN, Super Admin
-- API análisis: `/api/usuarios/analisis`
+- APIs: `/api/usuarios/analisis`, `/api/usuarios`, `/api/consumibles`, `/api/crud/user/:id`, `/api/admin/config/categorias-usuario`, `/api/productos`
+- Actualizaciones: `docs/actualizaciones/admin-usuarios-consumibles-modal-2026-03.md`, `docs/actualizaciones/revision-admin-usuarios-y-login-2026-03.md`, `admin-panel-sheet-layout-2026-03.md`
 - Patrones de UI: `app/admin-panel/admin/torneos/page.tsx`, `app/admin-panel/admin/turnos/page.tsx`
 - Navegación admin: `app/admin-panel/components/AdminLayoutContent.tsx` (links Canchas, Turnos, Usuarios, Estadísticas, Productos, Torneo)

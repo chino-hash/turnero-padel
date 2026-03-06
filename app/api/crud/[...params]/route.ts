@@ -368,6 +368,22 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const body = await request.json();
     const validationRules = getValidationRules(model);
+
+    // No auto-editarse: si el usuario edita su propio registro (user), no puede bajar su rol ni desactivarse
+    if (model === 'user' && id === user?.id) {
+      if (body.role !== undefined && body.role !== 'ADMIN' && body.role !== 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { success: false, error: 'No puedes asignarte un rol menor a Admin' },
+          { status: 403 }
+        );
+      }
+      if (body.isActive === false) {
+        return NextResponse.json(
+          { success: false, error: 'No puedes desactivar tu propia cuenta' },
+          { status: 403 }
+        );
+      }
+    }
     
     // Obtener tenantId del header si está disponible
     const tenantIdFromHeader = request.headers.get('x-tenant-id') || undefined;

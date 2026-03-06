@@ -218,7 +218,7 @@ ADMIN_EMAILS
 - [ ] Mercado Pago: ¿Está activo o usa MockProvider?
 - [ ] Rate Limiting: ¿Está activo con Vercel KV?
 - [ ] Headers de seguridad: ¿Se aplica Content-Security-Policy?
-- [ ] Estadísticas: ¿Usa ruta `/admin-panel/estadisticas` o `/admin-panel/admin/estadisticas`?
+- [x] Estadísticas: se usa la ruta `/admin-panel/estadisticas` (datos reales). La ruta `/admin-panel/admin/estadisticas` redirige a esta.
 
 ---
 

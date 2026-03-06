@@ -1,9 +1,20 @@
 # Pendientes - Pestaña Estadísticas
 
-**Ruta:** `/admin-panel/estadisticas`  
+**Ruta principal:** `/admin-panel/estadisticas`  
 **Archivo principal:** `app/admin-panel/estadisticas/page.tsx`  
 **Hook:** `hooks/useEstadisticas.ts`  
 **API:** `app/api/estadisticas/route.ts`
+
+**Ruta deprecada:** `/admin-panel/admin/estadisticas` → redirige automáticamente a `/admin-panel/estadisticas` (archivo: `app/admin-panel/admin/estadisticas/page.tsx`).
+
+---
+
+## Cambios realizados (alineados con el proyecto)
+
+- **Rutas:** La navegación del panel (AdminLayoutContent) enlaza a `/admin-panel/estadisticas`. La ruta antigua `/admin-panel/admin/estadisticas` sigue existiendo pero solo redirige a la ruta principal con datos reales.
+- **Layout unificado:** La página de estadísticas usa el mismo bloque de título que el resto del admin (título con `font-light`, línea naranja, descripción, botón "Actualizar" con `flex-shrink-0`). Ver `docs/actualizaciones/admin-panel-sheet-layout-2026-03.md` y `unificacion-titulos-admin-2026-02.md`.
+- **Datos:** Los KPIs y métricas se obtienen de la API `/api/estadisticas` (datos reales por tenant).
+- **Consistencia con otras pestañas:** La misma estructura de header y layout que Usuarios, Turnos y Torneo (ver `docs/actualizaciones/admin-panel-sheet-layout-2026-03.md` y los docs de pasos de cada pestaña).
 
 ---
 
@@ -64,4 +75,6 @@ La pestaña Estadísticas muestra KPIs, canchas más usadas, horarios pico, resu
 
 - Hook: `hooks/useEstadisticas.ts`
 - API: `/api/estadisticas`
+- Navegación: `app/admin-panel/components/AdminLayoutContent.tsx` (enlace "Estadísticas" → `/admin-panel/estadisticas`)
+- Actualizaciones: `docs/actualizaciones/admin-panel-sheet-layout-2026-03.md`, `unificacion-titulos-admin-2026-02.md`, `unificacion-botones-admin-2026-02.md`
 - Librerías sugeridas: Recharts, Chart.js

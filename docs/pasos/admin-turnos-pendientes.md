@@ -35,12 +35,18 @@ La pestaña Turnos permite ver reservas, crear nuevas (puntuales y recurrentes),
 - [x] **Toasts:** sonner en página turnos y AdminTurnos (sustitución de alert())
 - [x] **Terminar turno / Cerrar turno:** dos botones por categoría y saldo; PUT acepta COMPLETED sin pago completo
 - [x] **Confirmación al pagar depósito:** SystemSetting `depositConfirmPercent` por tenant; auto CONFIRMED al alcanzar el % en PATCH pago jugador
+- [x] **Una sola página sin paginación global:** lista con hasta 500 turnos, cuatro secciones visibles (Pendientes, Confirmados, En curso, Cerrados), sin "Página X de Y" ni Anterior/Siguiente. Ver [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md).
+- [x] **Sección TURNOS CERRADOS:** colapsable por defecto; limpieza a las 06:00 del día siguiente. Ver [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](../actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md).
+- [x] **Tarjetas de turnos:** diseño compacto y texto legible. Ver [admin-turnos-tarjetas-compactas-texto-legible-2026-03.md](../actualizaciones/admin-turnos-tarjetas-compactas-texto-legible-2026-03.md).
 
 ---
 
 ## Referencias
 
 - Documentación detallada: [admin-turnos-pendientes-completado-2026-03.md](../actualizaciones/admin-turnos-pendientes-completado-2026-03.md)
+- Una página sin paginación: [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md)
+- Turnos cerrados colapsable y limpieza: [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](../actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md)
+- Tarjetas compactas: [admin-turnos-tarjetas-compactas-texto-legible-2026-03.md](../actualizaciones/admin-turnos-tarjetas-compactas-texto-legible-2026-03.md)
 - Skill dominio: `.cursor/skills/turnero-padel-domain/SKILL.md`
 - Estados de reserva: `lib/booking-status-map.ts`, `types/booking.ts`
 - APIs: `/api/bookings`, `/api/bookings/stats`, `/api/users/search`, `/api/recurring-bookings`, `/api/recurring-exceptions`

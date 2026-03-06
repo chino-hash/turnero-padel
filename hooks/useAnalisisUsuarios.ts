@@ -54,6 +54,7 @@ export function useAnalisisUsuarios(): UseAnalisisUsuariosReturn {
 
       const response = await fetch('/api/usuarios/analisis', {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

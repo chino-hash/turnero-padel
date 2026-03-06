@@ -73,14 +73,17 @@ export function useAuthWithRetry(options: AuthRetryOptions = {}) {
         const errorMessage = `Error de autenticación: ${result.error}`
         setLastError(errorMessage)
         onError?.(errorMessage)
-        
-        // Redirigir a página de error
         router.push(`/auth/error?error=${result.error}`)
         return false
       }
 
       if (result?.url) {
-        router.push(result.url)
+        // URL absoluta (OAuth a Google): redirección completa; si no, navegación client-side
+        if (result.url.startsWith('http://') || result.url.startsWith('https://')) {
+          window.location.href = result.url
+        } else {
+          router.push(result.url)
+        }
         return true
       }
 
