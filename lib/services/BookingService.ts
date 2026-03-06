@@ -773,7 +773,7 @@ export class BookingService {
           revenue: stats.revenue,
           occupancyRate: Math.round(occupancyRate * 100) / 100,
           byDay: (statsData.byDay as Record<string, number> | undefined) ?? ({} as Record<string, number>),
-          activeUsers: statsData.activeUsers ?? 0,
+          activeUsers: (statsData.activeUsers as number | undefined) ?? 0,
           byStatus: (statsData.byStatus as Record<string, number> | undefined) ?? ({} as Record<string, number>),
           byCourt: (statsData.byCourt as Record<string, number> | undefined) ?? ({} as Record<string, number>),
           byHour: (statsData.byHour as Record<string, number> | undefined) ?? ({} as Record<string, number>),
