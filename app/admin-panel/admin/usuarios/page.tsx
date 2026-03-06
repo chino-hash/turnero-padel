@@ -1419,17 +1419,17 @@ export default function UsuariosPage() {
                     <TabsContent value="info" className="space-y-3 mt-4">
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <p className="text-muted-foreground">Nombre</p>
-                        <p className="font-medium">{detailUserFull?.name ?? detailUser.name ?? detailUser.fullName ?? '—'}</p>
+                        <p className="font-medium">{String(detailUserFull?.name ?? detailUser.name ?? detailUser.fullName ?? '—')}</p>
                         <p className="text-muted-foreground">Email</p>
-                        <p className="font-medium">{detailUserFull?.email ?? detailUser.email}</p>
+                        <p className="font-medium">{String(detailUserFull?.email ?? detailUser.email ?? '')}</p>
                         <p className="text-muted-foreground">Teléfono</p>
-                        <p className="font-medium">{detailUserFull?.phone ?? detailUser.phone ?? '—'}</p>
+                        <p className="font-medium">{String(detailUserFull?.phone ?? detailUser.phone ?? '—')}</p>
                         <p className="text-muted-foreground">Categoría</p>
                         <p><Badge className={getCategoriaColor(detailUser.categoria)}>{detailUser.categoria}</Badge></p>
                         <p className="text-muted-foreground">Estado</p>
                         <p className="font-medium">{detailUser.isActive ? 'Activo' : 'Inactivo'}</p>
                         <p className="text-muted-foreground">Rol</p>
-                        <p className="font-medium">{detailUserFull?.role ?? detailUser.role}</p>
+                        <p className="font-medium">{String(detailUserFull?.role ?? detailUser.role ?? '')}</p>
                         <p className="text-muted-foreground">Descuento %</p>
                         <p className="font-medium">
                           {detailUser.discountPercent != null ? `${detailUser.discountPercent}%` : (detailUserFull?.discountPercent != null ? `${detailUserFull.discountPercent}%` : 'Calculado')}
