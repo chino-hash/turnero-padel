@@ -46,7 +46,7 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-[#090E1A]' : 'bg-gray-50'}`}>
       <header
-        className={`shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+        className={`relative z-40 shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
         role="banner"
         aria-label="Navegación del panel de administración"
       >
@@ -148,7 +148,7 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
           <SheetHeader className="border-b px-4 py-4 text-left">
             <SheetTitle>Menú</SheetTitle>
           </SheetHeader>
-          <nav className="flex flex-col gap-1 p-4" aria-label="Navegación móvil">
+          <nav className="flex flex-col gap-1 p-4 overflow-y-auto flex-1 min-h-0" aria-label="Navegación móvil">
             {NAV_LINKS.map(({ href, label, icon: Icon, testId }) => (
               <Link
                 key={href}

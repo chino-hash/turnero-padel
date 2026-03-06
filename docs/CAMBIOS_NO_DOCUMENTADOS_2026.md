@@ -17,6 +17,8 @@
 8. [Script de Limpieza de Canchas](#8-script-de-limpieza-de-canchas)
 9. [Recomendaciones](#9-recomendaciones)
 10. [Fix Cerrar sesión en Vercel](#10-fix-cerrar-sesión-en-vercel)
+11. [Pestaña Turnos (admin) - Plan completado](#11-pestaña-turnos-admin---plan-completado)
+12. [Botones Terminar turno y Cancelar en Admin Turnos](#12-botones-terminar-turno-y-cancelar-en-admin-turnos)
 
 ---
 
@@ -420,6 +422,43 @@ El botón "Cerrar sesión" no funcionaba en producción (Vercel) aunque sí en l
 
 ---
 
+## 11. PESTAÑA TURNOS (ADMIN) - PLAN COMPLETADO (Marzo 2026)
+
+El plan "Admin Turnos Pendientes" fue implementado por completo. Incluye: toasts (sonner), botones Terminar turno / Cerrar turno, métricas reales (byDay, activeUsers, variación vs ayer), vinculación de usuario en nueva reserva (typeahead + get-or-create), paginación con filtros al API, exportación CSV, polling con Page Visibility y confirmación automática al pagar depósito (SystemSetting `depositConfirmPercent` por tenant).
+
+**Documentación completa:** [actualizaciones/admin-turnos-pendientes-completado-2026-03.md](actualizaciones/admin-turnos-pendientes-completado-2026-03.md)
+
+---
+
+## 12. BOTONES TERMINAR TURNO Y CANCELAR EN ADMIN TURNOS (Marzo 2026)
+
+Ajustes de visibilidad y habilitación de los botones **Terminar turno** y **Cancelar** en la pestaña Turnos del panel de administración.
+
+### 📁 Archivo modificado
+
+- `components/AdminTurnos.tsx`
+
+### ✅ Cambios realizados
+
+#### 1. Botón "Terminar turno"
+
+- **Antes:** El botón se mostraba cuando la categoría del turno era `in_progress` (en curso) **o** `awaiting_completion` (ya pasó el horario sin cerrar). En ambos casos el estado del booking podía seguir mostrándose como "Confirmada" en la UI.
+- **Ahora:** El botón **solo se muestra** cuando la categoría es exactamente `in_progress` (turno en curso: la hora actual está dentro del rango del turno).
+- **Motivo:** Evitar que el admin pueda "Terminar turno" cuando el turno aún está solo confirmado y no ha empezado.
+
+#### 2. Botón "Cancelar"
+
+- **Antes:** El botón se habilitaba solo cuando la categoría era `confirmed` o `in_progress`. Si por zona horaria, parsing de fechas o normalización del `status` desde la API la categoría resultaba `other`, el botón quedaba deshabilitado aunque el turno se mostrara como "Confirmada".
+- **Ahora:** El botón se habilita cuando la categoría es `confirmed` o `in_progress`, **o** cuando `booking.status === 'confirmado'`. Así, todo turno en estado confirmado permite cancelar aunque la categoría derivada no sea `confirmed`.
+- **Motivo:** Garantizar que el admin pueda cancelar turnos confirmados en todos los casos.
+
+### 🔧 Detalle técnico
+
+- **Terminar turno:** `showTerminarTurno = cat === 'in_progress' && booking.status !== 'completado'`
+- **Cancelar:** `isConfirmadoOrEnCurso = cat === 'confirmed' || cat === 'in_progress' || booking.status === 'confirmado'`; `disableCancel = !isConfirmadoOrEnCurso`
+
+---
+
 ## 📝 NOTAS FINALES
 
 - Todos estos cambios están implementados en el código local
@@ -430,7 +469,7 @@ El botón "Cerrar sesión" no funcionaba en producción (Vercel) aunque sí en l
 ---
 
 **Mantenido por:** Equipo de Desarrollo  
-**Última revisión:** Enero 2026
+**Última revisión:** Marzo 2026
 
 
 

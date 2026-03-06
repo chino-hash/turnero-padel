@@ -68,6 +68,19 @@ interface Extra {
   - "Cancelado"
   - "Completado"
 
+### 2.4 Significado de "pendiente" y expiración automática
+Los turnos en estado **pendiente** (PENDING) son reservas que un usuario **empezó pero no completó el pago**: el slot queda bloqueado durante un tiempo limitado (por defecto 15 minutos, configurable) y se libera **automáticamente** si no se paga (job que cancela las reservas expiradas). No requiere intervención del administrador. Documentación completa del flujo: **[Turnos pendientes: bloqueo temporal y expiración](turnos-pendientes-bloqueo-temporal-y-expiracion.md)**.
+
+### 2.5 Sección TURNOS CERRADOS (colapsable y limpieza a la mañana siguiente)
+
+La sección **TURNOS CERRADOS** muestra los turnos ya cerrados definitivamente (`status: completado` y `closedAt` definido). Incluye dos comportamientos:
+
+- **Colapsable:** La sección está **cerrada por defecto** (`closedSectionCollapsed: true`). El encabezado "TURNOS CERRADOS" incluye un botón con chevron (▼/▲) para expandir o colapsar; opcionalmente se muestra el número de turnos visibles, p. ej. "TURNOS CERRADOS (5)". La lista y los botones "Mostrar más" / "Mostrar menos" solo se renderizan cuando la sección está expandida. Así se evita saturar la vista al cargar.
+
+- **Limpieza a la mañana siguiente (06:00):** Los turnos cerrados el día D se **dejan de mostrar** a partir del **día D+1 a las 06:00** (hora fija). Por ejemplo: un turno cerrado el 5/3 a las 22:30 sigue visible hasta el 6/3 a las 05:59; a las 06:00 del 6/3 ya no aparece en la sección. La constante `CLEAN_CLOSED_AT_HOUR = 6` en `AdminTurnos.tsx` define esa hora. La lista mostrada se calcula con `closedVisibleDerived`, que filtra `closedDerived` según ese criterio (y se recalcula con el tiempo actual `now`).
+
+**Archivo:** `components/AdminTurnos.tsx` (estado `closedSectionCollapsed`, `closedVisibleDerived`, bloque de la sección TURNOS CERRADOS). Changelog: [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md).
+
 ## 3. Sistema de Pagos Individuales
 
 ### 3.1 Función de Cálculo de Montos

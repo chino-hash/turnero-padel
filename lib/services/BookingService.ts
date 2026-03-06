@@ -741,23 +741,37 @@ export class BookingService {
   // Obtener estadísticas
   async getBookingStats(
     dateFrom?: string,
-    dateTo?: string
+    dateTo?: string,
+    tenantId?: string
   ): Promise<ApiResponse<BookingStats>> {
     try {
       const stats = await this.repository.getStats(
         dateFrom ? new Date(dateFrom) : undefined,
-        dateTo ? new Date(dateTo) : undefined
+        dateTo ? new Date(dateTo) : undefined,
+        tenantId
       );
 
-      // Calcular tasa de ocupación (ejemplo simplificado)
+      // Calcular tasa de ocupación
       const occupancyRate = stats.total > 0 ? (stats.confirmed / stats.total) * 100 : 0;
 
+      const statsData = stats as Record<string, unknown>
       return {
         success: true,
         message: 'Estadísticas obtenidas exitosamente',
         data: {
-          ...stats,
-          occupancyRate: Math.round(occupancyRate * 100) / 100
+          total: stats.total,
+          confirmed: stats.confirmed,
+          cancelled: stats.cancelled,
+          pending: stats.pending,
+          revenue: stats.revenue,
+          occupancyRate: Math.round(occupancyRate * 100) / 100,
+          byDay: statsData.byDay ?? {},
+          activeUsers: statsData.activeUsers ?? 0,
+          byStatus: (statsData.byStatus as Record<string, number>) ?? {},
+          byCourt: (statsData.byCourt as Record<string, number>) ?? {},
+          byHour: (statsData.byHour as Record<string, number>) ?? {},
+          averagePlayersPerBooking: (statsData.averagePlayersPerBooking as number) ?? 0,
+          trends: (statsData.trends as Array<{ month: string; bookings: number; revenue: number }>) ?? []
         }
       };
     } catch (error) {

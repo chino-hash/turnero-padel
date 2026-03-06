@@ -169,12 +169,9 @@ export async function POST(request: NextRequest) {
       return rateLimitResult
     }
 
-    // Obtener y validar datos del cuerpo
+    // Obtener y validar datos del cuerpo (userId/guestName/guestEmail opcionales para admins)
     const body = await request.json()
-    const validatedData = createBookingSchema.parse({
-      ...body,
-      userId: session.user.id // Asegurar que use el ID del usuario autenticado
-    })
+    const validatedData = createBookingSchema.parse(body)
 
     // Construir usuario para validación de permisos
     const user: PermissionsUser = {
@@ -194,29 +191,26 @@ export async function POST(request: NextRequest) {
       validatedData.confirmOnCreate = false
     }
 
-    // Validar que el courtId pertenece al tenant del usuario (excepto super admin)
-    if (!isSuperAdmin && validatedData.courtId) {
-      const court = await prisma.court.findUnique({
+    // Validar cancha y obtener tenantId de la cancha
+    let court: { tenantId: string; isActive: boolean } | null = null
+    if (validatedData.courtId) {
+      court = await prisma.court.findUnique({
         where: { id: validatedData.courtId },
         select: { tenantId: true, isActive: true }
       })
-
       if (!court) {
         return NextResponse.json(
           { success: false, error: 'Cancha no encontrada' },
           { status: 404 }
         )
       }
-
       if (!court.isActive) {
         return NextResponse.json(
           { success: false, error: 'La cancha no está activa' },
           { status: 400 }
         )
       }
-
-      // Validar que la cancha pertenece al tenant del usuario
-      if (userTenantId && court.tenantId !== userTenantId) {
+      if (!isSuperAdmin && userTenantId && court.tenantId !== userTenantId) {
         return NextResponse.json(
           { success: false, error: 'No tiene permisos para crear reservas en esta cancha' },
           { status: 403 }
@@ -224,8 +218,57 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const tenantIdForBooking = userTenantId ?? court?.tenantId ?? null
+    if (!tenantIdForBooking) {
+      return NextResponse.json(
+        { success: false, error: 'No se pudo determinar el tenant de la reserva' },
+        { status: 400 }
+      )
+    }
+
+    // Resolver userId: admin puede enviar userId (usuario existente) o guestName+guestEmail (get-or-create)
+    let resolvedUserId: string = session.user.id
+    if ((user.isAdmin || isSuperAdmin) && (validatedData.userId || (validatedData.guestName && validatedData.guestEmail))) {
+      if (validatedData.userId) {
+        const targetUser = await prisma.user.findFirst({
+          where: {
+            id: validatedData.userId,
+            ...(isSuperAdmin ? {} : { tenantId: tenantIdForBooking }),
+            deletedAt: null,
+          },
+          select: { id: true },
+        })
+        if (!targetUser) {
+          return NextResponse.json(
+            { success: false, error: 'Usuario no encontrado o no pertenece al club' },
+            { status: 400 }
+          )
+        }
+        resolvedUserId = targetUser.id
+      } else {
+        const guestEmail = (validatedData.guestEmail ?? '').trim().toLowerCase()
+        const guestName = (validatedData.guestName ?? '').trim()
+        let guest = await prisma.user.findUnique({
+          where: { email_tenantId: { email: guestEmail, tenantId: tenantIdForBooking } },
+          select: { id: true },
+        })
+        if (!guest) {
+          guest = await prisma.user.create({
+            data: {
+              tenantId: tenantIdForBooking,
+              email: guestEmail,
+              name: guestName || null,
+              fullName: guestName || null,
+            },
+            select: { id: true },
+          })
+        }
+        resolvedUserId = guest.id
+      }
+    }
+
     // Crear reserva usando el servicio optimizado
-    const result = await bookingService.createBooking(validatedData, session.user.id)
+    const result = await bookingService.createBooking(validatedData, resolvedUserId)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })

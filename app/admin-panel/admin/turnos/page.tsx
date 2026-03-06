@@ -16,6 +16,7 @@ import { Label } from '../../../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
 import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText, ChevronDown, ChevronUp } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuth } from '../../../../hooks/useAuth'
 import { useBookings } from '../../../../hooks/useBookings'
 import { useCourtPrices } from '../../../../hooks/useCourtPrices'
@@ -33,7 +34,9 @@ const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos').t
 
 export default function TurnosPage() {
   const { isAuthenticated, isAdmin, user, loading: authLoading } = useAuth()
-  const { bookings, stats, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({ autoFetch: isAuthenticated })
+  const { bookings, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({ autoFetch: isAuthenticated })
+  const [statsLocal, setStatsLocal] = useState<{ byDay: Record<string, number>; activeUsers: number; occupancyRate: number } | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
 
   const { courts, loading: courtsLoading } = useCourtPrices({ publicView: true })
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false)
@@ -75,12 +78,12 @@ export default function TurnosPage() {
     try {
       if (!isRecurring) return
       if (!formData.courtName || !formData.timeRange) {
-        alert('Completa cancha y horario')
+        toast.error('Completa cancha y horario')
         return
       }
       const courtId = findCourtIdByName(formData.courtName)
       if (!courtId) {
-        alert('Cancha inválida')
+        toast.error('Cancha inválida')
         return
       }
       const [startTime, endTime] = formData.timeRange.split(' - ')
@@ -96,7 +99,7 @@ export default function TurnosPage() {
       })
       if (!createRuleRes.ok) {
         const data = await createRuleRes.json().catch(() => ({}))
-        alert(`Error creando turno fijo: ${data?.error || createRuleRes.status}`)
+        toast.error(`Error creando turno fijo: ${data?.error || createRuleRes.status}`)
         return
       }
       const ruleData = await createRuleRes.json()
@@ -111,14 +114,14 @@ export default function TurnosPage() {
       })
       if (!skipRes.ok) {
         const data = await skipRes.json().catch(() => ({}))
-        alert(`Error dando de baja esta semana: ${data?.error || skipRes.status}`)
+        toast.error(`Error dando de baja esta semana: ${data?.error || skipRes.status}`)
         return
       }
-      alert('Turno fijo creado y dado de baja para esta semana')
+      toast.success('Turno fijo creado y dado de baja para esta semana')
       setShowCreateBookingModal(false)
     } catch (err) {
       console.error(err)
-      alert('Error procesando baja semanal')
+      toast.error('Error procesando baja semanal')
     }
   }
 
@@ -153,6 +156,7 @@ export default function TurnosPage() {
   // Estados del formulario
   const [formData, setFormData] = useState({
   userName: '',
+  userEmail: '',
   courtName: '',
   date: formatDateYMD(new Date()),
   timeRange: '',
@@ -164,6 +168,33 @@ export default function TurnosPage() {
   },
   notes: ''
 })
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchDebounced, setUserSearchDebounced] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState<{ id: string; name: string; email: string }[]>([])
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setUserSearchDebounced(userSearchQuery), 300)
+    return () => clearTimeout(t)
+  }, [userSearchQuery])
+  useEffect(() => {
+    if (userSearchDebounced.length < 2) {
+      setUserSearchResults([])
+      return
+    }
+    let cancelled = false
+    setUserSearchLoading(true)
+    fetch(`/api/users/search?q=${encodeURIComponent(userSearchDebounced)}`, { credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return
+        setUserSearchResults(Array.isArray(data?.data) ? data.data : [])
+      })
+      .catch(() => { if (!cancelled) setUserSearchResults([]) })
+      .finally(() => { if (!cancelled) setUserSearchLoading(false) })
+    return () => { cancelled = true }
+  }, [userSearchDebounced])
 
   // Canchas provistas por useCourtPrices (vista pública)
   // const courts = ['Cancha 1', 'Cancha 2', 'Cancha 3', 'Cancha 4']
@@ -175,7 +206,20 @@ export default function TurnosPage() {
   ]
 
   const todayKey = new Date().toISOString().split('T')[0]
-  const turnosHoy = stats?.byDay?.[todayKey] ?? 0
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const yesterdayKey = yesterday.toISOString().split('T')[0]
+  const turnosHoy = statsLocal?.byDay?.[todayKey] ?? 0
+  const turnosAyer = statsLocal?.byDay?.[yesterdayKey] ?? 0
+  const variacionTexto = statsLoading
+    ? 'Cargando'
+    : turnosAyer === 0
+      ? (turnosHoy > 0 ? `+${turnosHoy} desde ayer` : 'Sin cambio')
+      : turnosHoy > turnosAyer
+        ? `+${turnosHoy - turnosAyer} desde ayer`
+        : turnosHoy < turnosAyer
+          ? `-${turnosAyer - turnosHoy} desde ayer`
+          : 'Sin cambio'
   const proximosTurnos = useMemo(() => {
     return (bookings || []).filter((b) => {
       try {
@@ -188,7 +232,41 @@ export default function TurnosPage() {
       }
     }).length
   }, [bookings])
-  const ocupacionRate = Math.round(((stats?.occupancyRate ?? 0) as number) * 100)
+  const ocupacionRate = Math.round(((statsLocal?.occupancyRate ?? 0) as number) * 100)
+  const activeUsers = statsLocal?.activeUsers ?? 0
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    let cancelled = false
+    const run = async () => {
+      setStatsLoading(true)
+      try {
+        const end = new Date()
+        const start = new Date()
+        start.setDate(start.getDate() - 1)
+        const startDate = start.toISOString().split('T')[0]
+        const endDate = end.toISOString().split('T')[0]
+        const res = await fetch(`/api/bookings/stats?startDate=${startDate}&endDate=${endDate}`, { credentials: 'same-origin' })
+        if (!cancelled && res.ok) {
+          const json = await res.json()
+          const data = json?.data
+          if (data) {
+            setStatsLocal({
+              byDay: data.byDay ?? {},
+              activeUsers: data.activeUsers ?? 0,
+              occupancyRate: data.occupancyRate ?? 0
+            })
+          }
+        }
+      } catch (_) {
+        if (!cancelled) setStatsLocal(null)
+      } finally {
+        if (!cancelled) setStatsLoading(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [isAuthenticated])
 
   // Función auxiliar para obtener courtId por nombre
   const findCourtIdByName = (name: string) => courts.find(c => c.name === name)?.id
@@ -219,12 +297,20 @@ export default function TurnosPage() {
   const handleCreateBooking = async () => {
     try {
       if (!formData.courtName || !formData.date || !formData.timeRange) {
-        alert('Completa cancha, fecha y horario')
+        toast.error('Completa cancha, fecha y horario')
         return
       }
       const courtId = findCourtIdByName(formData.courtName)
       if (!courtId) {
-        alert('Cancha inválida')
+        toast.error('Cancha inválida')
+        return
+      }
+      if (!selectedUserId && (!formData.userName.trim() || !formData.userEmail.trim())) {
+        toast.error('Completa nombre y email del cliente o selecciona un usuario')
+        return
+      }
+      if (!selectedUserId && formData.userEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.userEmail.trim())) {
+        toast.error('Email del cliente inválido')
         return
       }
       const [startTime, endTime] = formData.timeRange.split(' - ')
@@ -232,7 +318,7 @@ export default function TurnosPage() {
         .map((name, idx) => name?.trim() ? ({ playerName: name.trim(), position: idx + 1 }) : null)
         .filter(Boolean)
       if (isRecurring) {
-        // Crear regla de turno fijo (RecurringBooking)
+        // Crear regla de turno fijo (RecurringBooking): userId (seleccionado) o guestName+guestEmail (get-or-create en API)
         const weekday = recurringWeekday
         const startsAt = recurringStartsAt
         const endsAt = recurringEndsAt || undefined
@@ -240,33 +326,51 @@ export default function TurnosPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ courtId, userId: user?.id, weekday, startTime, endTime, startsAt, endsAt, notes: formData.notes || undefined })
+          body: JSON.stringify({
+            courtId,
+            userId: selectedUserId || undefined,
+            guestName: !selectedUserId && formData.userName.trim() ? formData.userName.trim() : undefined,
+            guestEmail: !selectedUserId && formData.userEmail.trim() ? formData.userEmail.trim().toLowerCase() : undefined,
+            weekday,
+            startTime,
+            endTime,
+            startsAt,
+            endsAt,
+            notes: formData.notes || undefined
+          })
         })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          alert(`Error creando turno fijo: ${data?.error || res.status}`)
+          toast.error(`Error creando turno fijo: ${data?.error || res.status}`)
           return
         }
-        alert('Turno fijo creado exitosamente')
+        toast.success('Turno fijo creado exitosamente')
         setShowCreateBookingModal(false)
       } else {
-        // Crear reserva puntual: el admin confirma al hacer "Crear Reserva", así que se crea ya confirmada
-        const payload = {
+        // Crear reserva puntual: userId (vinculado) o guestName+guestEmail (get-or-create en API)
+        const payload: any = {
           courtId,
           bookingDate: formData.date,
           startTime,
           endTime,
           notes: formData.notes || undefined,
-          userId: user?.id,
           players: players as any,
           confirmOnCreate: true
         }
-        const created = await createBooking(payload as any)
+        if (selectedUserId) {
+          payload.userId = selectedUserId
+        } else {
+          payload.guestName = formData.userName.trim()
+          payload.guestEmail = formData.userEmail.trim().toLowerCase()
+        }
+        const created = await createBooking(payload)
         if (created) {
-          alert('Reserva creada exitosamente')
+          toast.success('Reserva creada exitosamente')
           setShowCreateBookingModal(false)
+          setSelectedUserId(null)
           setFormData({
             userName: '',
+            userEmail: '',
             courtName: '',
             date: formatDateYMD(new Date()),
             timeRange: '',
@@ -274,12 +378,12 @@ export default function TurnosPage() {
             notes: ''
           })
         } else {
-          alert('No se pudo crear la reserva')
+          toast.error('No se pudo crear la reserva')
         }
       }
     } catch (error) {
       console.error('Error al crear reserva:', error)
-      alert('Error al crear la reserva')
+      toast.error('Error al crear la reserva')
     }
   }
 
@@ -375,9 +479,9 @@ export default function TurnosPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bookingsLoading ? '...' : turnosHoy}</div>
+            <div className="text-2xl font-bold">{bookingsLoading || statsLoading ? '...' : turnosHoy}</div>
             <p className="text-xs text-muted-foreground" aria-live="polite">
-              {bookingsLoading ? 'Cargando' : '+2 desde ayer'}
+              {statsLoading ? 'Cargando' : variacionTexto}
             </p>
           </CardContent>
         </Card>
@@ -401,7 +505,7 @@ export default function TurnosPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{bookingsLoading ? '...' : `${ocupacionRate}%`}</div>
+            <div className="text-2xl font-bold">{bookingsLoading || statsLoading ? '...' : `${ocupacionRate}%`}</div>
             <p className="text-xs text-muted-foreground" aria-live="polite">
               {bookingsLoading ? 'Cargando' : 'Promedio del día'}
             </p>
@@ -414,9 +518,9 @@ export default function TurnosPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{statsLoading ? '...' : activeUsers}</div>
             <p className="text-xs text-muted-foreground">
-              Con reservas activas
+              Con reservas en los últimos 30 días
             </p>
           </CardContent>
         </Card>
@@ -453,6 +557,7 @@ export default function TurnosPage() {
         onOpenChange={(open) => {
           setShowCreateBookingModal(open)
           if (!open) setTurnoFijoExpanded(false)
+          if (open) { setSelectedUserId(null); setUserSearchQuery(''); setShowUserDropdown(false) }
         }}
       >
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6 gap-0">
@@ -470,15 +575,68 @@ export default function TurnosPage() {
                 <User className="w-5 h-5" />
                 Información del Cliente
               </h3>
-              
+              <p className="text-xs text-gray-400">Escribe al menos 2 caracteres para buscar y vincular un usuario existente, o completa nombre y email para invitado.</p>
               <div className="grid grid-cols-1 gap-5">
-                <div className="space-y-2">
+                <div className="space-y-2 relative">
                   <Label htmlFor="userName" className="text-sm font-medium text-gray-300">Nombre Completo *</Label>
                   <Input
                     id="userName"
                     value={formData.userName}
-                    onChange={(e) => handleInputChange('userName', e.target.value)}
+                    onChange={(e) => {
+                      handleInputChange('userName', e.target.value)
+                      setUserSearchQuery(e.target.value)
+                      setSelectedUserId(null)
+                      setShowUserDropdown(true)
+                    }}
+                    onFocus={() => userSearchQuery.length >= 2 && setShowUserDropdown(true)}
                     placeholder="Ej: Juan Pérez"
+                    required
+                    className="h-11 bg-gray-700/50 border-gray-600 text-gray-100 placeholder:text-gray-500"
+                  />
+                  {selectedUserId && (
+                    <button
+                      type="button"
+                      onClick={() => { setSelectedUserId(null); setUserSearchQuery('') }}
+                      className="absolute right-2 top-9 text-xs text-blue-400 hover:underline"
+                    >
+                      Usar como invitado
+                    </button>
+                  )}
+                  {showUserDropdown && userSearchDebounced.length >= 2 && (
+                    <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-600 bg-gray-800 shadow-lg max-h-48 overflow-y-auto">
+                      {userSearchLoading ? (
+                        <div className="px-3 py-2 text-sm text-gray-400">Buscando...</div>
+                      ) : userSearchResults.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-400">Sin resultados</div>
+                      ) : (
+                        userSearchResults.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex flex-col"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, userName: u.name, userEmail: u.email }))
+                              setSelectedUserId(u.id)
+                              setShowUserDropdown(false)
+                              setUserSearchQuery('')
+                            }}
+                          >
+                            <span className="font-medium">{u.name}</span>
+                            <span className="text-xs text-gray-400">{u.email}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="userEmail" className="text-sm font-medium text-gray-300">Email *</Label>
+                  <Input
+                    id="userEmail"
+                    type="email"
+                    value={formData.userEmail}
+                    onChange={(e) => handleInputChange('userEmail', e.target.value)}
+                    placeholder="cliente@ejemplo.com"
                     required
                     className="h-11 bg-gray-700/50 border-gray-600 text-gray-100 placeholder:text-gray-500"
                   />

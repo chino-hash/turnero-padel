@@ -34,6 +34,10 @@
 ## Documentación Administrativa
 
 - [Funcionalidad Completa Admin Turnos](./admin-turnos-funcionalidad-completa.md)
+- [Turnos pendientes: bloqueo temporal y expiración automática](./turnos-pendientes-bloqueo-temporal-y-expiracion.md)
+- [Sección TURNOS CERRADOS: colapsable y limpieza 06:00 (2026-03)](./actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md)
+- [Admin Turnos: una sola página sin paginación global (2026-03)](./actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md)
+- [Tarjetas de turnos: espacio compacto y texto legible (2026-03)](./actualizaciones/admin-turnos-tarjetas-compactas-texto-legible-2026-03.md)
 - [Documentación Admin Canchas](./admin-canchas-documentacion.md)
 - [Unificación de títulos del panel admin (2026-02)](./actualizaciones/unificacion-titulos-admin-2026-02.md)
 - [Unificación de botones del header del panel admin (2026-02)](./actualizaciones/unificacion-botones-admin-2026-02.md)

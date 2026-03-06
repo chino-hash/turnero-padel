@@ -8,6 +8,9 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 ## [Unreleased]
 
 ### Corregido
+- **Navbar del panel de administración – pestañas visibles en pantalla reducida**
+  - En móvil o ventana estrecha las pestañas (Canchas, Turnos, Usuarios, etc.) no se veían o el menú hamburguesa no mostraba bien el contenido. Cambios: (1) `components/ui/sheet.tsx` ahora importa desde `@radix-ui/react-dialog` en lugar de `radix-ui` para que el Sheet abra/cierre correctamente; (2) header del admin con `relative z-40` para que el menú lateral (z-50) quede por encima; (3) navegación del Sheet con `overflow-y-auto flex-1 min-h-0` para poder hacer scroll cuando hay muchos ítems.
+  - Documentación: `docs/actualizaciones/navbar-admin-pestanas-movil-2026-03.md`.
 - **Navbar del panel de administración – icono de Canchas visible**
   - En la barra superior del admin, el icono de "Canchas" dejaba de verse (tapado por el botón "Admin" o recortado). Se ajustó el layout: `gap` entre logo/título y nav, bloque izquierdo con `shrink-0`, nav con `justify-start` y `pl-2`, y enlaces con `shrink-0` para que el primer ítem (Canchas) y su icono se muestren correctamente.
   - Archivo: `app/admin-panel/components/AdminLayoutContent.tsx`.

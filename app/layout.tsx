@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import ClientSessionProvider from "../components/providers/ClientSessionProvider";
 import ClientToaster from "../components/providers/ClientToaster";
+import { Toaster as SonnerToaster } from "sonner";
 import { ReactNode } from "react";
 
 const geistSans = Geist({
@@ -45,6 +46,7 @@ export default function RootLayout({
         <ClientSessionProvider>
           {children}
           <ClientToaster />
+          <SonnerToaster position="top-right" richColors closeButton />
         </ClientSessionProvider>
       </body>
     </html>

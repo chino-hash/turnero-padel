@@ -93,6 +93,8 @@ export interface BookingStats {
   revenue: number
   averagePlayersPerBooking: number
   occupancyRate: number
+  /** Usuarios distintos con al menos una reserva en período reciente (ej. últimos 30 días) */
+  activeUsers?: number
   trends: Array<{
     month: string
     bookings: number
@@ -119,7 +121,12 @@ export interface CreateBookingRequest {
   bookingDate: string
   startTime: string
   endTime: string
-  userId: string
+  /** Usuario existente (admins). Si no se envía, se usa sesión o guestName+guestEmail. */
+  userId?: string
+  /** Nombre para invitado (get-or-create). */
+  guestName?: string
+  /** Email para invitado (get-or-create). */
+  guestEmail?: string
   notes?: string
   players?: Omit<Player, 'id'>[]
   /** Si es true, la reserva se crea confirmada (solo cuando el admin usa "Nueva Reserva" → "Crear Reserva"). */

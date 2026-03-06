@@ -29,6 +29,12 @@ export const createBookingSchema = z.object({
   bookingDate: dateSchema,
   startTime: timeSchema,
   endTime: timeSchema,
+  /** ID de usuario existente (solo admins). Si no se envía, se usa sesión o guest. */
+  userId: z.string().cuid().optional(),
+  /** Nombre para invitado cuando el admin no vincula un usuario (get-or-create). */
+  guestName: z.string().min(1).max(200).optional(),
+  /** Email para invitado (get-or-create). Requerido si se envía guestName. */
+  guestEmail: z.string().regex(EMAIL_REGEX, { message: 'Formato de email inválido' }).optional(),
   notes: z.string().max(500, {
     message: 'Las notas no pueden exceder 500 caracteres'
   }).optional(),
@@ -74,6 +80,13 @@ export const createBookingSchema = z.object({
 }, {
   message: 'La duración debe ser entre 30 minutos y 4 horas',
   path: ['endTime']
+}).refine((data) => {
+  if (data.guestName && !data.guestEmail) return false
+  if (data.guestEmail && !data.guestName) return false
+  return true
+}, {
+  message: 'guestName y guestEmail deben enviarse juntos',
+  path: ['guestEmail']
 });
 
 // Schema para actualizar una reserva
@@ -120,7 +133,7 @@ export const updateBookingSchema = z.object({
 // Schema para filtros de búsqueda
 export const bookingFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
+  limit: z.coerce.number().int().min(1).max(500).default(10),
   courtId: z.string().cuid().optional(),
   userId: z.string().cuid().optional(),
   tenantId: z.string().cuid().optional(), // Filtro multi-tenant

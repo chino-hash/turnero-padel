@@ -549,8 +549,9 @@ export class BookingRepository {
   }
 
   // Obtener estadísticas
-  async getStats(dateFrom?: Date, dateTo?: Date) {
+  async getStats(dateFrom?: Date, dateTo?: Date, tenantId?: string) {
     const where: Prisma.BookingWhereInput = {
+      ...(tenantId && { tenantId }),
       ...(dateFrom || dateTo) && {
         bookingDate: {
           ...(dateFrom && { gte: dateFrom }),
@@ -559,22 +560,51 @@ export class BookingRepository {
       }
     };
 
-    const [total, confirmed, cancelled, revenue] = await Promise.all([
+    const dateRangeWhere = dateFrom || dateTo
+      ? { bookingDate: { ...(dateFrom && { gte: dateFrom }), ...(dateTo && { lte: dateTo }) } }
+      : {}
+
+    const [total, confirmed, cancelled, revenue, byDayRows, activeUsersCount] = await Promise.all([
       this.prisma.booking.count({ where }),
       this.prisma.booking.count({ where: { ...where, status: 'CONFIRMED' } }),
       this.prisma.booking.count({ where: { ...where, status: 'CANCELLED' } }),
       this.prisma.booking.aggregate({
         where: { ...where, status: { not: 'CANCELLED' } },
         _sum: { totalPrice: true }
-      })
+      }),
+      this.prisma.booking.groupBy({
+        by: ['bookingDate'],
+        where: { ...where, status: { not: 'CANCELLED' } },
+        _count: { id: true }
+      }),
+      tenantId
+        ? this.prisma.booking.findMany({
+            where: {
+              tenantId,
+              ...dateRangeWhere,
+              status: { not: 'CANCELLED' },
+              bookingDate: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+            },
+            select: { userId: true },
+            distinct: ['userId']
+          }).then(rows => rows.length)
+        : Promise.resolve(0)
     ]);
+
+    const byDay: Record<string, number> = {}
+    for (const row of byDayRows) {
+      const key = row.bookingDate.toISOString().split('T')[0]
+      byDay[key] = row._count.id
+    }
 
     return {
       total,
       confirmed,
       cancelled,
       pending: total - confirmed - cancelled,
-      revenue: revenue._sum.totalPrice || 0
+      revenue: revenue._sum.totalPrice || 0,
+      byDay,
+      activeUsers: activeUsersCount
     };
   }
 

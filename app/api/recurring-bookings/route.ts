@@ -6,13 +6,18 @@ import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } f
 
 const schema = z.object({
   courtId: z.string().min(1),
-  userId: z.string().min(1),
+  userId: z.string().min(1).optional(),
+  guestName: z.string().min(1).optional(),
+  guestEmail: z.string().email().optional(),
   weekday: z.number().int().min(0).max(6),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   startsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endsAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes: z.string().optional()
+}).refine((d) => !!d.userId || (!!d.guestName && !!d.guestEmail), {
+  message: 'Debe enviar userId o guestName y guestEmail',
+  path: ['userId']
 })
 
 export async function POST(req: NextRequest) {
@@ -42,54 +47,57 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Datos inválidos', details: parsed.error.issues }, { status: 400 })
   }
-  const { courtId, userId, weekday, startTime, endTime, startsAt, endsAt, notes } = parsed.data
+  const { courtId, userId: bodyUserId, guestName, guestEmail, weekday, startTime, endTime, startsAt, endsAt, notes } = parsed.data
 
   const userTenantId = await getUserTenantIdSafe(user)
   
-  // Validar que la cancha pertenece al tenant accesible
-  let tenantId: string | null = null
-  
-  if (!isSuperAdmin) {
-    const court = await prisma.court.findUnique({
-      where: { id: courtId },
-      select: { tenantId: true }
-    })
+  // Validar cancha y obtener tenantId
+  const court = await prisma.court.findUnique({
+    where: { id: courtId },
+    select: { tenantId: true }
+  })
+  if (!court) {
+    return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
+  }
+  const tenantId = court.tenantId
 
-    if (!court) {
-      return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
-    }
+  if (!isSuperAdmin && userTenantId && court.tenantId !== userTenantId) {
+    return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes en esta cancha' }, { status: 403 })
+  }
 
-    if (userTenantId && court.tenantId !== userTenantId) {
-      return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes en esta cancha' }, { status: 403 })
-    }
-
-    tenantId = court.tenantId
-
-    // Validar que el usuario pertenece al tenant accesible
+  let userId: string
+  if (bodyUserId) {
     const targetUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { tenantId: true }
+      where: { id: bodyUserId },
+      select: { id: true, tenantId: true }
     })
-
     if (!targetUser) {
       return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
     }
-
-    if (userTenantId && targetUser.tenantId !== userTenantId) {
+    if (!isSuperAdmin && userTenantId && targetUser.tenantId !== userTenantId) {
       return NextResponse.json({ error: 'No tienes permisos para crear reservas recurrentes para este usuario' }, { status: 403 })
     }
-  } else {
-    // Super admin: obtener tenantId de la cancha
-    const court = await prisma.court.findUnique({
-      where: { id: courtId },
-      select: { tenantId: true }
+    userId = targetUser.id
+  } else if (guestName && guestEmail) {
+    const email = guestEmail.trim().toLowerCase()
+    let guest = await prisma.user.findUnique({
+      where: { email_tenantId: { email, tenantId } },
+      select: { id: true },
     })
-
-    if (!court) {
-      return NextResponse.json({ error: 'Cancha no encontrada' }, { status: 404 })
+    if (!guest) {
+      guest = await prisma.user.create({
+        data: {
+          tenantId,
+          email,
+          name: guestName.trim() || null,
+          fullName: guestName.trim() || null,
+        },
+        select: { id: true },
+      })
     }
-
-    tenantId = court.tenantId
+    userId = guest.id
+  } else {
+    return NextResponse.json({ error: 'Debe enviar userId o guestName y guestEmail' }, { status: 400 })
   }
 
   try {

@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
       return rateLimitResult;
     }
 
-    // Obtener parámetros de consulta
+    // Obtener parámetros de consulta (mapear startDate/endDate a dateFrom/dateTo para bookingFiltersSchema)
     const { searchParams } = new URL(request.url)
     const queryParams = {
-      startDate: searchParams.get('startDate'),
-      endDate: searchParams.get('endDate'),
-      courtId: searchParams.get('courtId'),
-      userId: searchParams.get('userId'),
+      dateFrom: searchParams.get('startDate') ?? searchParams.get('dateFrom') ?? undefined,
+      dateTo: searchParams.get('endDate') ?? searchParams.get('dateTo') ?? undefined,
+      courtId: searchParams.get('courtId') ?? undefined,
+      userId: searchParams.get('userId') ?? undefined,
       groupBy: searchParams.get('groupBy') || 'day'
     }
 
@@ -83,10 +83,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Obtener estadísticas
+    // Obtener estadísticas (filtrar por tenant si no es super admin)
+    const tenantIdForStats = isSuperAdmin ? undefined : userTenantId ?? undefined
     const result = await bookingService.getBookingStats(
       validatedParams.dateFrom,
-      validatedParams.dateTo
+      validatedParams.dateTo,
+      tenantIdForStats
     )
 
     if (!result.success) {

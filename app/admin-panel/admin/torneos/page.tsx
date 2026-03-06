@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { BracketElimination } from "@/components/admin/BracketElimination"
 
 type TorneoHistorialItem = {
   id: string
@@ -290,12 +291,44 @@ export default function Page() {
   const preview = useMemo(() => ({
     title,
     category,
+    tournamentFormat,
+    prizeIsMonetary,
     prizeFirst,
     prizeSecond,
+    prizeFirstDescription,
+    prizeSecondDescription,
+    prizeGoldFirst,
+    prizeGoldSecond,
+    prizeSilverFirst,
+    prizeSilverSecond,
+    prizeGoldFirstDesc,
+    prizeGoldSecondDesc,
+    prizeSilverFirstDesc,
+    prizeSilverSecondDesc,
     minPairs: pairs === "" ? undefined : Number(pairs),
     maxPairs: maxPairs === "" ? undefined : Number(maxPairs),
     dayBlocks,
-  }), [title, category, prizeFirst, prizeSecond, pairs, maxPairs, dayBlocks])
+  }), [
+    title,
+    category,
+    tournamentFormat,
+    prizeIsMonetary,
+    prizeFirst,
+    prizeSecond,
+    prizeFirstDescription,
+    prizeSecondDescription,
+    prizeGoldFirst,
+    prizeGoldSecond,
+    prizeSilverFirst,
+    prizeSilverSecond,
+    prizeGoldFirstDesc,
+    prizeGoldSecondDesc,
+    prizeSilverFirstDesc,
+    prizeSilverSecondDesc,
+    pairs,
+    maxPairs,
+    dayBlocks,
+  ])
 
   const participantsByGroup = useMemo((): Record<string, Array<{ id: string; label: string }>> => {
     const withGroup = partidos.filter((p) => p.groupId != null)
@@ -947,16 +980,9 @@ export default function Page() {
                     )}
                     {partidos.length > 0 && (
                       <div className="space-y-4">
-                        <p className="text-sm font-medium">Cuadro de partidos ({partidos.length} partidos)</p>
-                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          {partidos.map((m) => (
-                            <div key={m.id} className="rounded-lg border border-border/50 p-3 text-sm">
-                              <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">{m.round.replace(/_/g, " ")} · Partido {m.positionInRound + 1}</p>
-                              <p className="font-medium">{(m.registration1Label ?? "Bye")} vs {(m.registration2Label ?? "Bye")}</p>
-                              {m.score && <p className="text-muted-foreground mt-1">Resultado: {m.score}</p>}
-                              {m.winnerLabel && <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">Ganador: {m.winnerLabel}</p>}
-                            </div>
-                          ))}
+                        <p className="text-sm font-medium">Cuadro eliminatorio ({partidos.length} partidos)</p>
+                        <div className="overflow-x-auto rounded-lg border border-border/50 bg-muted/20 p-4 min-w-0">
+                          <BracketElimination matches={partidos} />
                         </div>
                       </div>
                     )}
@@ -1534,25 +1560,85 @@ export default function Page() {
                   Premios
                 </h3>
                 <div className="space-y-3">
-                  <div className="group relative overflow-hidden bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
-                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-600 dark:text-yellow-400 shadow-inner">
-                      <Trophy className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold uppercase tracking-wide">1er Lugar</p>
-                      <p className="text-sm font-bold text-foreground">{preview.prizeFirst || "—"}</p>
-                    </div>
-                  </div>
-
-                  <div className="group relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 border border-gray-100 dark:border-gray-800 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
-                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
-                      <Medal className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wide">2do Lugar</p>
-                      <p className="text-sm font-bold text-foreground">{preview.prizeSecond || "—"}</p>
-                    </div>
-                  </div>
+                  {preview.tournamentFormat === "GROUPS_DOUBLE_ELIMINATION" ? (
+                    <>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Liga de Oro</p>
+                      <div className="space-y-2 pl-2 border-l-2 border-yellow-500/50">
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-600 dark:text-yellow-400 shadow-inner">
+                            <Trophy className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold uppercase tracking-wide">1er Lugar</p>
+                            <p className="text-sm font-bold text-foreground">
+                              {preview.prizeIsMonetary ? (preview.prizeGoldFirst || "—") : (preview.prizeGoldFirstDesc || "—")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 border border-gray-100 dark:border-gray-800 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+                            <Medal className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wide">2do Lugar</p>
+                            <p className="text-sm font-bold text-foreground">
+                              {preview.prizeIsMonetary ? (preview.prizeGoldSecond || "—") : (preview.prizeGoldSecondDesc || "—")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide pt-1">Liga de Plata</p>
+                      <div className="space-y-2 pl-2 border-l-2 border-slate-400/50">
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-600 dark:text-yellow-400 shadow-inner">
+                            <Trophy className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold uppercase tracking-wide">1er Lugar</p>
+                            <p className="text-sm font-bold text-foreground">
+                              {preview.prizeIsMonetary ? (preview.prizeSilverFirst || "—") : (preview.prizeSilverFirstDesc || "—")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="group relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 border border-gray-100 dark:border-gray-800 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+                            <Medal className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wide">2do Lugar</p>
+                            <p className="text-sm font-bold text-foreground">
+                              {preview.prizeIsMonetary ? (preview.prizeSilverSecond || "—") : (preview.prizeSilverSecondDesc || "—")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="group relative overflow-hidden bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                        <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-full text-yellow-600 dark:text-yellow-400 shadow-inner">
+                          <Trophy className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-yellow-600 dark:text-yellow-400 font-bold uppercase tracking-wide">1er Lugar</p>
+                          <p className="text-sm font-bold text-foreground">
+                            {preview.prizeIsMonetary ? (preview.prizeFirst || "—") : (preview.prizeFirstDescription || "—")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="group relative overflow-hidden bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/10 dark:to-slate-900/10 border border-gray-100 dark:border-gray-800 rounded-lg p-3 flex items-center gap-3 transition-all hover:shadow-sm">
+                        <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400 shadow-inner">
+                          <Medal className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wide">2do Lugar</p>
+                          <p className="text-sm font-bold text-foreground">
+                            {preview.prizeIsMonetary ? (preview.prizeSecond || "—") : (preview.prizeSecondDescription || "—")}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
-import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle } from "lucide-react"
+import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle, Download } from "lucide-react"
 import { Input } from "./ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select"
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover"
@@ -14,6 +14,7 @@ import { useAppState } from './providers/AppStateProvider'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
 import { useCourtPrices } from '../hooks/useCourtPrices'
 import CalendarModal from './CalendarModal'
+import { toast } from 'sonner'
 
 // Interfaces según especificaciones del documento
 interface Booking {
@@ -70,9 +71,12 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
+  const [limit] = useState(500)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [extrasOpen, setExtrasOpen] = useState<Record<string, boolean>>({})
   const [showFiltersModal, setShowFiltersModal] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
 
   // Estados para el modal de extras
   const [showExtrasModal, setShowExtrasModal] = useState(false)
@@ -653,13 +657,30 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     }
   }
 
-  // Cargar datos reales desde la API
+  // Cargar datos reales desde la API (una sola página con todos los turnos)
   useEffect(() => {
     const loadBookings = async () => {
       setLoading(true)
       try {
         const params = new URLSearchParams()
-        params.set('limit', '50')
+        params.set('page', '1')
+        params.set('limit', String(limit))
+        params.set('sortBy', 'bookingDate')
+        params.set('sortOrder', 'desc')
+        // No filtrar por status: traer todos para mostrar las cuatro secciones en una misma página
+        if (dateFilter === 'today') {
+          const d = new Date()
+          const today = d.toISOString().split('T')[0]
+          params.set('dateFrom', today)
+          params.set('dateTo', today)
+        } else if (dateFilter.startsWith('plus')) {
+          const offset = Number(dateFilter.replace('plus', '')) || 0
+          const d = new Date()
+          d.setDate(d.getDate() + offset)
+          const day = d.toISOString().split('T')[0]
+          params.set('dateFrom', day)
+          params.set('dateTo', day)
+        }
         const fetchWithRetry = async (retries: number, delayMs: number) => {
           try {
             const res = await timedFetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' }, 'GET /api/bookings (AdminTurnos)')
@@ -678,7 +699,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         const mapped: Booking[] = list.map(mapApiBookingToLocal)
         setBookings(mapped)
       } catch (error) {
-        // Registrar evento silencioso y mantener estado actual
         fetch('/api/admin/test-event', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -690,6 +710,34 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       }
     }
     loadBookings()
+  }, [limit, dateFilter, refreshKey])
+
+  // Polling: refrescar lista cada 45s solo cuando la pestaña está visible
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    let intervalId: ReturnType<typeof setInterval> | null = null
+    const startPolling = () => {
+      if (intervalId) return
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') setRefreshKey(k => k + 1)
+      }, 45000)
+    }
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') startPolling()
+      else stopPolling()
+    }
+    if (document.visibilityState === 'visible') startPolling()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
 
   // Filtrar reservas con exclusión automática de turnos pendientes
@@ -698,39 +746,109 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     const t = setTimeout(() => setSearchTermDebounced(searchTerm), 300)
     return () => clearTimeout(t)
   }, [searchTerm])
+  // Filtro cliente: excluir pendientes, búsqueda por texto; filtros por categoría/status
   useEffect(() => {
-    let filtered = [...bookings]
-    filtered = filtered.filter(booking => booking.status !== 'pendiente')
+    let filtered = [...bookings].filter(booking => booking.status !== 'pendiente')
+    if (statusFilter === 'in_progress') {
+      filtered = filtered.filter(booking => getCategoryAndRemaining(booking).category === 'in_progress')
+    }
+    if (statusFilter === 'confirmed') {
+      filtered = filtered.filter(booking => booking.status === 'confirmado' || getCategoryAndRemaining(booking).category === 'awaiting_completion')
+    }
+    if (statusFilter === 'completed') {
+      filtered = filtered.filter(booking => getCategoryAndRemaining(booking).category === 'completed')
+    }
     if (searchTermDebounced) {
       const term = searchTermDebounced.toLowerCase()
-      filtered = filtered.filter(booking => 
+      filtered = filtered.filter(booking =>
         booking.userName.toLowerCase().includes(term) ||
         booking.userEmail.toLowerCase().includes(term) ||
         booking.courtName.toLowerCase().includes(term)
       )
     }
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => {
-        const cat = getCategoryAndRemaining(booking).category
-        if (statusFilter === 'confirmed') return cat === 'confirmed'
-        if (statusFilter === 'in_progress') return cat === 'in_progress'
-        if (statusFilter === 'completed') return cat === 'completed' || cat === 'closed'
-        return true
-      })
+    setFilteredBookings(filtered)
+  }, [bookings, searchTermDebounced, statusFilter])
+
+  const escapeCsv = (value: string): string => {
+    const s = String(value ?? '')
+    if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+      return '"' + s.replace(/"/g, '""') + '"'
     }
-    if (dateFilter !== 'all') {
-      const base = new Date()
-      const target = new Date(base)
+    return s
+  }
+
+  const exportToCsv = async () => {
+    setExportLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.set('page', '1')
+      params.set('limit', '1000')
+      params.set('sortBy', 'bookingDate')
+      params.set('sortOrder', 'desc')
+      if (statusFilter === 'confirmed') params.set('status', 'CONFIRMED')
+      if (statusFilter === 'completed') params.set('status', 'COMPLETED')
       if (dateFilter === 'today') {
-        filtered = filtered.filter(b => new Date(b.date).toDateString() === base.toDateString())
+        const d = new Date()
+        const today = d.toISOString().split('T')[0]
+        params.set('dateFrom', today)
+        params.set('dateTo', today)
       } else if (dateFilter.startsWith('plus')) {
         const offset = Number(dateFilter.replace('plus', '')) || 0
-        target.setDate(base.getDate() + offset)
-        filtered = filtered.filter(b => new Date(b.date).toDateString() === target.toDateString())
+        const d = new Date()
+        d.setDate(d.getDate() + offset)
+        const day = d.toISOString().split('T')[0]
+        params.set('dateFrom', day)
+        params.set('dateTo', day)
       }
+      const res = await fetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' })
+      if (!res.ok) throw new Error('Error al obtener datos')
+      const payload = await res.json()
+      const list = Array.isArray(payload?.data) ? payload.data : []
+      let mapped: Booking[] = list.map(mapApiBookingToLocal).filter(b => b.status !== 'pendiente')
+      if (statusFilter === 'in_progress') {
+        mapped = mapped.filter(b => getCategoryAndRemaining(b).category === 'in_progress')
+      }
+      if (searchTermDebounced) {
+        const term = searchTermDebounced.toLowerCase()
+        mapped = mapped.filter(b =>
+          b.userName.toLowerCase().includes(term) ||
+          b.userEmail.toLowerCase().includes(term) ||
+          b.courtName.toLowerCase().includes(term)
+        )
+      }
+      const headers = ['Fecha', 'Cancha', 'Horario', 'Usuario', 'Email', 'Estado', 'Pago', 'Extras']
+      const rows = mapped.map(b => {
+        const statusKey = toBookingStatus(b.status)
+        const estado = BOOKING_STATUS_LABELS[statusKey] ?? b.status
+        const pago = b.paymentStatus === 'pagado' ? 'Pagado' : b.paymentStatus === 'parcial' ? 'Parcial' : 'Pendiente'
+        const extrasTotal = b.extras.reduce((sum, e) => sum + e.cost, 0)
+        const extrasStr = b.extras.length ? b.extras.map(e => `${e.name} ($${e.cost})`).join('; ') : ''
+        return [
+          b.date,
+          b.courtName,
+          b.timeRange,
+          b.userName,
+          b.userEmail,
+          estado,
+          pago,
+          extrasStr || (extrasTotal > 0 ? `$${extrasTotal}` : ''),
+        ].map(escapeCsv).join(',')
+      })
+      const csv = '\uFEFF' + headers.join(',') + '\r\n' + rows.join('\r\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `turnos-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Exportación descargada')
+    } catch (e) {
+      toast.error('Error al exportar')
+    } finally {
+      setExportLoading(false)
     }
-    setFilteredBookings(filtered)
-  }, [bookings, searchTermDebounced, statusFilter, dateFilter])
+  }
 
   const toggleBookingExpansion = (bookingId: string) => {
     setExpandedBooking(expandedBooking === bookingId ? null : bookingId)
@@ -739,18 +857,24 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const updateBookingStatus = async (bookingId: string, newStatus: Booking['status']) => {
     const current = bookings.find(b => b.id === bookingId)
     if (!current) return
-    if (newStatus === 'completado' && current.paymentStatus !== 'pagado') {
-      return
-    }
+    // Permitir pasar a completado sin exigir pago completo cuando el admin usa "Terminar turno"
     const previousStatus = current.status
     setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: newStatus } : b)))
     try {
-      await fetch(`/api/bookings/${bookingId}`, {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: toBookingStatus(newStatus) })
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data?.error || 'Error al actualizar el turno')
+        setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: previousStatus } : b)))
+        return
+      }
+      toast.success('Turno marcado como completado')
     } catch (err) {
+      toast.error('Error al actualizar el turno')
       setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: previousStatus } : b)))
     }
   }
@@ -775,13 +899,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         credentials: 'same-origin'
       }, 'POST /api/bookings/:id/close')
       if (!res.ok) {
-        // Mantener estado si falla
+        const data = await res.json().catch(() => ({}))
+        toast.error(data?.error || 'Error al cerrar el turno')
         return
       }
       const data = await res.json()
       const closedAt = new Date().toISOString()
       // Actualizar estado local a completado y marcar closedAt
       setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: 'completado', closedAt } : b)))
+      toast.success('Turno cerrado correctamente')
       // Auditoría
       await fetch('/api/admin/test-event', {
         method: 'POST',
@@ -793,8 +919,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         })
       }).catch(() => {})
     } catch (err) {
-      // Silencioso para no romper UI
       console.error('Error cerrando turno:', err)
+      toast.error('Error al cerrar el turno')
     }
   }
 
@@ -1190,26 +1316,48 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             Agregar Extra
           </Button>
           {(() => {
-            const canClose = pendingBalance === 0 && (booking.status === 'confirmado' || (booking.status === 'completado' && !booking.closedAt))
+            const cat = getCategoryAndRemaining(booking).category
+            const showTerminarTurno = cat === 'in_progress' && booking.status !== 'completado'
             const isClosed = booking.status === 'completado' && !!booking.closedAt
+            const canCerrarTurno = pendingBalance === 0 && booking.status === 'completado' && !booking.closedAt
             return (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConfirmBookingId(booking.id)}
-                className={`text-green-600 border-green-600 hover:bg-green-50 ${(!canClose || isClosed) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                data-testid={`admin-complete-btn-${idx + 1}`}
-                disabled={!canClose || isClosed}
-                aria-disabled={!canClose || isClosed}
-              >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                {isClosed ? 'Cerrado' : 'Completar'}
-              </Button>
+              <>
+                {showTerminarTurno && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateBookingStatus(booking.id, 'completado')}
+                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                    data-testid={`admin-terminar-turno-btn-${idx + 1}`}
+                  >
+                    <Clock className="w-4 h-4 mr-1" />
+                    Terminar turno
+                  </Button>
+                )}
+                {canCerrarTurno && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setConfirmBookingId(booking.id)}
+                    className="text-green-600 border-green-600 hover:bg-green-50"
+                    data-testid={`admin-complete-btn-${idx + 1}`}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Cerrar turno
+                  </Button>
+                )}
+                {isClosed && (
+                  <span className="px-2 py-1 rounded text-xs font-medium border border-gray-300 bg-gray-100 text-gray-600">
+                    Cerrado
+                  </span>
+                )}
+              </>
             )
           })()}
           {(() => {
             const cat = getCategoryAndRemaining(booking).category
-            const disableCancel = !(cat === 'confirmed' || cat === 'in_progress')
+            const isConfirmadoOrEnCurso = cat === 'confirmed' || cat === 'in_progress' || booking.status === 'confirmado'
+            const disableCancel = !isConfirmadoOrEnCurso
             return (
               <Button
                 variant="outline"
@@ -1281,12 +1429,25 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const completedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'completed'), [derivedBookings])
   const closedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'closed'), [derivedBookings])
 
+  // Limpieza a la mañana siguiente (06:00): los cerrados el día D se ocultan a partir del D+1 a las 06:00
+  const CLEAN_CLOSED_AT_HOUR = 6
+  const closedVisibleDerived = useMemo(() => {
+    return closedDerived.filter((d) => {
+      const closedAt = d.booking.closedAt ? new Date(d.booking.closedAt) : null
+      if (!closedAt) return true
+      const cleanupThreshold = new Date(closedAt)
+      cleanupThreshold.setDate(cleanupThreshold.getDate() + 1)
+      cleanupThreshold.setHours(CLEAN_CLOSED_AT_HOUR, 0, 0, 0)
+      return now < cleanupThreshold
+    })
+  }, [closedDerived, now])
+
+  const CONFIRMED_PAGE_SIZE = 20
   const [visibleFixed, setVisibleFixed] = useState(30)
-  const [visibleConfirmed, setVisibleConfirmed] = useState(30)
-  const [visibleInProgress, setVisibleInProgress] = useState(30)
-  const [visibleCompleted, setVisibleCompleted] = useState(30)
+  const [visibleConfirmed, setVisibleConfirmed] = useState(CONFIRMED_PAGE_SIZE)
   const [visibleClosed, setVisibleClosed] = useState(30)
   const [confirmedSectionCollapsed, setConfirmedSectionCollapsed] = useState(false)
+  const [closedSectionCollapsed, setClosedSectionCollapsed] = useState(true)
 
   if (loading) {
     return (
@@ -1340,6 +1501,17 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           >
             <Filter className="w-4 h-4 mr-2" aria-hidden="true" />
             Filtros
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToCsv}
+            disabled={exportLoading}
+            aria-label="Exportar a CSV"
+            data-testid="export-csv-button"
+          >
+            {exportLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            Exportar
           </Button>
         </nav>
       </header>
@@ -1508,8 +1680,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="mt-4 space-y-4">
                 {fixedDerived.slice(0, visibleFixed).map((d, idx) => (
-                    <Card key={d.booking.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
+                    <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
+                      <CardHeader className="pb-2 pt-0">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -1525,7 +1697,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               })()}
                               <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 text-purple-800 border-purple-200">Fijo</span>
                             </CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1612,8 +1784,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               {!confirmedSectionCollapsed && (
               <div className="mt-4 space-y-4">
                 {confirmedDerived.slice(0, visibleConfirmed).map((d, idx) => (
-                    <Card key={d.booking.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
+                    <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
+                      <CardHeader className="pb-2 pt-0">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -1628,7 +1800,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1677,13 +1849,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                       )}
                     </Card>
                   ))}
-              {(confirmedDerived.length > visibleConfirmed || visibleConfirmed > 30) && (
+              {(confirmedDerived.length > visibleConfirmed || visibleConfirmed > CONFIRMED_PAGE_SIZE) && (
                 <div className="flex justify-center gap-2 mt-2">
                   {confirmedDerived.length > visibleConfirmed && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(v => v + 30)}>Mostrar más</Button>
+                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(v => v + CONFIRMED_PAGE_SIZE)}>
+                      Mostrar más{confirmedDerived.length > visibleConfirmed ? ` (${Math.min(CONFIRMED_PAGE_SIZE, confirmedDerived.length - visibleConfirmed)} más)` : ''}
+                    </Button>
                   )}
-                  {visibleConfirmed > 30 && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(30)}>Mostrar menos</Button>
+                  {visibleConfirmed > CONFIRMED_PAGE_SIZE && (
+                    <Button variant="outline" size="sm" onClick={() => setVisibleConfirmed(CONFIRMED_PAGE_SIZE)}>Mostrar menos</Button>
                   )}
                 </div>
               )}
@@ -1699,9 +1873,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-blue-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {inProgressDerived.slice(0, visibleInProgress).map((d, idx) => (
-                    <Card key={d.booking.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
+                {inProgressDerived.map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
+                      <CardHeader className="pb-2 pt-0">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -1716,7 +1890,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1773,16 +1947,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                       )}
                     </Card>
                   ))}
-              {(inProgressDerived.length > visibleInProgress || visibleInProgress > 30) && (
-                <div className="flex justify-center gap-2 mt-2">
-                  {inProgressDerived.length > visibleInProgress && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleInProgress(v => v + 30)}>Mostrar más</Button>
-                  )}
-                  {visibleInProgress > 30 && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleInProgress(30)}>Mostrar menos</Button>
-                  )}
-                </div>
-              )}
               </div>
             </div>
 
@@ -1794,9 +1958,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <div className="flex-1 border-t border-gray-300"></div>
               </div>
               <div className="mt-4 space-y-4">
-                {completedDerived.slice(0, visibleCompleted).map((d, idx) => (
-                    <Card key={d.booking.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
+                {completedDerived.map((d, idx) => (
+                    <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
+                      <CardHeader className="pb-2 pt-0">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -1811,7 +1975,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1871,29 +2035,38 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                       )}
                     </Card>
                   ))}
-              {(completedDerived.length > visibleCompleted || visibleCompleted > 30) && (
-                <div className="flex justify-center gap-2 mt-2">
-                  {completedDerived.length > visibleCompleted && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleCompleted(v => v + 30)}>Mostrar más</Button>
-                  )}
-                  {visibleCompleted > 30 && (
-                    <Button variant="outline" size="sm" onClick={() => setVisibleCompleted(30)}>Mostrar menos</Button>
-                  )}
-                </div>
-              )}
               </div>
             </div>
 
-            {/* Sección: Turnos cerrados (resumen compacto) */}
+            {/* Sección: Turnos cerrados (resumen compacto, colapsable; se limpia a las 06:00 del día siguiente) */}
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
-                <span className="text-xs font-bold tracking-widest text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded">TURNOS CERRADOS</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold tracking-widest text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded">
+                    TURNOS CERRADOS {closedVisibleDerived.length > 0 && `(${closedVisibleDerived.length})`}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setClosedSectionCollapsed(c => !c)}
+                    aria-expanded={!closedSectionCollapsed}
+                    data-testid="expand-closed-section"
+                    className="h-8 w-8 p-0"
+                  >
+                    {closedSectionCollapsed ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
                 <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
               </div>
+              {!closedSectionCollapsed && (
               <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30 overflow-hidden">
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {closedDerived.slice(0, visibleClosed).map((d) => (
+                  {closedVisibleDerived.slice(0, visibleClosed).map((d) => (
                     <div
                       key={d.booking.id}
                       className="px-3 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-400"
@@ -1910,9 +2083,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     </div>
                   ))}
                 </div>
-                {(closedDerived.length > visibleClosed || visibleClosed > 30) && (
+                {(closedVisibleDerived.length > visibleClosed || visibleClosed > 30) && (
                   <div className="flex justify-center gap-2 py-2 border-t border-gray-200 dark:border-gray-700">
-                    {closedDerived.length > visibleClosed && (
+                    {closedVisibleDerived.length > visibleClosed && (
                       <Button variant="outline" size="sm" onClick={() => setVisibleClosed(v => v + 30)}>Mostrar más</Button>
                     )}
                     {visibleClosed > 30 && (
@@ -1921,7 +2094,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                   </div>
                 )}
               </div>
+              )}
             </div>
+
           </>
         )}
       </div>

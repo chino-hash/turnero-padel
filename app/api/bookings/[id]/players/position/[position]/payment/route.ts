@@ -99,7 +99,7 @@ export async function PATCH(
       )
     }
 
-    const result = await bookingService.updatePlayerPaymentAndRecalc(
+    let result = await bookingService.updatePlayerPaymentAndRecalc(
       bookingId,
       player.id,
       validated,
@@ -110,6 +110,41 @@ export async function PATCH(
       const statusCode = result.error?.includes('No encontrada') ? 404 :
                         result.error?.includes('permisos') ? 403 : 400
       return NextResponse.json(result, { status: statusCode })
+    }
+
+    // Confirmación al pagar depósito: si la reserva está PENDING y el total pagado >= % configurado, pasar a CONFIRMED (solo reservas creadas por usuario, no admin)
+    if (result.data && result.data.status === 'PENDING') {
+      const players = result.data.players || []
+      const total = Number(result.data.totalPrice) || 0
+      const playerCount = Math.max(1, players.length)
+      const sharePerPlayer = total / playerCount
+      // Si el UI solo envía hasPaid (sin paidAmount), estimar parte proporcional por jugador que marcó pagado
+      const totalPaid = players.reduce((s: number, p: { hasPaid?: boolean; paidAmount?: number }) => {
+        const amount = Number(p.paidAmount) || 0
+        const effective = p.hasPaid ? (amount > 0 ? amount : Math.round(sharePerPlayer)) : amount
+        return s + effective
+      }, 0)
+      const setting = await prisma.systemSetting.findFirst({
+        where: { tenantId: bookingTenantId, key: 'depositConfirmPercent' },
+        select: { value: true }
+      })
+      const percent = setting?.value ? Math.min(100, Math.max(0, parseInt(setting.value, 10) || 0)) : 0
+      if (percent > 0 && total > 0 && totalPaid >= (total * percent) / 100) {
+        const confirmResult = await bookingService.updateBooking(
+          bookingId,
+          { status: 'CONFIRMED' },
+          session.user.id,
+          session.user.role
+        )
+        if (confirmResult.success && confirmResult.data) {
+          result = { ...result, data: confirmResult.data }
+          eventEmitters.bookingsUpdated({
+            action: 'booking_auto_confirmed_by_deposit',
+            booking: confirmResult.data,
+            message: `Reserva confirmada al alcanzar el ${percent}% de pago`
+          }, bookingTenantId)
+        }
+      }
     }
 
     if (result.data) {
