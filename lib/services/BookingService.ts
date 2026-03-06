@@ -109,6 +109,13 @@ export type BookingStats = {
   pending: number;
   revenue: number;
   occupancyRate: number;
+  byDay?: Record<string, number>;
+  activeUsers?: number;
+  byStatus?: Record<string, number>;
+  byCourt?: Record<string, number>;
+  byHour?: Record<string, number>;
+  averagePlayersPerBooking?: number;
+  trends?: Array<{ month: string; bookings: number; revenue: number }>;
 };
 
 export class BookingService {
