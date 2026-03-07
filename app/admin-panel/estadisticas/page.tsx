@@ -1,12 +1,81 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
-import { BarChart3, TrendingUp, Users, Calendar, DollarSign, Clock, RefreshCw, AlertCircle } from 'lucide-react'
-import { useEstadisticas } from '../../../hooks/useEstadisticas'
-import { Button } from '../../../components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Calendar,
+  DollarSign,
+  Clock,
+  RefreshCw,
+  AlertCircle,
+  FileDown,
+  FileSpreadsheet,
+  Monitor,
+  UserCog,
+} from 'lucide-react'
+import { exportToPdf, exportToExcel } from '@/lib/export-estadisticas'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
+import { useEstadisticas } from '@/hooks/useEstadisticas'
+import type { Period } from '@/types/estadisticas'
+
+const CHART_COLORS = {
+  reservas: 'var(--chart-1)',
+  ingresos: 'var(--chart-2)',
+  bar: 'var(--chart-2)',
+}
+
+const PERIOD_LABELS: Record<Period, string> = {
+  hoy: 'Hoy',
+  semana: 'Semana',
+  mes: 'Mes',
+  trimestre: 'Trimestre',
+  ano: 'Año',
+}
+
+function VariacionBadge({ variacion }: { variacion: number | null }) {
+  if (variacion === null) return null
+  const isPositive = variacion >= 0
+  const Icon = isPositive ? TrendingUp : TrendingDown
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+    >
+      <Icon className="h-3 w-3" />
+      {isPositive ? '+' : ''}{variacion}% vs período anterior
+    </span>
+  )
+}
 
 export default function EstadisticasPage() {
-  const { estadisticas, loading, error, refetch } = useEstadisticas()
+  const { estadisticas, loading, error, refetch, period, setPeriod } =
+    useEstadisticas('mes')
 
   if (loading) {
     return (
@@ -22,7 +91,7 @@ export default function EstadisticasPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="flex items-center space-x-2 text-red-600">
+        <div className="flex items-center space-x-2 text-destructive">
           <AlertCircle className="w-6 h-6" />
           <span>Error al cargar estadísticas: {error}</span>
         </div>
@@ -44,76 +113,248 @@ export default function EstadisticasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header (misma posición que el resto de pestañas) */}
       <div className="min-h-[5.5rem] flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">Estadísticas</h1>
-          <div className="w-16 h-0.5 bg-orange-500"></div>
-          <p className="text-muted-foreground text-xs mt-2">Análisis de ocupación y rendimiento del complejo.</p>
+          <h1 className="text-2xl md:text-3xl font-light text-foreground mb-2">
+            Estadísticas
+          </h1>
+          <div className="w-16 h-0.5 bg-orange-500" />
+          <p className="text-muted-foreground text-xs mt-2">
+            Análisis de ocupación y rendimiento del complejo.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+          <Select
+            value={period}
+            onValueChange={(v) => setPeriod(v as Period)}
+            disabled={loading}
+          >
+            <SelectTrigger className="w-[140px] min-h-[44px] sm:min-h-[40px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+                <SelectItem key={p} value={p}>
+                  {PERIOD_LABELS[p]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={() => exportToPdf(estadisticas, PERIOD_LABELS[period])}
+            variant="outline"
+            disabled={!estadisticas}
+            className="flex items-center gap-2 min-h-[44px] sm:min-h-0"
+          >
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </Button>
+          <Button
+            onClick={() => exportToExcel(estadisticas, PERIOD_LABELS[period])}
+            variant="outline"
+            disabled={!estadisticas}
+            className="flex items-center gap-2 min-h-[44px] sm:min-h-0"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Exportar Excel
+          </Button>
           <Button
             onClick={refetch}
             variant="outline"
             disabled={loading}
             className="flex items-center gap-2 min-h-[44px] sm:min-h-0"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`}
+            />
             Actualizar
           </Button>
         </div>
       </div>
 
-      {/* Métricas principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reservas Hoy</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Reservas ({PERIOD_LABELS[period]})
+            </CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{estadisticas.reservasHoy}</div>
-            <p className="text-xs text-muted-foreground">Reservas del día actual</p>
+            <div className="text-2xl font-bold">
+              {estadisticas.reservasCount}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <VariacionBadge variacion={estadisticas.variacionReservas} />
+              {estadisticas.variacionReservas === null && 'Reservas del período'}
+            </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Reservas Semana</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{estadisticas.reservasSemana}</div>
-            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Ingresos ({PERIOD_LABELS[period]})
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${estadisticas.ingresosMes.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Mes actual</p>
+            <div className="text-2xl font-bold">
+              ${estadisticas.ingresosMes.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <VariacionBadge variacion={estadisticas.variacionIngresos} />
+              {estadisticas.variacionIngresos === null && 'Ingresos del período'}
+            </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ocupación Promedio</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Ocupación Promedio
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{estadisticas.ocupacionPromedio}%</div>
-            <p className="text-xs text-muted-foreground">Promedio mensual</p>
+            <div className="text-2xl font-bold">
+              {estadisticas.ocupacionPromedio}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              <VariacionBadge variacion={estadisticas.variacionOcupacion} />
+              {estadisticas.variacionOcupacion === null &&
+                'Ocupación del período'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Usuarios Activos
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {estadisticas.usuariosActivos}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Con reservas en el período
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos y análisis detallado */}
+      {/* Evolución reservas e ingresos */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BarChart3 className="w-5 h-5 mr-2" />
+            Evolución de reservas e ingresos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {estadisticas.evolucionReservas.length === 0 &&
+          estadisticas.evolucionIngresos.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-8 text-center">
+              Sin datos en este período
+            </p>
+          ) : (
+            <div
+              className="h-[280px] w-full"
+              role="img"
+              aria-label={`Evolución de reservas e ingresos en el período ${PERIOD_LABELS[period]}. ${estadisticas.evolucionReservas.length} puntos de datos.`}
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={(() => {
+                    const byFecha = new Map<
+                      string,
+                      { fecha: string; reservas: number; ingresos: number }
+                    >()
+                    for (const r of estadisticas.evolucionReservas) {
+                      byFecha.set(r.fecha, {
+                        fecha: r.fecha,
+                        reservas: r.cantidad ?? 0,
+                        ingresos: 0,
+                      })
+                    }
+                    for (const i of estadisticas.evolucionIngresos) {
+                      const existing = byFecha.get(i.fecha)
+                      if (existing) existing.ingresos = i.total
+                      else byFecha.set(i.fecha, { fecha: i.fecha, reservas: 0, ingresos: i.total })
+                    }
+                    return Array.from(byFecha.values()).sort((a, b) =>
+                      a.fecha.localeCompare(b.fecha)
+                    )
+                  })()}
+                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="fecha"
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis
+                    yAxisId="left"
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                    tickFormatter={(v) => `$${v}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'var(--radius)',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                    labelStyle={{ color: 'hsl(var(--foreground))' }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: number, name: string, props: { dataKey?: string }) => {
+                      const dataKey = props?.dataKey ?? String(name).toLowerCase()
+                      const isIngresos = dataKey === 'ingresos'
+                      const label = isIngresos ? 'Ingresos' : 'Reservas'
+                      const displayValue = isIngresos ? `$${Number(value).toLocaleString()}` : value
+                      return [displayValue, label]
+                    }}
+                    labelFormatter={(label) => `Fecha: ${label}`}
+                  />
+                  <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="reservas"
+                    name="Reservas"
+                    stroke={CHART_COLORS.reservas}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="ingresos"
+                    name="Ingresos"
+                    stroke={CHART_COLORS.ingresos}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Canchas más utilizadas */}
+        {/* Canchas más utilizadas: tabla (sin gráfico) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -122,28 +363,51 @@ export default function EstadisticasPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {estadisticas.canchasMasUsadas.map((cancha, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="text-sm font-medium text-gray-900">{cancha.nombre}</div>
-                      <div className="text-sm text-gray-600">{cancha.reservas} reservas</div>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${cancha.porcentaje}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {estadisticas.canchasMasUsadas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Sin datos en este período
+              </p>
+            ) : (
+              <div className="rounded-md border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="h-9 px-4 text-left font-medium text-foreground">
+                        Cancha
+                      </th>
+                      <th className="h-9 px-4 text-right font-medium text-foreground">
+                        Reservas
+                      </th>
+                      <th className="h-9 px-4 text-right font-medium text-foreground">
+                        %
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {estadisticas.canchasMasUsadas.map((cancha, index) => (
+                      <tr
+                        key={index}
+                        className="border-b border-border last:border-0"
+                      >
+                        <td className="px-4 py-2 text-foreground">
+                          {cancha.nombre}
+                        </td>
+                        <td className="px-4 py-2 text-right text-muted-foreground">
+                          {cancha.reservas}
+                        </td>
+                        <td className="px-4 py-2 text-right text-muted-foreground">
+                          {cancha.porcentaje}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Horarios pico */}
+        {/* Horarios pico - gráfico de barras */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -152,29 +416,77 @@ export default function EstadisticasPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {estadisticas.horariosPico.map((horario, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="text-sm font-medium text-gray-900">{horario.hora}</div>
-                      <div className="text-sm text-gray-600">{horario.reservas} reservas</div>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${(horario.reservas / 35) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {estadisticas.horariosPico.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Sin datos en este período
+              </p>
+            ) : (
+              <div
+                className="h-[260px] w-full"
+                role="img"
+              aria-label={`Horarios con más reservas en el período ${PERIOD_LABELS[period]}. ${estadisticas.horariosPico.length} franjas horarias.`}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={estadisticas.horariosPico.map((h) => ({
+                      hora: h.hora,
+                      reservas: h.reservas,
+                    }))}
+                    layout="vertical"
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--border))"
+                      horizontal={false}
+                    />
+                    <XAxis
+                      type="number"
+                      tick={{
+                        fontSize: 12,
+                        fill: 'var(--foreground)',
+                        fontWeight: 500,
+                      }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="hora"
+                      width={90}
+                      tick={{
+                        fontSize: 12,
+                        fill: 'var(--foreground)',
+                        fontWeight: 500,
+                      }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--background)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius)',
+                        color: 'var(--foreground)',
+                      }}
+                      labelStyle={{ color: 'var(--foreground)' }}
+                      itemStyle={{ color: 'var(--foreground)' }}
+                      formatter={(value: number) => [value, 'Reservas']}
+                      labelFormatter={(label) => `Horario: ${label}`}
+                    />
+                    <Bar
+                      dataKey="reservas"
+                      fill={CHART_COLORS.bar}
+                      radius={[0, 4, 4, 0]}
+                      name="Reservas"
+                      maxBarSize={28}
+                      stroke="hsl(var(--border))"
+                      strokeWidth={1}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Resumen de usuarios */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -185,22 +497,87 @@ export default function EstadisticasPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{estadisticas.usuariosActivos}</div>
-              <div className="text-sm text-gray-600 mt-1">Usuarios Activos</div>
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.usuariosActivos}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Usuarios Activos
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{estadisticas.satisfaccion}/5</div>
-              <div className="text-sm text-gray-600 mt-1">Satisfacción</div>
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.satisfaccion}%
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Tasa de cumplimiento
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{estadisticas.promedioReservasPorUsuario}</div>
-              <div className="text-sm text-gray-600 mt-1">Reservas por Usuario</div>
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.promedioReservasPorUsuario}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Reservas por Usuario
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Resumen Financiero */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Monitor className="w-5 h-5 mr-2" />
+            Uso de la página
+          </CardTitle>
+          <p className="text-sm text-muted-foreground font-normal">
+            Reservas hechas por usuarios en la web vs. reservas hechas por el admin
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.usoPagina.reservasPorUsuario}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <Monitor className="h-4 w-4" />
+                Por usuarios (web)
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.usoPagina.reservasPorAdmin}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                <UserCog className="h-4 w-4" />
+                Por admin
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-foreground">
+                {estadisticas.usoPagina.porcentajeUsoPagina != null
+                  ? `${estadisticas.usoPagina.porcentajeUsoPagina}%`
+                  : '—'}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                Uso de la página
+              </div>
+            </div>
+            {estadisticas.usoPagina.sinDato > 0 && (
+              <div className="text-center">
+                <div className="text-2xl font-semibold text-muted-foreground">
+                  {estadisticas.usoPagina.sinDato}
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  Sin dato (reservas antiguas)
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -211,16 +588,30 @@ export default function EstadisticasPage() {
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total Recaudado</span>
-              <span className="font-semibold text-green-600">${estadisticas.financiero.totalRecaudado.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">
+                Total Recaudado
+              </span>
+              <span className="font-semibold text-foreground">
+                $
+                {estadisticas.financiero.totalRecaudado.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Saldo Pendiente</span>
-              <span className="font-semibold text-orange-600">${estadisticas.financiero.saldoPendiente.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">
+                Saldo Pendiente
+              </span>
+              <span className="font-semibold text-foreground">
+                $
+                {estadisticas.financiero.saldoPendiente.toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total Reservas</span>
-              <span className="font-semibold">{estadisticas.financiero.totalReservas}</span>
+              <span className="text-sm text-muted-foreground">
+                Total Reservas (cantidad)
+              </span>
+              <span className="font-semibold text-foreground">
+                {estadisticas.financiero.totalReservas}
+              </span>
             </div>
           </div>
         </CardContent>

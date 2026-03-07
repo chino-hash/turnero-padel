@@ -64,6 +64,8 @@ export type BookingWithRelations = Booking & {
 export type BookingCreateInput = {
   courtId: string;
   userId: string;
+  /** Usuario que realizó la reserva (quien estaba logueado). Si coincide con userId = autoatención; si no = admin. */
+  bookedById?: string | null;
   bookingDate: Date;
   startTime: string;
   endTime: string;
@@ -337,6 +339,7 @@ export class BookingRepository {
           courtId: data.courtId,
           userId: data.userId,
           tenantId: court.tenantId,
+          bookedById: data.bookedById ?? undefined,
           bookingDate: data.bookingDate,
           startTime: data.startTime,
           endTime: data.endTime,

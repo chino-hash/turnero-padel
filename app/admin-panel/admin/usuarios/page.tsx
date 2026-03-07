@@ -9,18 +9,7 @@ import { Label } from '../../../../components/ui/label'
 import { Textarea } from '../../../../components/ui/textarea'
 import { Switch } from '../../../../components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../../components/ui/alert-dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs'
-import { Users, Star, Gift, TrendingUp, Calendar, RefreshCw, AlertCircle, Plus, Edit2, X, Loader2, Search, ChevronLeft, ChevronRight, User, FileText, CreditCard } from 'lucide-react'
+import { Users, Star, Gift, TrendingUp, Calendar, RefreshCw, AlertCircle, Plus, Edit2, X, Loader2, Search, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { useAnalisisUsuarios } from '../../../../hooks/useAnalisisUsuarios'
 import { useUsuariosList, type UsuarioListItem } from '../../../../hooks/useUsuariosList'
 import { toast } from 'sonner'
@@ -137,94 +126,13 @@ export default function UsuariosPage() {
     setListPage(1)
   }, [])
 
-  const [editingUser, setEditingUser] = useState<UsuarioListItem | null>(null)
-  const [userForm, setUserForm] = useState({ name: '', fullName: '', email: '', phone: '', role: 'USER' as string, isActive: true, discountPercent: '' as string })
-  const [submittingUser, setSubmittingUser] = useState(false)
-  const [activarDesactivarUser, setActivarDesactivarUser] = useState<UsuarioListItem | null>(null)
-  const [submittingActivar, setSubmittingActivar] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', phone: '', role: 'USER' as string })
   const [submittingInvite, setSubmittingInvite] = useState(false)
-  const [detailUser, setDetailUser] = useState<UsuarioListItem | null>(null)
-  const [detailUserFull, setDetailUserFull] = useState<Record<string, unknown> | null>(null)
-  const [detailBookings, setDetailBookings] = useState<Array<Record<string, unknown>>>([])
-  const [loadingDetail, setLoadingDetail] = useState(false)
   const [configCategorias, setConfigCategorias] = useState({ vipMinReservas: 20, premiumMinReservas: 10 })
   const [loadingConfig, setLoadingConfig] = useState(false)
   const [savingConfig, setSavingConfig] = useState(false)
 
-  const openEditUser = (u: UsuarioListItem) => {
-    setEditingUser(u)
-    setUserForm({
-      name: u.name ?? '',
-      fullName: u.fullName ?? '',
-      email: u.email,
-      phone: u.phone ?? '',
-      role: u.role,
-      isActive: u.isActive,
-      discountPercent: u.discountPercent != null ? String(u.discountPercent) : '',
-    })
-  }
-  const closeEditUser = () => {
-    setEditingUser(null)
-  }
-  const submitUserEdit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingUser) return
-    setSubmittingUser(true)
-    try {
-      const res = await fetch(`/api/crud/user/${editingUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: userForm.name || undefined,
-          fullName: userForm.fullName || undefined,
-          email: userForm.email,
-          phone: userForm.phone || undefined,
-          role: userForm.role,
-          isActive: userForm.isActive,
-          discountPercent: userForm.discountPercent === '' ? null : Math.min(100, Math.max(0, parseInt(userForm.discountPercent, 10) || 0)),
-        }),
-      })
-      const json = await res.json()
-      if (res.ok && json.success) {
-        toast.success('Usuario actualizado')
-        closeEditUser()
-        refetchList()
-      } else {
-        toast.error(json?.error || json?.message || 'Error al actualizar')
-      }
-    } catch {
-      toast.error('Error al actualizar')
-    } finally {
-      setSubmittingUser(false)
-    }
-  }
-  const confirmActivarDesactivar = async () => {
-    if (!activarDesactivarUser) return
-    setSubmittingActivar(true)
-    try {
-      const res = await fetch(`/api/crud/user/${activarDesactivarUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ isActive: !activarDesactivarUser.isActive }),
-      })
-      const json = await res.json()
-      if (res.ok && json.success) {
-        toast.success(activarDesactivarUser.isActive ? 'Usuario desactivado' : 'Usuario activado')
-        setActivarDesactivarUser(null)
-        refetchList()
-      } else {
-        toast.error(json?.error || json?.message || 'Error al cambiar estado')
-      }
-    } catch {
-      toast.error('Error al cambiar estado')
-    } finally {
-      setSubmittingActivar(false)
-    }
-  }
   useEffect(() => {
     let cancelled = false
     setLoadingConfig(true)
@@ -265,26 +173,6 @@ export default function UsuariosPage() {
       setSavingConfig(false)
     }
   }
-
-  useEffect(() => {
-    if (!detailUser) {
-      setDetailUserFull(null)
-      setDetailBookings([])
-      return
-    }
-    setLoadingDetail(true)
-    Promise.all([
-      fetch(`/api/crud/user/${detailUser.id}`, { credentials: 'include' }).then((r) => r.json()),
-      fetch(`/api/bookings?userId=${detailUser.id}&limit=50`, { credentials: 'include' }).then((r) => r.json()),
-    ])
-      .then(([userRes, bookingsRes]) => {
-        if (userRes?.data) setDetailUserFull(userRes.data)
-        if (Array.isArray(bookingsRes?.data)) setDetailBookings(bookingsRes.data)
-        else setDetailBookings([])
-      })
-      .catch(() => {})
-      .finally(() => setLoadingDetail(false))
-  }, [detailUser?.id])
 
   const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -868,7 +756,6 @@ export default function UsuariosPage() {
                           </th>
                           <th className="text-left p-3 text-muted-foreground">Estado</th>
                           <th className="text-left p-3 text-muted-foreground">Descuento %</th>
-                          <th className="text-left p-3 text-muted-foreground">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -892,23 +779,6 @@ export default function UsuariosPage() {
                             </td>
                             <td className="p-3">
                               {u.discountPercent != null ? `${u.discountPercent}%` : '—'}
-                            </td>
-                            <td className="p-3">
-                              <div className="flex flex-wrap gap-1">
-                                <Button variant="ghost" size="sm" onClick={() => setDetailUser(u)}>
-                                  Ver detalle
-                                </Button>
-                                <Button variant="ghost" size="sm" onClick={() => openEditUser(u)}>
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setActivarDesactivarUser(u)}
-                                >
-                                  {u.isActive ? 'Desactivar' : 'Activar'}
-                                </Button>
-                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1269,202 +1139,6 @@ export default function UsuariosPage() {
                   </Button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-
-        {editingUser && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-card border border-border rounded-lg p-6 w-full max-w-md shadow-xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Editar usuario</h2>
-                <Button variant="ghost" size="sm" onClick={closeEditUser}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <form onSubmit={submitUserEdit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nombre</Label>
-                  <Input
-                    value={userForm.name}
-                    onChange={(e) => setUserForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="Nombre"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nombre completo</Label>
-                  <Input
-                    value={userForm.fullName}
-                    onChange={(e) => setUserForm((f) => ({ ...f, fullName: e.target.value }))}
-                    placeholder="Nombre completo"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))}
-                    placeholder="Email"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Teléfono</Label>
-                  <Input
-                    value={userForm.phone}
-                    onChange={(e) => setUserForm((f) => ({ ...f, phone: e.target.value }))}
-                    placeholder="Teléfono"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Rol</Label>
-                  <Select value={userForm.role} onValueChange={(v) => setUserForm((f) => ({ ...f, role: v }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USER">Usuario</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={userForm.isActive}
-                    onCheckedChange={(checked) => setUserForm((f) => ({ ...f, isActive: checked }))}
-                  />
-                  <Label>Activo</Label>
-                </div>
-                <div className="space-y-2">
-                  <Label>Descuento % (opcional, 0-100; vacío = calculado por categoría)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={userForm.discountPercent}
-                    onChange={(e) => setUserForm((f) => ({ ...f, discountPercent: e.target.value }))}
-                    placeholder="Ej: 10"
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={closeEditUser} className="flex-1" disabled={submittingUser}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="flex-1" disabled={submittingUser}>
-                    {submittingUser ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    Guardar
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        <AlertDialog open={!!activarDesactivarUser} onOpenChange={(open) => !open && setActivarDesactivarUser(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {activarDesactivarUser?.isActive ? 'Desactivar usuario' : 'Activar usuario'}
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                {activarDesactivarUser?.isActive
-                  ? `¿Desactivar a ${activarDesactivarUser.name || activarDesactivarUser.email}? No podrá iniciar sesión.`
-                  : `¿Activar a ${activarDesactivarUser?.name || activarDesactivarUser?.email}?`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={submittingActivar}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmActivarDesactivar} disabled={submittingActivar}>
-                {submittingActivar ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {activarDesactivarUser?.isActive ? 'Desactivar' : 'Activar'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        {detailUser && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-card border border-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-xl flex flex-col">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h2 className="text-xl font-semibold">
-                  Detalle: {detailUser.name || detailUser.fullName || detailUser.email}
-                </h2>
-                <Button variant="ghost" size="sm" onClick={() => setDetailUser(null)}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="p-4 overflow-y-auto flex-1">
-                {loadingDetail ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                ) : (
-                  <Tabs defaultValue="info" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="info" className="flex items-center gap-1">
-                        <User className="w-4 h-4" />
-                        Info
-                      </TabsTrigger>
-                      <TabsTrigger value="reservas" className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Reservas
-                      </TabsTrigger>
-                      <TabsTrigger value="pagos" className="flex items-center gap-1">
-                        <CreditCard className="w-4 h-4" />
-                        Pagos
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="info" className="space-y-3 mt-4">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p className="text-muted-foreground">Nombre</p>
-                        <p className="font-medium">{String(detailUserFull?.name ?? detailUser.name ?? detailUser.fullName ?? '—')}</p>
-                        <p className="text-muted-foreground">Email</p>
-                        <p className="font-medium">{String(detailUserFull?.email ?? detailUser.email ?? '')}</p>
-                        <p className="text-muted-foreground">Teléfono</p>
-                        <p className="font-medium">{String(detailUserFull?.phone ?? detailUser.phone ?? '—')}</p>
-                        <p className="text-muted-foreground">Categoría</p>
-                        <p><Badge className={getCategoriaColor(detailUser.categoria)}>{detailUser.categoria}</Badge></p>
-                        <p className="text-muted-foreground">Estado</p>
-                        <p className="font-medium">{detailUser.isActive ? 'Activo' : 'Inactivo'}</p>
-                        <p className="text-muted-foreground">Rol</p>
-                        <p className="font-medium">{String(detailUserFull?.role ?? detailUser.role ?? '')}</p>
-                        <p className="text-muted-foreground">Descuento %</p>
-                        <p className="font-medium">
-                          {detailUser.discountPercent != null ? `${detailUser.discountPercent}%` : (detailUserFull?.discountPercent != null ? `${detailUserFull.discountPercent}%` : 'Calculado')}
-                        </p>
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="reservas" className="mt-4">
-                      {detailBookings.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Sin reservas.</p>
-                      ) : (
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {detailBookings.map((b: Record<string, unknown>, i: number) => (
-                            <div key={(b.id as string) || i} className="flex justify-between items-center py-2 border-b text-sm">
-                              <span>{(b.bookingDate as string) && new Date(b.bookingDate as string).toLocaleDateString('es-ES')}</span>
-                              <span>{b.startTime as string} - {b.endTime as string}</span>
-                              <Badge variant="outline">{String(b.status ?? '')}</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </TabsContent>
-                    <TabsContent value="pagos" className="mt-4">
-                      <p className="text-sm text-muted-foreground">
-                        Resumen de pagos a partir de las reservas del usuario. Total reservas: {detailBookings.length}.
-                      </p>
-                      {detailBookings.length > 0 && (
-                        <p className="text-sm mt-2">
-                          Estados: {detailBookings.filter((b: Record<string, unknown>) => b.paymentStatus === 'FULLY_PAID').length} pagas,{' '}
-                          {detailBookings.filter((b: Record<string, unknown>) => b.paymentStatus === 'PENDING').length} pendientes.
-                        </p>
-                      )}
-                    </TabsContent>
-                  </Tabs>
-                )}
-              </div>
             </div>
           </div>
         )}

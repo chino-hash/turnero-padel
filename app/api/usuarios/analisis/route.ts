@@ -115,16 +115,6 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
-        _count: {
-          select: {
-            bookings: {
-              where: {
-                bookingDate: { gte: inicioMes },
-                deletedAt: null,
-              },
-            },
-          },
-        },
         bookings: {
           where: {
             bookingDate: { gte: inicioMes },
@@ -189,6 +179,10 @@ export async function GET(request: NextRequest) {
         if (categoria === 'VIP') descuento = 15
         else if (categoria === 'Premium') descuento = 10
 
+        const reservasMes = todasLasReservas.filter(
+          (b) => new Date(b.bookingDate) >= inicioMes
+        ).length
+
         return {
           id: usuario.id,
           nombre:
@@ -198,7 +192,7 @@ export async function GET(request: NextRequest) {
             'Usuario',
           email: usuario.email,
           reservas: totalReservas,
-          reservasMes: usuario._count.bookings,
+          reservasMes,
           frecuencia,
           canchaPreferida,
           ultimaReserva: ultimaReservaFecha,

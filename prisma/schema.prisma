@@ -64,6 +64,7 @@ model User {
   recurringBookings RecurringBooking[]
   paymentsProcessed Payment[]          @relation("ProcessedBy")
   closedBookings    Booking[]          @relation("ClosedBy")
+  bookedByBookings  Booking[]          @relation("BookedBy")
   ventasProcesadas  Venta[]            @relation("ProcessedBy")
   sessions          Session[]
 
@@ -170,12 +171,14 @@ model Booking {
   cancellationReason String?
   closedAt           DateTime?
   closedById         String?
+  bookedById         String?
   deletedAt          DateTime?
   expiresAt          DateTime?
   tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   court              Court             @relation(fields: [courtId], references: [id])
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   closedBy           User?             @relation("ClosedBy", fields: [closedById], references: [id])
+  bookedBy           User?              @relation("BookedBy", fields: [bookedById], references: [id])
   players            BookingPlayer[]
   payments           Payment[]
   extras             BookingExtra[]
@@ -196,6 +199,7 @@ model Booking {
   @@index([deletedAt])
   @@index([closedAt])
   @@index([closedById])
+  @@index([bookedById])
   @@index([courtId, status, bookingDate])
   @@index([tenantId, courtId, status, bookingDate])
   @@index([courtId, bookingDate, status, paymentStatus], map: "idx_booking_complex_search")

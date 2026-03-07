@@ -415,8 +415,8 @@ export class BookingService {
     }
   }
 
-  // Crear nueva reserva
-  async createBooking(input: CreateBookingInput, userId: string): Promise<ApiResponse<BookingWithDetails>> {
+  // Crear nueva reserva. bookedById = id del usuario que está creando (session); si no se pasa se deja null.
+  async createBooking(input: CreateBookingInput, userId: string, bookedById?: string | null): Promise<ApiResponse<BookingWithDetails>> {
     try {
       // Verificar disponibilidad primero
       const availabilityCheck = await this.checkAvailability({
@@ -459,6 +459,7 @@ export class BookingService {
       const createData: BookingCreateInput = {
         courtId: input.courtId,
         userId: userId,
+        bookedById: bookedById ?? userId,
         bookingDate: new Date(input.bookingDate),
         startTime: input.startTime,
         endTime: input.endTime,

@@ -267,8 +267,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Crear reserva usando el servicio optimizado
-    const result = await bookingService.createBooking(validatedData, resolvedUserId)
+    // Crear reserva usando el servicio optimizado (bookedById = quien está logueado, para estadísticas de uso de la página)
+    const result = await bookingService.createBooking(validatedData, resolvedUserId, session.user.id)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })

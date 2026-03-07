@@ -1,53 +1,67 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import type { EstadisticasData, Period } from '@/types/estadisticas'
 
-interface EstadisticasData {
-  reservasHoy: number
-  reservasSemana: number
-  ingresosMes: number
-  ocupacionPromedio: number
-  usuariosActivos: number
-  canchasMasUsadas: Array<{
-    nombre: string
-    reservas: number
-    porcentaje: number
-  }>
-  horariosPico: Array<{
-    hora: string
-    reservas: number
-  }>
+const emptyEstadisticas: EstadisticasData = {
+  period: 'mes',
+  reservasHoy: 0,
+  reservasSemana: 0,
+  reservasCount: 0,
+  reservasAnteriorCount: 0,
+  variacionReservas: null,
+  ingresosMes: 0,
+  ingresosAnterior: 0,
+  variacionIngresos: null,
+  ocupacionPromedio: 0,
+  ocupacionAnterior: null,
+  variacionOcupacion: null,
+  usuariosActivos: 0,
+  canchasMasUsadas: [],
+  horariosPico: [],
   financiero: {
-    totalRecaudado: number
-    saldoPendiente: number
-    totalReservas: number
-  }
-  promedioReservasPorUsuario: number
-  satisfaccion: number
+    totalRecaudado: 0,
+    saldoPendiente: 0,
+    totalReservas: 0,
+  },
+  promedioReservasPorUsuario: 0,
+  satisfaccion: 0,
+  evolucionReservas: [],
+  evolucionIngresos: [],
+  usoPagina: {
+    reservasPorUsuario: 0,
+    reservasPorAdmin: 0,
+    porcentajeUsoPagina: null,
+    sinDato: 0,
+  },
 }
 
-interface UseEstadisticasReturn {
+export interface UseEstadisticasReturn {
   estadisticas: EstadisticasData | null
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
+  period: Period
+  setPeriod: (p: Period) => void
 }
 
-export function useEstadisticas(): UseEstadisticasReturn {
+export function useEstadisticas(initialPeriod: Period = 'mes'): UseEstadisticasReturn {
+  const [period, setPeriod] = useState<Period>(initialPeriod)
   const [estadisticas, setEstadisticas] = useState<EstadisticasData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchEstadisticas = async () => {
+  const fetchEstadisticas = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      const response = await fetch('/api/estadisticas', {
+
+      const url = new URL('/api/estadisticas', window.location.origin)
+      url.searchParams.set('period', period)
+
+      const response = await fetch(url.toString(), {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       })
 
       if (!response.ok) {
@@ -55,47 +69,32 @@ export function useEstadisticas(): UseEstadisticasReturn {
       }
 
       const data = await response.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || 'Error al obtener estadísticas')
       }
 
-      setEstadisticas(data.data)
+      setEstadisticas(data.data as EstadisticasData)
     } catch (err) {
       console.error('Error al cargar estadísticas:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
-      
-      // Datos de fallback en caso de error
-      setEstadisticas({
-        reservasHoy: 0,
-        reservasSemana: 0,
-        ingresosMes: 0,
-        ocupacionPromedio: 0,
-        usuariosActivos: 0,
-        canchasMasUsadas: [],
-        horariosPico: [],
-        financiero: {
-          totalRecaudado: 0,
-          saldoPendiente: 0,
-          totalReservas: 0
-        },
-        promedioReservasPorUsuario: 0,
-        satisfaccion: 0
-      })
+      setEstadisticas(emptyEstadisticas)
     } finally {
       setLoading(false)
     }
-  }
+  }, [period])
 
   useEffect(() => {
     fetchEstadisticas()
-  }, [])
+  }, [fetchEstadisticas])
 
   return {
     estadisticas,
     loading,
     error,
-    refetch: fetchEstadisticas
+    refetch: fetchEstadisticas,
+    period,
+    setPeriod,
   }
 }
 

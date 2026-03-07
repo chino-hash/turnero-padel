@@ -7,7 +7,18 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ## [Unreleased]
 
+### Agregado
+- **Estadísticas: uso de la página vs reservas por admin**
+  - En la sección Estadísticas del panel admin se muestra cuántas reservas las hacen los usuarios en la web y cuántas las hace el admin, con porcentaje de uso de la página.
+  - Modelo: campo `bookedById` en `Booking` (opcional, FK a `User`); migración `20260308000000_add_booking_booked_by`.
+  - Al crear una reserva se guarda quién la hizo (`session.user.id`); la API de estadísticas consulta por período y devuelve `usoPagina` (reservasPorUsuario, reservasPorAdmin, porcentajeUsoPagina, sinDato).
+  - Documentación: `docs/actualizaciones/estadisticas-uso-pagina-2026-03.md`.
+
 ### Corregido
+- **API análisis de usuarios – error 500**
+  - La ruta `GET /api/usuarios/analisis` fallaba porque usaba `_count` con `where` en una relación (conteo filtrado de Prisma), que requiere la preview feature `filteredRelationCount`. Se eliminó ese uso y `reservasMes` se calcula en el mapeo a partir de las reservas ya cargadas. Documentación: `docs/actualizaciones/admin-usuarios-tabla-sin-acciones-fix-analisis-2026-03.md`.
+- **Admin Usuarios – tabla sin acciones**
+  - En la tabla de listado de usuarios se eliminó la columna Acciones y los botones Ver detalle, Editar y Desactivar/Activar, junto con los modales y la lógica asociada (editar usuario, detalle de usuario, activar/desactivar). La tabla muestra solo: Nombre, Email, Categoría, Reservas, Última reserva, Estado, Descuento %. Documentación: `docs/actualizaciones/admin-usuarios-tabla-sin-acciones-fix-analisis-2026-03.md`.
 - **Navbar del panel de administración – pestañas visibles en pantalla reducida**
   - En móvil o ventana estrecha las pestañas (Canchas, Turnos, Usuarios, etc.) no se veían o el menú hamburguesa no mostraba bien el contenido. Cambios: (1) `components/ui/sheet.tsx` ahora importa desde `@radix-ui/react-dialog` en lugar de `radix-ui` para que el Sheet abra/cierre correctamente; (2) header del admin con `relative z-40` para que el menú lateral (z-50) quede por encima; (3) navegación del Sheet con `overflow-y-auto flex-1 min-h-0` para poder hacer scroll cuando hay muchos ítems.
   - Documentación: `docs/actualizaciones/navbar-admin-pestanas-movil-2026-03.md`.
