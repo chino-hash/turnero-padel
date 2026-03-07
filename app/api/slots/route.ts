@@ -74,21 +74,25 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // Validar que la fecha no sea en el pasado
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    // Validar que la fecha no sea en el pasado (tolerante a zona horaria: en Vercel el servidor
+    // corre en UTC; el cliente envía la fecha en su "hoy" local, que puede ser "ayer" en UTC)
+    const now = new Date()
     const pad = (n: number) => String(n).padStart(2, '0')
-    const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`
-    if (dateStr < todayStr) {
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+    const todayStr = `${todayUtc.getUTCFullYear()}-${pad(todayUtc.getUTCMonth() + 1)}-${pad(todayUtc.getUTCDate())}`
+    const yesterdayUtc = new Date(todayUtc)
+    yesterdayUtc.setUTCDate(yesterdayUtc.getUTCDate() - 1)
+    const yesterdayStr = `${yesterdayUtc.getUTCFullYear()}-${pad(yesterdayUtc.getUTCMonth() + 1)}-${pad(yesterdayUtc.getUTCDate())}`
+    if (dateStr < yesterdayStr) {
       return NextResponse.json({ 
         error: 'No se pueden consultar slots de fechas pasadas' 
       }, { status: 400 })
     }
 
-    // Validar que la fecha no sea más de 30 días en el futuro
-    const maxDate = new Date(today)
-    maxDate.setDate(maxDate.getDate() + 30)
-    const maxStr = `${maxDate.getFullYear()}-${pad(maxDate.getMonth()+1)}-${pad(maxDate.getDate())}`
+    // Validar que la fecha no sea más de 30 días en el futuro (usar mismo criterio UTC)
+    const maxDate = new Date(todayUtc)
+    maxDate.setUTCDate(maxDate.getUTCDate() + 30)
+    const maxStr = `${maxDate.getUTCFullYear()}-${pad(maxDate.getUTCMonth() + 1)}-${pad(maxDate.getUTCDate())}`
     if (dateStr > maxStr) {
       return NextResponse.json({ 
         error: 'No se pueden consultar slots con más de 30 días de anticipación' 
