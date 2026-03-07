@@ -89,7 +89,7 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
 
   return createPortal(
     <div 
-      className="modal-overlay" 
+      className="modal-overlay backdrop-blur-sm" 
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
