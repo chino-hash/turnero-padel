@@ -318,11 +318,12 @@ export default function EstadisticasPage() {
                     }}
                     labelStyle={{ color: 'hsl(var(--foreground))' }}
                     itemStyle={{ color: 'hsl(var(--foreground))' }}
-                    formatter={(value: number, name: string, props: { dataKey?: string }) => {
+                    formatter={(value: unknown, name, props) => {
                       const dataKey = props?.dataKey ?? String(name).toLowerCase()
                       const isIngresos = dataKey === 'ingresos'
                       const label = isIngresos ? 'Ingresos' : 'Reservas'
-                      const displayValue = isIngresos ? `$${Number(value).toLocaleString()}` : value
+                      const num = value != null ? Number(value) : 0
+                      const displayValue = isIngresos ? `$${num.toLocaleString()}` : num
                       return [displayValue, label]
                     }}
                     labelFormatter={(label) => `Fecha: ${label}`}
@@ -467,7 +468,7 @@ export default function EstadisticasPage() {
                       }}
                       labelStyle={{ color: 'var(--foreground)' }}
                       itemStyle={{ color: 'var(--foreground)' }}
-                      formatter={(value: number) => [value, 'Reservas']}
+                      formatter={(value) => [value != null ? value : 0, 'Reservas']}
                       labelFormatter={(label) => `Horario: ${label}`}
                     />
                     <Bar
