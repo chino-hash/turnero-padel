@@ -65,7 +65,7 @@ function VariacionBadge({ variacion }: { variacion: number | null }) {
   const Icon = isPositive ? TrendingUp : TrendingDown
   return (
     <span
-      className={`inline-flex items-center gap-1 text-xs ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+      className={`inline-flex items-center gap-1 text-xs ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
     >
       <Icon className="h-3 w-3" />
       {isPositive ? '+' : ''}{variacion}% vs período anterior
