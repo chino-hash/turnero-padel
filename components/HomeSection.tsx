@@ -95,8 +95,8 @@ export default function HomeSection({
     iconImage: ''
   })
 
-  // Obtener funciones del contexto
-  const { refreshSlots, refreshMultipleSlots } = useAppState()
+  // Obtener funciones y datos del contexto
+  const { refreshSlots, refreshMultipleSlots, allSlotsForDate } = useAppState()
 
   // Función para actualizar horarios
   const handleRefreshSlots = async () => {
@@ -229,11 +229,17 @@ export default function HomeSection({
     handleSlotClick(slot) // Mantener la funcionalidad original
   }
 
-  // Verificación de disponibilidad actual (excluye horarios pasados si es hoy)
+  // Verificación de disponibilidad actual (excluye horarios pasados si es hoy).
+  // Usa allSlotsForDate (sin filtrar por showOnlyOpen) para no mostrar "Se acabaron"
+  // cuando simplemente hay slots futuros disponibles pero el filtro los oculta.
   const hasAvailableSlots = useMemo(() => {
     try {
+      const source = Array.isArray(allSlotsForDate) && allSlotsForDate.length > 0
+        ? allSlotsForDate
+        : (Array.isArray(slotsForRender) ? slotsForRender : [])
       const isToday = new Date().toDateString() === selectedDate.toDateString()
-      return (Array.isArray(slotsForRender) ? slotsForRender : []).some((s: any) => {
+      const now = new Date()
+      const result = source.some((s: any) => {
         const available = s.status === 'available' || s.isAvailable || s.available
         if (!available) return false
         const start = s.startTime || s.time
@@ -242,12 +248,13 @@ export default function HomeSection({
         const [h, m] = String(start).split(':').map(Number)
         const slotDate = new Date(selectedDate)
         slotDate.setHours(h || 0, m || 0, 0, 0)
-        return slotDate >= new Date()
+        return slotDate >= now
       })
+      return result
     } catch {
       return false
     }
-  }, [slotsForRender, selectedDate])
+  }, [allSlotsForDate, slotsForRender, selectedDate])
 
   // Preseleccionar "Solo disponibles" al cargar y mantenerlo si hay disponibilidad
   useEffect(() => {

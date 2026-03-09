@@ -99,6 +99,7 @@ interface AppStateContextType {
   // Datos calculados
   ratesByCourt: Record<string, number>
   slotsForRender: TimeSlot[]
+  allSlotsForDate: TimeSlot[]
   
   // Funciones de navegaciÃ³n
   scrollToNextAvailable: () => void
@@ -519,12 +520,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     return () => controller.abort()
   }, [])
   
-  // Filtrar slots segÃºn configuraciÃ³n - memoizado para evitar re-renderizados
+  // Filtrar slots según configuración - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
     const list = timeSlots || []
     if (!showOnlyOpen) return list
     const isToday = new Date().toDateString() === selectedDate.toDateString()
-    return list.filter(slot => {
+    const result = list.filter(slot => {
       const available = slot.isAvailable || slot.available
       if (!available) return false
       const start = slot.startTime || slot.time
@@ -535,6 +536,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       slotDate.setHours(h || 0, m || 0, 0, 0)
       return slotDate >= new Date()
     })
+    return result
   }, [showOnlyOpen, timeSlots, selectedDate])
   
   // Las tarifas por cancha ahora vienen del hook useOptimizedMultipleSlots
@@ -583,24 +585,29 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
 
   // Slots para renderizar (unificado o individual) - memoizado para evitar re-renderizados
   const slotsForRender = useMemo(() => {
+    let result: TimeSlot[]
     if (isUnifiedView) {
       const list = unifiedTimeSlots || []
-      if (!showOnlyOpen) return list
-      const isToday = new Date().toDateString() === selectedDate.toDateString()
-      return list.filter(s => {
-        const available = s.isAvailable || s.available
-        if (!available) return false
-        const start = s.startTime || s.time
-        if (!isToday) return true
-        if (!start) return false
-        const [h, m] = String(start).split(':').map(Number)
-        const slotDate = new Date(selectedDate)
-        slotDate.setHours(h || 0, m || 0, 0, 0)
-        return slotDate >= new Date()
-      })
+      if (!showOnlyOpen) {
+        result = list
+      } else {
+        const isToday = new Date().toDateString() === selectedDate.toDateString()
+        result = list.filter(s => {
+          const available = s.isAvailable || s.available
+          if (!available) return false
+          const start = s.startTime || s.time
+          if (!isToday) return true
+          if (!start) return false
+          const [h, m] = String(start).split(':').map(Number)
+          const slotDate = new Date(selectedDate)
+          slotDate.setHours(h || 0, m || 0, 0, 0)
+          return slotDate >= new Date()
+        })
+      }
     } else {
-      return filteredTimeSlots || []
+      result = filteredTimeSlots || []
     }
+    return result
   }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots, showOnlyOpen, selectedDate])
   
   // Persistir modo oscuro en localStorage
@@ -760,6 +767,7 @@ const scrollToNextAvailable = () => {
     // Datos calculados
     ratesByCourt: finalRatesByCourt,
     slotsForRender,
+    allSlotsForDate: isUnifiedView ? (unifiedTimeSlots || []) : (timeSlots || []),
     
     // Funciones de navegaciÃ³n
     scrollToNextAvailable,
