@@ -226,6 +226,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!isSuperAdmin) {
+      const tenantRecord = await prisma.tenant.findUnique({
+        where: { id: tenantIdForBooking },
+        select: { isActive: true },
+      })
+      if (!tenantRecord || !tenantRecord.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'Este club no está habilitado para reservas todavía' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Resolver userId: admin puede enviar userId (usuario existente) o guestName+guestEmail (get-or-create)
     let resolvedUserId: string = session.user.id
     if ((user.isAdmin || isSuperAdmin) && (validatedData.userId || (validatedData.guestName && validatedData.guestEmail))) {

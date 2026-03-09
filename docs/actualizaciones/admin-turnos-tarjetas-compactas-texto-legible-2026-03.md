@@ -69,5 +69,5 @@ No se modificó el componente base `components/ui/card.tsx`, para no alterar el 
 
 ## 4. Documentación relacionada
 
-- [Funcionalidad Completa Admin Turnos](../admin-turnos-funcionalidad-completa.md)
+- [Funcionalidad Completa Admin Turnos](../admin/admin-turnos-funcionalidad-completa.md)
 - [Sección TURNOS CERRADOS: colapsable y limpieza](admin-turnos-cerrados-colapsable-limpieza-2026-03.md)

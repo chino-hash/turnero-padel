@@ -8,28 +8,35 @@ Bienvenido a la documentación técnica del sistema de turnos para canchas de pa
 
 ```
 docs/
-├── README.md                           # Este archivo - Índice principal
-├── MULTITENANT_COMPLETE.md            # ⭐ Documentación completa multitenant
-├── ROLLBACK_MULTITENANT.md            # Guía de rollback multitenant
-├── REVISION_APIS_MULTITENANT.md       # Revisión de APIs multitenant
-├── REVISION_SUPER_ADMIN_PANEL.md      # Revisión del panel super admin
-├── DOCUMENTATION-STANDARDS.md          # Estándares de documentación
-├── FRONTEND_PROTECTION_POLICIES.md     # Políticas de protección del frontend
-├── frontend-interfaces-report.md       # Reporte detallado de interfaces del frontend
-├── technical-interfaces-specification.md # Especificación técnica de interfaces
-├── templates/                          # Plantillas de documentación
-│   ├── COMPONENT-TEMPLATE.md           # Plantilla para componentes React
-│   ├── API-TEMPLATE.md                 # Plantilla para APIs y endpoints
-│   ├── SERVICE-TEMPLATE.md             # Plantilla para servicios y utilidades
-│   └── HOOK-TEMPLATE.md                # Plantilla para hooks personalizados
-├── architecture/                       # Documentación de arquitectura
-├── api/                               # Documentación de APIs
-├── apis/                              # Referencia de endpoints
-├── components/                        # Documentación de componentes
-├── services/                          # Documentación de servicios
-├── guides/                            # Guías y tutoriales
-├── pasos/                             # Pendientes por pestaña del panel admin
-└── actualizaciones/                   # Changelog de actualizaciones
+├── README.md                           # Este archivo - Punto de entrada
+├── 00-indice-documentacion.md          # Índice completo con enlaces a todo
+│
+├── project/                            # Visión general, resúmenes, estructura
+├── standards/                          # Estándares y políticas (DOCUMENTATION-STANDARDS, FRONTEND_PROTECTION)
+├── specs/                              # Especificaciones (Mis Turnos, Panel de Inicio, interfaces)
+├── admin/                              # Doc. funcionalidades admin (turnos, canchas)
+├── actualizaciones/                    # Changelog detallado por fecha
+├── changelog/                          # Changelogs y resúmenes de cambios técnicos
+├── multitenant/                        # Multitenant, rollback, APIs, super admin
+├── analisis/                           # Análisis y diseño (01-11, migraciones, refactors)
+├── testing/                            # Pruebas automatizadas, Playwright
+├── deployment/                         # Vercel, Docker, variables de entorno
+├── troubleshooting/                    # Soluciones a errores conocidos
+│
+├── architecture/                       # Arquitectura del sistema, BD, flujos
+├── api/                                # Referencia general de la API
+├── apis/                               # Referencia de endpoints
+├── components/                         # Documentación de componentes
+├── services/                           # Documentación de servicios
+├── hooks/                              # Documentación de hooks
+├── guides/                             # Guías (desarrollo, instalación, despliegue)
+├── migraciones/                        # Migraciones de BD y cuenta
+├── pasos/                              # Pendientes por pestaña del panel admin
+├── plans/                              # Planes completados
+├── plan de mejoras admin/              # Plan de mejoras área turnos
+├── seguridad/                          # Auditoría y mejores prácticas
+├── templates/                          # Plantillas (componente, API, servicio, hook)
+└── maintenance/                        # Mantenimiento, checklist, automatizaciones
 ```
 
 ## 🎯 Propósito de la Documentación
@@ -44,16 +51,16 @@ Esta documentación tiene como objetivo:
 
 ## 🏢 Documentación Multitenant
 
-El sistema utiliza una arquitectura multitenant. Para información completa, consulta:
+El sistema utiliza una arquitectura multitenant. Para información completa, consulta la carpeta **[multitenant/](./multitenant/)**:
 
-- **[Documentación Completa Multitenant](./MULTITENANT_COMPLETE.md)** - ⭐ Guía completa del sistema multitenant, incluyendo arquitectura, modelo de datos, migración, rollback, testing y operación
-- **[Rollback Multitenant](./ROLLBACK_MULTITENANT.md)** - Guía para revertir la migración multitenant si es necesario
-- **[Revisión APIs Multitenant](./REVISION_APIS_MULTITENANT.md)** - Detalle de todas las APIs actualizadas para soportar multitenancy
-- **[Revisión Panel Super Admin](./REVISION_SUPER_ADMIN_PANEL.md)** - Documentación del panel de super administración
+- **[Documentación Completa Multitenant](./multitenant/MULTITENANT_COMPLETE.md)** - ⭐ Guía completa del sistema multitenant
+- **[Rollback Multitenant](./multitenant/ROLLBACK_MULTITENANT.md)** - Guía para revertir la migración multitenant
+- **[Revisión APIs Multitenant](./multitenant/REVISION_APIS_MULTITENANT.md)** - APIs actualizadas para multitenancy
+- **[Revisión Panel Super Admin](./multitenant/REVISION_SUPER_ADMIN_PANEL.md)** - Panel de super administración
 
 ## 🖥️ Documentación de Interfaces del Frontend
 
-### 📊 [Reporte de Interfaces](./frontend-interfaces-report.md)
+### 📊 [Reporte de Interfaces](./specs/frontend-interfaces-report.md)
 
 Reporte completo y detallado de las interfaces principales del sistema:
 - **Dashboard de Usuario** (`/dashboard`): Interfaz para usuarios finales
@@ -62,7 +69,7 @@ Reporte completo y detallado de las interfaces principales del sistema:
 - Componentes y tecnologías utilizadas
 - Flujos de navegación y UX
 
-### 🔧 [Especificación Técnica](./technical-interfaces-specification.md)
+### 🔧 [Especificación Técnica](./specs/technical-interfaces-specification.md)
 
 Documentación técnica detallada que incluye:
 - Arquitectura de rutas y componentes
@@ -72,7 +79,7 @@ Documentación técnica detallada que incluye:
 - Estrategias de performance y optimización
 - Cobertura de testing y métricas de calidad
 
-### 🛡️ [Políticas de Protección](./FRONTEND_PROTECTION_POLICIES.md)
+### 🛡️ [Políticas de Protección](./standards/FRONTEND_PROTECTION_POLICIES.md)
 
 Documento que define:
 - Archivos y componentes protegidos
@@ -82,7 +89,7 @@ Documento que define:
 
 ## 📋 Estándares de Documentación
 
-Antes de contribuir con documentación, por favor revisa nuestros [Estándares de Documentación](./DOCUMENTATION-STANDARDS.md) que incluyen:
+Antes de contribuir con documentación, por favor revisa nuestros [Estándares de Documentación](./standards/DOCUMENTATION-STANDARDS.md) que incluyen:
 
 - Convenciones JSDoc para componentes y funciones
 - Estándares de arquitectura y comentarios
@@ -258,7 +265,7 @@ flowchart TD
 
 ### Antes de Contribuir
 
-1. Lee los [Estándares de Documentación](./DOCUMENTATION-STANDARDS.md)
+1. Lee los [Estándares de Documentación](./standards/DOCUMENTATION-STANDARDS.md)
 2. Revisa las plantillas existentes
 3. Verifica que no exista documentación duplicada
 4. Asegúrate de que tu contribución agregue valor

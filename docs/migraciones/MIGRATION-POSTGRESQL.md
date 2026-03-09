@@ -197,7 +197,7 @@ npx prisma studio
 
 - [Documentación de Prisma](https://www.prisma.io/docs/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Docker Setup Guide](./DOCKER-SETUP.md)
+- [Docker Setup Guide](../deployment/DOCKER-SETUP.md)
 - [Database Setup Guide](./setup-database.md)
 
 ## ✅ Checklist de Migración

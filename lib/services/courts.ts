@@ -1,5 +1,6 @@
 import { prisma } from '../database/neon-config'
 import type { Court, CourtFeatures, OperatingHours } from '../../types/types'
+import { getPlanMaxCourts, getPlan } from '../subscription-plans'
 
 export interface CreateCourtData {
   name: string
@@ -239,6 +240,23 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
   try {
     if (!data.tenantId) {
       throw new Error('tenantId es requerido para crear una cancha')
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: data.tenantId },
+      select: { subscriptionPlan: true },
+    })
+    const maxCourts = getPlanMaxCourts(tenant?.subscriptionPlan)
+    if (maxCourts !== null) {
+      const currentCount = await prisma.court.count({
+        where: { tenantId: data.tenantId, deletedAt: null },
+      })
+      if (currentCount >= maxCourts) {
+        const plan = getPlan(tenant?.subscriptionPlan)
+        throw new Error(
+          `El ${plan.name} permite hasta ${maxCourts} canchas. Actualiza el plan del tenant para agregar más.`
+        )
+      }
     }
 
     const court = await prisma.court.create({

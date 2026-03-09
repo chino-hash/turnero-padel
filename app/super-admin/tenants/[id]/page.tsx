@@ -14,6 +14,9 @@ import { Switch } from '../../../../components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../components/ui/select'
 import { Building2, Save, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'react-hot-toast'
+import { SUBSCRIPTION_PLANS } from '../../../../lib/subscription-plans'
+
+const PLAN_OPTIONS = Object.values(SUBSCRIPTION_PLANS)
 
 interface TenantData {
   id?: string
@@ -43,8 +46,8 @@ export default function TenantDetailPage() {
   const [formData, setFormData] = useState<TenantData>({
     name: '',
     slug: '',
-    isActive: true,
-    subscriptionPlan: null,
+    isActive: false,
+    subscriptionPlan: 'BASIC',
     subscriptionExpiresAt: null,
     mercadoPagoEnabled: false,
     mercadoPagoEnvironment: 'sandbox',
@@ -268,26 +271,42 @@ export default function TenantDetailPage() {
               </p>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isActive"
-                checked={formData.isActive}
-                onCheckedChange={(checked) => handleChange('isActive', checked)}
-              />
-              <Label htmlFor="isActive" className="cursor-pointer">
-                Tenant activo
-              </Label>
+            <div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) => handleChange('isActive', checked)}
+                />
+                <Label htmlFor="isActive" className="cursor-pointer">
+                  Tenant activo
+                </Label>
+              </div>
+              {!formData.isActive && (
+                <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                  Mientras el tenant esté inactivo, no aparecerá en la landing pública ni aceptará reservas.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="subscriptionPlan">Plan de Suscripción</Label>
-                <Input
-                  id="subscriptionPlan"
-                  value={formData.subscriptionPlan || ''}
-                  onChange={(e) => handleChange('subscriptionPlan', e.target.value || null)}
-                  placeholder="Ej: premium, basic"
-                />
+                <Select
+                  value={formData.subscriptionPlan || 'BASIC'}
+                  onValueChange={(value) => handleChange('subscriptionPlan', value)}
+                >
+                  <SelectTrigger id="subscriptionPlan">
+                    <SelectValue placeholder="Seleccione un plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLAN_OPTIONS.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id}>
+                        {plan.name} — {plan.description}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

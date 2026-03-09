@@ -86,5 +86,5 @@ Así se garantiza un string antes de llamar a `.includes()`.
 ## Referencias
 
 - [Plan Completar sección Canchas](../../.cursor/plans/completar_sección_canchas_6d222a7e.plan.md) — Verificación multitenant
-- [Arquitectura Multitenant](../MULTITENANT_COMPLETE.md)
-- [Bootstrap tenant](../BOOTSTRAP_TENANT_Y_PAGOS.md)
+- [Arquitectura Multitenant](../multitenant/MULTITENANT_COMPLETE.md)
+- [Bootstrap tenant](../multitenant/BOOTSTRAP_TENANT_Y_PAGOS.md)

@@ -76,6 +76,17 @@ export async function GET(request: NextRequest) {
           { status: 403 }
         )
       }
+
+      const tenantRecord = await prisma.tenant.findUnique({
+        where: { id: court.tenantId },
+        select: { isActive: true },
+      })
+      if (!tenantRecord || !tenantRecord.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'Este club no está habilitado todavía' },
+          { status: 400 }
+        )
+      }
     }
 
     // Verificar disponibilidad
@@ -176,6 +187,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'No tienes permisos para obtener slots de esta cancha' },
           { status: 403 }
+        )
+      }
+
+      const tenantRecord = await prisma.tenant.findUnique({
+        where: { id: court.tenantId },
+        select: { isActive: true },
+      })
+      if (!tenantRecord || !tenantRecord.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'Este club no está habilitado todavía' },
+          { status: 400 }
         )
       }
     }

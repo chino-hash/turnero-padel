@@ -43,4 +43,4 @@ Resumen de los cambios en la sección **TURNOS CERRADOS**: sección colapsable p
 
 ## 4. Documentación relacionada
 
-- [Funcionalidad Completa Admin Turnos](../admin-turnos-funcionalidad-completa.md) — sección 2.5.
+- [Funcionalidad Completa Admin Turnos](../admin/admin-turnos-funcionalidad-completa.md) — sección 2.5.

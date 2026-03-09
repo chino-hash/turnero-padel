@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/database/neon-config'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
+import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 
 export type BootstrapTenantInput = {
   slug: string
@@ -102,13 +103,14 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
   const tenant = existingTenant
     ? await prisma.tenant.update({
         where: { id: existingTenant.id },
-        data: { isActive: true, name: existingTenant.name || desiredName },
+        data: { name: existingTenant.name || desiredName },
       })
     : await prisma.tenant.create({
         data: {
           name: desiredName,
           slug,
-          isActive: true,
+          isActive: false,
+          subscriptionPlan: 'BASIC',
           settings: JSON.stringify({ description: `Tenant bootstrap: ${slug}` }),
           mercadoPagoEnabled: false,
           mercadoPagoEnvironment: 'sandbox',
@@ -203,8 +205,10 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
     systemSettingsEnsured++
   }
 
-  // 4) Canchas (3)
-  const courtDefs = [1, 2, 3].map((n) => ({
+  // 4) Canchas (cantidad según plan del tenant)
+  const numCourts = getPlanDefaultCourts(tenant.subscriptionPlan)
+  const courtNumbers = Array.from({ length: numCourts }, (_, i) => i + 1)
+  const courtDefs = courtNumbers.map((n) => ({
     name: `Cancha ${n}`,
     description: `Cancha ${n}`,
     basePrice: DEFAULTS.basePrice,

@@ -88,5 +88,5 @@ El JWT se genera en el login; un nuevo login es necesario para que el rol de sup
 
 ## Referencias
 
-- [Arquitectura Multitenant](../MULTITENANT_COMPLETE.md) — Configuración de super admins
-- [Guía Configuración Vercel](../GUIA_CONFIGURACION_VERCEL_COMPLETA.md) — Variables de entorno
+- [Arquitectura Multitenant](../multitenant/MULTITENANT_COMPLETE.md) — Configuración de super admins
+- [Guía Configuración Vercel](../deployment/GUIA_CONFIGURACION_VERCEL_COMPLETA.md) — Variables de entorno

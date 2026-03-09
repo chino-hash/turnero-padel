@@ -154,6 +154,19 @@ export async function GET(req: NextRequest) {
     })
     const tenantId = courtDb?.tenantId || userTenantId
 
+    if (tenantId && !isSuperAdmin) {
+      const tenantRecord = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { isActive: true },
+      })
+      if (!tenantRecord || !tenantRecord.isActive) {
+        return NextResponse.json({
+          error: 'Este club no está habilitado todavía',
+          slots: [],
+        }, { status: 400 })
+      }
+    }
+
     // Parsear + validar operating hours de la cancha con fallback seguro (desde SystemSetting)
     const defaultOperatingHours = await getDefaultOperatingHours(tenantId)
     const parsedHours = parseJsonSafely(court.operatingHours ?? null, OperatingHoursSchema, defaultOperatingHours)
