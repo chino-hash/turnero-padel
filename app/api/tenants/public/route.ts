@@ -1,21 +1,24 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { getAllActiveTenants } from '@/lib/services/tenants'
 
 /**
  * API pública para listar tenants activos
  * No requiere autenticación - accesible desde la landing page
+ * Super admins ven todos los tenants (incluidos los de prueba)
  * 
  * GET /api/tenants/public
- * 
- * Retorna:
- * {
- *   success: true,
- *   data: TenantPublicInfo[]
- * }
  */
 export async function GET() {
   try {
-    const tenants = await getAllActiveTenants()
+    const session = await auth()
+    const isSuperAdmin = session?.user?.isSuperAdmin === true
+
+    const tenants = await getAllActiveTenants(isSuperAdmin)
+
+    const cacheHeaders = isSuperAdmin
+      ? { 'Cache-Control': 'private, no-store' }
+      : { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
     
     return NextResponse.json(
       {
@@ -24,9 +27,7 @@ export async function GET() {
       },
       {
         status: 200,
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600', // Cache por 5 minutos
-        },
+        headers: cacheHeaders,
       }
     )
   } catch (error) {

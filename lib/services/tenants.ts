@@ -13,8 +13,11 @@ export interface TenantPublicInfo {
   description?: string | null
 }
 
-/** Slug del tenant de prueba - oculto en listados públicos y en gestión de tenants */
-export const HIDDEN_TEST_TENANT_SLUG = 'tenant-de-prueba'
+/** Slugs de tenants de prueba - ocultos en listados públicos para usuarios no superadmin */
+export const HIDDEN_TEST_TENANT_SLUGS = ['tenant-de-prueba', 'default', 'tenant-de-prueba-b']
+
+/** @deprecated Usar HIDDEN_TEST_TENANT_SLUGS */
+export const HIDDEN_TEST_TENANT_SLUG = HIDDEN_TEST_TENANT_SLUGS[0]
 
 /**
  * Obtiene un tenant por su slug
@@ -27,7 +30,7 @@ export async function getTenantBySlug(slug: string): Promise<TenantPublicInfo | 
   if (!slug || slug.trim().length === 0) {
     return null
   }
-  if (slug === HIDDEN_TEST_TENANT_SLUG) {
+  if (HIDDEN_TEST_TENANT_SLUGS.includes(slug)) {
     return null
   }
 
@@ -76,14 +79,15 @@ export async function getTenantBySlug(slug: string): Promise<TenantPublicInfo | 
  * Obtiene todos los tenants activos para mostrar en la landing page
  * Retorna solo información pública (id, name, slug, description)
  * 
+ * @param includeHidden - Si true, incluye tenants de prueba (para super admins)
  * @returns Array de tenants activos ordenados alfabéticamente
  */
-export async function getAllActiveTenants(): Promise<TenantPublicInfo[]> {
+export async function getAllActiveTenants(includeHidden = false): Promise<TenantPublicInfo[]> {
   try {
     const tenants = await prisma.tenant.findMany({
       where: {
         isActive: true,
-        slug: { not: HIDDEN_TEST_TENANT_SLUG },
+        ...(!includeHidden && { slug: { notIn: HIDDEN_TEST_TENANT_SLUGS } }),
       },
       select: {
         id: true,

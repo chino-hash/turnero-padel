@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
-import { HIDDEN_TEST_TENANT_SLUG } from '@/lib/services/tenants'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { z } from 'zod'
 
@@ -46,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const tenants = await prisma.tenant.findMany({
-      where: { slug: { not: HIDDEN_TEST_TENANT_SLUG } },
+      where: {},
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

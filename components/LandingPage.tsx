@@ -71,7 +71,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
     const fetchClubs = async () => {
       try {
         setLoadingClubs(true)
-        const response = await fetch('/api/tenants/public')
+        const response = await fetch(`/api/tenants/public?_t=${Date.now()}`, { cache: 'no-store' })
         if (!response.ok) {
           throw new Error(`Error fetching clubs: ${response.statusText}`)
         }
@@ -100,7 +100,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-[#F3F4F6] font-['Inter',sans-serif]">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/95 backdrop-blur-sm border-b border-gray-800">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0D0D0D]/95 backdrop-blur-sm border-b border-gray-800" style={{ paddingRight: 'var(--removed-body-scroll-bar-size, 0px)' }}>
         <nav className="container mx-auto px-4 md:px-6 py-4 flex justify-between items-center">
           <Link href="/" className="text-3xl font-black tracking-tight">
             padel<span className="text-[#BEF264]">book</span>
@@ -263,28 +263,16 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 Encuentra canchas disponibles en tu ciudad, reserva en segundos y gestiona todos tus partidos. PadelBook es la app definitiva para jugadores y clubes.
               </p>
               <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 mt-8">
-                {!session?.user ? (
-                  <Link 
-                    href="/login?callbackUrl=/"
-                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
-                  >
-                    Reservar Ahora
-                  </Link>
-                ) : tenantSlug ? (
-                  <Link 
-                    href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}
-                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
-                  >
-                    Reservar Ahora
-                  </Link>
-                ) : (
-                  <a 
-                    href="#clubs-list"
-                    className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center"
-                  >
-                    Reservar Ahora
-                  </a>
-                )}
+                <a 
+                  href="#clubs-list"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    document.getElementById('clubs-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }}
+                  className="bg-[#BEF264] text-[#0D0D0D] font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-[#BEF264]/50 transition-all duration-300 transform hover:scale-105 hover:shadow-[0_0_30px_rgba(190,242,100,0.5)] text-center cursor-pointer"
+                >
+                  Reservar Ahora
+                </a>
                 <a 
                   href="#clubs-list"
                   className="border-2 border-gray-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-gray-800 hover:border-[#BEF264]/50 transition-all duration-300 text-center"
