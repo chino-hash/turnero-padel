@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '../../../components/ui/button'
@@ -8,7 +8,7 @@ import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 
 type Status = 'loading' | 'success' | 'error' | 'no_booking_id'
 
-export default function MockSuccessPage() {
+function MockSuccessContent() {
   const searchParams = useSearchParams()
   const bookingId = searchParams.get('bookingId')?.trim() || null
   const [status, setStatus] = useState<Status>(bookingId ? 'loading' : 'no_booking_id')
@@ -113,5 +113,19 @@ export default function MockSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function MockSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
+          <Loader2 className="w-16 h-16 text-slate-600 dark:text-slate-400 animate-spin" />
+        </div>
+      }
+    >
+      <MockSuccessContent />
+    </Suspense>
   )
 }
