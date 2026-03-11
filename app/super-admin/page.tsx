@@ -33,7 +33,6 @@ export default function SuperAdminPage() {
   const router = useRouter()
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     loadTenants()
@@ -87,7 +86,7 @@ export default function SuperAdminPage() {
           </p>
         </div>
         <Button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => router.push('/super-admin/tenants/new')}
           className="flex items-center space-x-2"
         >
           <Plus className="w-4 h-4" />
@@ -179,39 +178,6 @@ export default function SuperAdminPage() {
         )}
       </div>
 
-      {/* Modal de creación (simplificado - se puede expandir) */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Crear Nuevo Tenant</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500 mb-4">
-                El formulario completo de creación se encuentra en la página de edición.
-              </p>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1"
-                >
-                  Cerrar
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowCreateModal(false)
-                    router.push('/super-admin/tenants/new')
-                  }}
-                  className="flex-1"
-                >
-                  Ir al formulario
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

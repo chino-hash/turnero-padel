@@ -20,8 +20,9 @@
   - Devuelve `preferenceId`, `initPoint` y `sandboxInitPoint` para redirigir al checkout de MP.
 
 - **`lib/services/payments/PaymentProviderFactory.ts`**
-  - Resuelve el proveedor por **tenant** (credenciales en BD) o **global** (variables de entorno).
-  - Si no hay credenciales válidas, usa `MockPaymentProvider` (solo para desarrollo).
+  - Resuelve el proveedor por **tenant** (credenciales en BD) o **global** (variables de entorno cuando no se pasa `tenantId`).
+  - Si se pasa `tenantId` y el tenant no tiene credenciales válidas, **no** se usa el provider global (.env); se lanza error para que el llamador devuelva un mensaje claro (véase [Pago modal reserva sin fallback MP env](./pago-modal-reserva-sin-fallback-mp-env-2026-03.md)).
+  - Si no hay credenciales válidas y no hay tenantId, usa `MockPaymentProvider` (solo para desarrollo).
 
 - **`lib/services/payments/tenant-credentials.ts`**
   - Obtiene credenciales de Mercado Pago por tenant: `accessToken`, `publicKey`, `webhookSecret`, `environment`.
@@ -34,6 +35,7 @@
   - Requiere sesión y permisos (admin del tenant o dueño de la reserva).
   - Llama a `BookingService.createPaymentPreference(bookingId)`.
   - Retorna `{ success, data: { preferenceId, initPoint, sandboxInitPoint } }` para que el cliente redirija al usuario al checkout de MP.
+  - Si el tenant no tiene Mercado Pago conectado, responde con **503** y `{ success: false, code: 'MERCADOPAGO_NOT_CONNECTED', error: '...' }` (véase [Pago modal reserva sin fallback MP env](./pago-modal-reserva-sin-fallback-mp-env-2026-03.md)).
 
 ### 1.3 Webhook de pagos
 
@@ -161,3 +163,9 @@ Para que el proveedor real se use:
 4. (Opcional) Página mock `/payments/mock-success` y documentar variables de Mercado Pago en `VARIABLES_ENTORNO.md` o en un doc de pagos.
 
 Con eso, el flujo queda: usuario paga desde la app → redirección a MP → pago → vuelta a /reservas/exito (o error/pendiente) y, en paralelo, webhook actualiza la reserva a CONFIRMED y crea el `Payment`.
+
+---
+
+## 5. Ver también
+
+- **[Pago desde modal de reserva sin fallback a MP de .env](./pago-modal-reserva-sin-fallback-mp-env-2026-03.md)** (2026-03): implementación del botón "Confirmar reserva" en el modal del dashboard que crea la reserva, llama a payment-preference y redirige a Mercado Pago; sin uso de credenciales globales cuando el tenant no tiene MP conectado (mensaje claro al usuario).

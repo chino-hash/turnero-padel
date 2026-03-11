@@ -10,6 +10,7 @@ import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'
 import { OperatingHoursSchema, parseJsonSafely } from '../../../lib/schemas'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { canAccessTenant, getTenantFromSlug } from '@/lib/tenant/context'
 import { prisma } from '@/lib/database/neon-config'
 
 // Esquema de validación para los parámetros de entrada
@@ -56,13 +57,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { courtId, date: dateStr } = validationResult.data
+    const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
 
     // Determinar rol de usuario (role-aware)
     const session = await auth().catch(() => null)
     const userRole: 'ADMIN' | 'USER' = (session?.user?.role === 'ADMIN') ? 'ADMIN' : 'USER'
 
-    // Verificar cache
-    const cacheKey = `${courtId}-${dateStr}`
+    // Verificar cache (incluir tenantSlug en la clave para no mezclar tenants)
+    const cacheKey = queryTenantSlug ? `${courtId}-${dateStr}-${queryTenantSlug}` : `${courtId}-${dateStr}`
     const force = (searchParams.get('force') === 'true')
     const cached = slotsCache.get(cacheKey)
     if (!force && cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -99,10 +101,18 @@ export async function GET(req: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validar permisos cross-tenant antes de obtener la cancha
-    let user: PermissionsUser | null = null
+    // Obtener cancha para validar tenant
+    const courtRow = await prisma.court.findUnique({
+      where: { id: courtId },
+      select: { tenantId: true, isActive: true }
+    })
+    if (!courtRow) {
+      return NextResponse.json({ error: 'Cancha no encontrada', courtId }, { status: 404 })
+    }
+
     let userTenantId: string | null = null
     let isSuperAdmin = false
+    let user: PermissionsUser | null = null
 
     if (session?.user) {
       user = {
@@ -117,26 +127,54 @@ export async function GET(req: NextRequest) {
       userTenantId = await getUserTenantIdSafe(user)
     }
 
-    // Validar que la cancha pertenece al tenant accesible (si hay usuario autenticado)
-    if (user && !isSuperAdmin) {
-      const court = await prisma.court.findUnique({
-        where: { id: courtId },
-        select: { tenantId: true, isActive: true }
-      })
-
-      if (!court) {
-        return NextResponse.json({ 
-          error: 'Cancha no encontrada',
-          courtId 
-        }, { status: 404 })
-      }
-
-      if (userTenantId && court.tenantId !== userTenantId) {
-        return NextResponse.json({ 
-          error: 'No tienes permisos para acceder a esta cancha',
-          courtId 
+    // Contexto por URL (tenantSlug): exigir sesión y acceso al tenant
+    if (queryTenantSlug) {
+      if (!session?.user?.email) {
+        return NextResponse.json({
+          error: 'Inicia sesión para ver los horarios',
+          courtId
         }, { status: 403 })
       }
+      const tenant = await getTenantFromSlug(queryTenantSlug)
+      if (!tenant) {
+        return NextResponse.json({ error: 'Tenant no encontrado', courtId }, { status: 404 })
+      }
+      if (!tenant.isActive) {
+        return NextResponse.json({
+          error: 'Este club no está disponible',
+          courtId
+        }, { status: 403 })
+      }
+      const hasAccess = await canAccessTenant(session.user.email, tenant.id)
+      if (!hasAccess) {
+        return NextResponse.json({
+          error: 'No tienes permisos para acceder a esta cancha',
+          courtId
+        }, { status: 403 })
+      }
+      if (courtRow.tenantId !== tenant.id) {
+        return NextResponse.json({
+          error: 'No tienes permisos para acceder a esta cancha',
+          courtId
+        }, { status: 403 })
+      }
+    } else if (user && !isSuperAdmin && user.email) {
+      // Sin tenantSlug: validar por sesión (usuario debe tener acceso al tenant de la cancha)
+      const hasAccess = courtRow.tenantId
+        ? await canAccessTenant(user.email, courtRow.tenantId)
+        : false
+      if (!hasAccess) {
+        return NextResponse.json({
+          error: 'No tienes permisos para acceder a esta cancha',
+          courtId
+        }, { status: 403 })
+      }
+    } else {
+      // Sin tenantSlug ni sesión: no permitir (evitar ver turnos de cualquier tenant sin contexto)
+      return NextResponse.json({
+        error: 'Indica el club (tenantSlug en la URL) o inicia sesión para ver los horarios',
+        courtId
+      }, { status: 403 })
     }
 
     const court = await getCourtById(courtId)

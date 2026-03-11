@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
+import { DEFAULT_COURT_VALUES, getDefaultOperatingHoursJson } from '@/lib/constants/court-defaults'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
+import { getCourtFeaturesByIndex } from '@/lib/court-colors'
+import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { z } from 'zod'
 
@@ -12,7 +15,7 @@ const tenantSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   slug: z.string().min(1, 'El slug es requerido').regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
   isActive: z.boolean().optional(),
-  subscriptionPlan: z.string().optional(),
+  subscriptionPlan: z.enum(['BASIC', 'MEDIUM', 'PREMIUM']).optional().default('BASIC'),
   subscriptionExpiresAt: z.string().optional(),
   // Credenciales de Mercado Pago (opcionales, se encriptan)
   mercadoPagoAccessToken: z.string().optional(),
@@ -20,6 +23,7 @@ const tenantSchema = z.object({
   mercadoPagoWebhookSecret: z.string().optional(),
   mercadoPagoEnabled: z.boolean().optional(),
   mercadoPagoEnvironment: z.enum(['sandbox', 'production']).optional(),
+  ownerEmail: z.string().email().optional().or(z.literal('')),
 })
 
 // GET /api/tenants - Listar todos los tenants (solo super admin)
@@ -116,13 +120,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Encriptar credenciales de Mercado Pago si están presentes
+    const ownerEmailTrimmed = validated.ownerEmail?.trim()
+    const plan = validated.subscriptionPlan ?? 'BASIC'
     const tenantData: any = {
       name: validated.name,
       slug: validated.slug,
       isActive: validated.isActive ?? true,
-      subscriptionPlan: validated.subscriptionPlan,
+      subscriptionPlan: plan,
       mercadoPagoEnabled: validated.mercadoPagoEnabled ?? false,
       mercadoPagoEnvironment: validated.mercadoPagoEnvironment ?? 'sandbox',
+    }
+    if (ownerEmailTrimmed) {
+      tenantData.ownerEmail = ownerEmailTrimmed
     }
 
     if (validated.subscriptionExpiresAt) {
@@ -152,10 +161,60 @@ export async function POST(request: NextRequest) {
         subscriptionExpiresAt: true,
         mercadoPagoEnabled: true,
         mercadoPagoEnvironment: true,
+        ownerEmail: true,
         createdAt: true,
         updatedAt: true,
       },
     })
+
+    if (ownerEmailTrimmed) {
+      const email = ownerEmailTrimmed.toLowerCase()
+      await prisma.adminWhitelist.upsert({
+        where: {
+          email_tenantId: { email, tenantId: tenant.id },
+        },
+        create: {
+          tenantId: tenant.id,
+          email,
+          role: 'ADMIN',
+          isActive: true,
+          notes: 'Admin del tenant (creado al crear tenant)',
+        },
+        update: { isActive: true, role: 'ADMIN' },
+      })
+    }
+
+    // Crear canchas por defecto según plan (3 / 6 / 9). Rollback si falla alguna.
+    const numCourts = getPlanDefaultCourts(plan)
+    const operatingHoursJson = getDefaultOperatingHoursJson()
+    try {
+      for (let n = 1; n <= numCourts; n++) {
+        await prisma.court.create({
+          data: {
+            tenantId: tenant.id,
+            name: `Cancha ${n}`,
+            description: `Cancha ${n}`,
+            basePrice: DEFAULT_COURT_VALUES.basePrice,
+            priceMultiplier: 1,
+            features: JSON.stringify(getCourtFeaturesByIndex(n)),
+            operatingHours: operatingHoursJson,
+            isActive: true,
+          },
+        })
+      }
+    } catch (courtError) {
+      console.error('Error creando canchas por defecto, rollback:', courtError)
+      await prisma.court.deleteMany({ where: { tenantId: tenant.id } })
+      if (ownerEmailTrimmed) {
+        const email = ownerEmailTrimmed.toLowerCase()
+        await prisma.adminWhitelist.deleteMany({ where: { tenantId: tenant.id, email } })
+      }
+      await prisma.tenant.delete({ where: { id: tenant.id } })
+      return NextResponse.json(
+        { success: false, error: 'Error creando canchas por defecto' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true, data: tenant }, { status: 201 })
   } catch (error) {

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useAuth } from '../../hooks/useAuth'
 import { useSlots, useMultipleSlots } from '../../hooks/useSlots'
 import { useOptimizedSlots, useOptimizedMultipleSlots } from '../../hooks/useOptimizedSlots'
@@ -112,6 +113,10 @@ interface AppStateContextType {
   isRealTimeConnected: boolean
   notification: {message: string, type: 'info' | 'success' | 'warning'} | null
   clearNotification: () => void
+
+  // Mis Turnos: quitar reserva de la lista (ej. reserva expirada) y refrescar lista
+  removeBookingFromList: (bookingId: string) => void
+  refetchUserBookings: () => Promise<void>
 }
 
 // Crear el contexto
@@ -350,12 +355,16 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [loading] = useState(false)
   const [notification, setNotification] = useState<{message: string, type: 'info' | 'success' | 'warning'} | null>(null)
-  // Estado de canchas y carga inicial desde API
+  // Estado de canchas y carga inicial desde API (por tenant si hay tenantSlug en la URL)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const tenantSlug = searchParams?.get('tenantSlug')?.trim() || null
   const [courts, setCourts] = useState<Court[]>([])
   useEffect(() => {
     const loadCourts = async () => {
       try {
-        const cachedStr = typeof window !== 'undefined' ? localStorage.getItem('courts_cache') : null
+        const cacheKey = tenantSlug ? `courts_cache_${tenantSlug}` : 'courts_cache'
+        const cachedStr = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null
         if (cachedStr) {
           try {
             const cached = JSON.parse(cachedStr)
@@ -366,12 +375,25 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
           const c = new AbortController()
           const t = setTimeout(() => c.abort(), 8000)
           try {
-            const res = await fetch('/api/courts?view=public', { credentials: 'include', signal: c.signal })
-            if (!res.ok) throw new Error(`Error ${res.status}`)
-            const data: Court[] = await res.json()
-            setCourts(data)
+            const url = tenantSlug
+              ? `/api/courts?view=public&tenantSlug=${encodeURIComponent(tenantSlug)}`
+              : '/api/courts?view=public'
+            const res = await fetch(url, { credentials: 'include', signal: c.signal })
+            const data = await res.json()
+            if (!res.ok) {
+              if (res.status === 403) {
+                router.replace('/auth/error?error=AccessDenied')
+                return
+              }
+              if (res.status === 404) {
+                router.replace('/?error=tenant-not-found')
+                return
+              }
+              throw new Error(typeof data?.error === 'string' ? data.error : `Error ${res.status}`)
+            }
+            setCourts(Array.isArray(data) ? data : [])
             try {
-              localStorage.setItem('courts_cache', JSON.stringify(data))
+              localStorage.setItem(cacheKey, JSON.stringify(data))
             } catch {}
             setNotification(null)
           } finally {
@@ -401,7 +423,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     }
     loadCourts()
     return () => {}
-  }, [])
+  }, [tenantSlug, router])
   
   useEffect(() => {
     if (selectedCourt) {
@@ -423,7 +445,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      refreshSlots,
      isRefreshing: isRefreshingSlots,
      courtName: currentCourtName
-   } = useOptimizedSlots(selectedCourt, selectedDate)
+   } = useOptimizedSlots(selectedCourt, selectedDate, tenantSlug)
 
   // Convertir Slot[] a TimeSlot[] con useMemo para evitar recreaciÃ³n constante
   const timeSlots: TimeSlot[] = useMemo(() => {
@@ -451,7 +473,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
      refreshAllSlots: refreshMultipleSlots,
      refreshCourtSlots,
      isRefreshing: isRefreshingMultipleSlots
-   } = useOptimizedMultipleSlots(courts, selectedDate)
+   } = useOptimizedMultipleSlots(courts, selectedDate, tenantSlug)
   
   // Manejar actualizaciones en tiempo real usando el hook unificado
   const shouldUseRealTime = true
@@ -481,44 +503,75 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [pastBookings, setPastBookings] = useState<any[]>([])
   const adminBookings: CourtBooking[] = []
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const loadUserBookings = async () => {
-      try {
-        const res = await fetch('/api/bookings/user', { credentials: 'include', signal: controller.signal })
-        if (!res.ok) {
-          setCurrentBookings([])
-          setPastBookings([])
-          return
-        }
-        const data = await res.json()
-        const list = Array.isArray(data) ? data : (Array.isArray(data?.bookings) ? data.bookings : (Array.isArray(data?.data) ? data.data : []))
-        const now = new Date()
-        const current = list.filter((b: any) => {
-          const bd = new Date(b.bookingDate)
-          const [sh, sm] = String(b.startTime || '00:00').split(':').map(Number)
-          const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
-          const start = new Date(bd); start.setHours(sh || 0, sm || 0, 0, 0)
-          const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
-          return now <= end
-        })
-        const past = list.filter((b: any) => {
-          const bd = new Date(b.bookingDate)
-          const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
-          const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
-          return now > end
-        })
-        setCurrentBookings(current)
-        setPastBookings(past)
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return
+  const mapToMisTurnosShape = useCallback((b: any, type: 'current' | 'past') => ({
+    id: b.id,
+    date: typeof b.bookingDate === 'string' ? b.bookingDate.split('T')[0] : b.bookingDate,
+    timeRange: `${b.startTime || ''} - ${b.endTime || ''}`,
+    courtName: b.court?.name ?? '—',
+    location: '—',
+    totalPrice: b.totalPrice ?? 0,
+    deposit: b.depositAmount ?? 0,
+    paymentStatus: (b.paymentStatus === 'FULLY_PAID' ? 'Paid' : b.paymentStatus === 'DEPOSIT_PAID' ? 'Deposit Paid' : 'Pending') as 'Paid' | 'Deposit Paid' | 'Pending',
+    status: b.status ?? 'PENDING',
+    type,
+    players: Array.isArray(b.players) ? b.players.map((p: any) => ({ name: p.playerName ?? '', email: p.playerEmail ?? '', phone: p.playerPhone ?? '', isRegistered: true, hasPaid: !!p.hasPaid })) : [],
+    expiresAt: b.expiresAt ?? undefined,
+  }), [])
+
+  const fetchAndSetUserBookings = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const res = await fetch('/api/bookings/user', { credentials: 'include', signal: signal ?? undefined })
+      if (!res.ok) {
         setCurrentBookings([])
         setPastBookings([])
+        return
       }
+      const data = await res.json()
+      const list = Array.isArray(data) ? data : (Array.isArray(data?.bookings) ? data.bookings : (Array.isArray(data?.data) ? data.data : []))
+      const now = new Date()
+      const current = list.filter((b: any) => {
+        const bd = new Date(b.bookingDate)
+        const [sh, sm] = String(b.startTime || '00:00').split(':').map(Number)
+        const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
+        const start = new Date(bd); start.setHours(sh || 0, sm || 0, 0, 0)
+        const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
+        return now <= end
+      })
+      const past = list.filter((b: any) => {
+        const bd = new Date(b.bookingDate)
+        const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
+        const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
+        return now > end
+      })
+      const currentMapped = current.map((b: any) => mapToMisTurnosShape(b, 'current'))
+      const pastMapped = past.map((b: any) => mapToMisTurnosShape(b, 'past'))
+      // Excluir de "Reservas Actuales" las pendientes ya expiradas
+      const currentFiltered = currentMapped.filter((b: any) => {
+        if (b.paymentStatus !== 'Pending') return true
+        if (!b.expiresAt) return true
+        return new Date(b.expiresAt) > now
+      })
+      setCurrentBookings(currentFiltered)
+      setPastBookings(pastMapped)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      setCurrentBookings([])
+      setPastBookings([])
     }
-    loadUserBookings()
-    return () => controller.abort()
+  }, [mapToMisTurnosShape])
+
+  const removeBookingFromList = useCallback((bookingId: string) => {
+    setCurrentBookings(prev => prev.filter(b => b.id !== bookingId))
+    setPastBookings(prev => prev.filter(b => b.id !== bookingId))
   }, [])
+
+  const refetchUserBookings = useCallback(() => fetchAndSetUserBookings(), [fetchAndSetUserBookings])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchAndSetUserBookings(controller.signal)
+    return () => controller.abort()
+  }, [fetchAndSetUserBookings])
   
   // Filtrar slots según configuración - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
@@ -783,6 +836,10 @@ const scrollToNextAvailable = () => {
     isRealTimeConnected: isConnected,
     notification,
     clearNotification,
+
+    // Mis Turnos
+    removeBookingFromList,
+    refetchUserBookings,
   }
   
   return (

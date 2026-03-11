@@ -64,6 +64,7 @@ export type ApiResponse<T = any> = {
   message: string;
   data?: T;
   error?: string;
+  code?: string;
   errors?: Array<{ field: string; message: string }>;
   meta?: {
     page?: number;

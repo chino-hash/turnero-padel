@@ -68,7 +68,7 @@ export default function SuperAdminLayoutContent({ children }: SuperAdminLayoutCo
             <div className="flex items-center space-x-4">
               {/* Botón Ir a Home */}
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/')}
                 className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${isDarkMode
                     ? 'border-purple-500 text-purple-400 hover:bg-purple-900/20'
                     : 'border-purple-600 text-purple-600 hover:bg-purple-50'

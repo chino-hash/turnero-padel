@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/database/neon-config'
+import { DEFAULT_COURT_VALUES, getDefaultOperatingHoursJson } from '@/lib/constants/court-defaults'
+import { getCourtFeaturesByIndex } from '@/lib/court-colors'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
 import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 
@@ -80,6 +82,60 @@ async function getMercadoPagoSource(): Promise<{
     publicKey: defaultTenant?.mercadoPagoPublicKey ?? null,
     webhookSecret: defaultTenant?.mercadoPagoWebhookSecret ?? null,
   }
+}
+
+/**
+ * Asegura que el tenant tenga exactamente getPlanDefaultCourts(plan) canchas (Cancha 1..N).
+ * Crea las faltantes o actualiza las existentes (descripción, basePrice, operatingHours, features, isActive).
+ * Idempotente por nombre de cancha. Usado por bootstrap y por PUT /api/tenants/[id].
+ */
+export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { subscriptionPlan: true },
+  })
+  if (!tenant) return 0
+  const numCourts = getPlanDefaultCourts(tenant.subscriptionPlan)
+  const operatingHoursJson = getDefaultOperatingHoursJson()
+  let count = 0
+  for (let n = 1; n <= numCourts; n++) {
+    const name = `Cancha ${n}`
+    const description = `Cancha ${n}`
+    const basePrice = DEFAULT_COURT_VALUES.basePrice
+    const features = JSON.stringify(getCourtFeaturesByIndex(n))
+    const existing = await prisma.court.findFirst({
+      where: { tenantId, name },
+      select: { id: true },
+    })
+    if (!existing) {
+      await prisma.court.create({
+        data: {
+          tenantId,
+          name,
+          description,
+          basePrice,
+          priceMultiplier: 1.0,
+          features,
+          operatingHours: operatingHoursJson,
+          isActive: true,
+        },
+      })
+    } else {
+      await prisma.court.update({
+        where: { id: existing.id },
+        data: {
+          description,
+          basePrice,
+          priceMultiplier: 1.0,
+          features,
+          operatingHours: operatingHoursJson,
+          isActive: true,
+        },
+      })
+    }
+    count++
+  }
+  return count
 }
 
 export async function bootstrapTenant(input: BootstrapTenantInput): Promise<BootstrapTenantResult> {
@@ -179,6 +235,13 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
       isPublic: false,
     },
     {
+      key: 'deposit_percentage',
+      value: '50',
+      description: 'Porcentaje del total que se paga como seña (25, 50, 75 o 100)',
+      category: 'payments',
+      isPublic: false,
+    },
+    {
       key: 'home_card_settings',
       value: JSON.stringify({
         labelCourtName: 'Canchas',
@@ -205,56 +268,8 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
     systemSettingsEnsured++
   }
 
-  // 4) Canchas (cantidad según plan del tenant)
-  const numCourts = getPlanDefaultCourts(tenant.subscriptionPlan)
-  const courtNumbers = Array.from({ length: numCourts }, (_, i) => i + 1)
-  const courtDefs = courtNumbers.map((n) => ({
-    name: `Cancha ${n}`,
-    description: `Cancha ${n}`,
-    basePrice: DEFAULTS.basePrice,
-    priceMultiplier: 1.0,
-    features: JSON.stringify([]),
-    operatingHours: JSON.stringify({
-      start: DEFAULTS.operatingStart,
-      end: DEFAULTS.operatingEnd,
-      slot_duration: DEFAULTS.slotDurationMinutes,
-    }),
-  }))
-
-  let courtsEnsured = 0
-  for (const c of courtDefs) {
-    const existing = await prisma.court.findFirst({
-      where: { tenantId, name: c.name },
-      select: { id: true },
-    })
-    if (!existing) {
-      await prisma.court.create({
-        data: {
-          tenantId,
-          name: c.name,
-          description: c.description,
-          basePrice: c.basePrice,
-          priceMultiplier: c.priceMultiplier,
-          features: c.features,
-          operatingHours: c.operatingHours,
-          isActive: true,
-        },
-      })
-    } else {
-      await prisma.court.update({
-        where: { id: existing.id },
-        data: {
-          description: c.description,
-          basePrice: c.basePrice,
-          priceMultiplier: c.priceMultiplier,
-          features: c.features,
-          operatingHours: c.operatingHours,
-          isActive: true,
-        },
-      })
-    }
-    courtsEnsured++
-  }
+  // 4) Canchas (cantidad según plan del tenant, colores persistidos)
+  const courtsEnsured = await ensureCourtsForPlan(tenantId)
 
   // 5) Productos/stock inicial (mínimo)
   const products = [

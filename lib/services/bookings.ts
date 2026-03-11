@@ -64,7 +64,8 @@ function transformToBookingWithDetails(booking: any): BookingWithDetails {
       paymentType: payment.paymentType,
       status: payment.status,
       createdAt: payment.createdAt.toISOString()
-    })) || []
+    })) || [],
+    expiresAt: booking.expiresAt ? booking.expiresAt.toISOString() : null
   }
 }
 

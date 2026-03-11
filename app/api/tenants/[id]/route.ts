@@ -4,6 +4,7 @@ import { prisma } from '@/lib/database/neon-config'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { invalidateTenantProviderCache } from '@/lib/services/payments/PaymentProviderFactory'
+import { ensureCourtsForPlan } from '@/lib/services/tenants/bootstrap'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -21,6 +22,7 @@ const updateTenantSchema = z.object({
   mercadoPagoWebhookSecret: z.string().optional().nullable(),
   mercadoPagoEnabled: z.boolean().optional(),
   mercadoPagoEnvironment: z.enum(['sandbox', 'production']).optional(),
+  ownerEmail: z.string().email().optional().nullable().or(z.literal('')),
 }).partial()
 
 interface RouteParams {
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         subscriptionExpiresAt: true,
         mercadoPagoEnabled: true,
         mercadoPagoEnvironment: true,
+        ownerEmail: true,
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -145,6 +148,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (validated.subscriptionPlan !== undefined) updateData.subscriptionPlan = validated.subscriptionPlan
     if (validated.mercadoPagoEnabled !== undefined) updateData.mercadoPagoEnabled = validated.mercadoPagoEnabled
     if (validated.mercadoPagoEnvironment !== undefined) updateData.mercadoPagoEnvironment = validated.mercadoPagoEnvironment
+    if (validated.ownerEmail !== undefined) {
+      updateData.ownerEmail = validated.ownerEmail?.trim() || null
+    }
 
     if (validated.subscriptionExpiresAt !== undefined) {
       updateData.subscriptionExpiresAt = validated.subscriptionExpiresAt
@@ -192,10 +198,31 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         subscriptionExpiresAt: true,
         mercadoPagoEnabled: true,
         mercadoPagoEnvironment: true,
+        ownerEmail: true,
         createdAt: true,
         updatedAt: true,
       },
     })
+
+    if (validated.ownerEmail !== undefined && validated.ownerEmail?.trim()) {
+      const email = validated.ownerEmail.trim().toLowerCase()
+      await prisma.adminWhitelist.upsert({
+        where: {
+          email_tenantId: { email, tenantId: id },
+        },
+        create: {
+          tenantId: id,
+          email,
+          role: 'ADMIN',
+          isActive: true,
+          notes: 'Admin del tenant (actualizado desde edición)',
+        },
+        update: { isActive: true, role: 'ADMIN' },
+      })
+    }
+
+    // Asegurar canchas según plan (siempre tras guardar, para que las canchas coincidan con el plan actual)
+    await ensureCourtsForPlan(id)
 
     // Invalidar cache de credenciales y proveedores si se actualizaron credenciales de Mercado Pago
     if (shouldInvalidateCache) {

@@ -27,8 +27,11 @@ export async function GET(request: NextRequest) {
       }
     } catch {}
 
+    const queryTenantId = request.nextUrl.searchParams.get('tenantId')?.trim() || null
     const whereClause: any = {}
-    if (!isSuperAdmin && userTenantId) {
+    if (isSuperAdmin && queryTenantId) {
+      whereClause.tenantId = queryTenantId
+    } else if (!isSuperAdmin && userTenantId) {
       whereClause.tenantId = userTenantId
     }
 

@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { auth } from '../../../lib/auth'
+import { getTenantFromSlug, canAccessTenant } from '../../../lib/tenant/context'
 import { getCourts, getAllCourts, createCourt, updateCourt, deleteCourt } from '../../../lib/services/courts'
 import { eventEmitters } from '../../../lib/sse-events'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../lib/utils/permissions'
@@ -14,11 +15,45 @@ export async function GET(request: NextRequest) {
       session = await auth()
     } catch {}
 
-    // Permitir forzar vista pública/deduplicada vía query param
+    // Permitir forzar vista pública/deduplicada vía query param; Super Admin puede filtrar por tenantId
     const { searchParams } = new URL(request.url)
     const view = searchParams.get('view') || searchParams.get('scope') || searchParams.get('mode')
     const dedupe = searchParams.get('dedupe')
     const forcePublic = (view && /public|active/i.test(view)) || dedupe === 'true'
+    const queryTenantId = searchParams.get('tenantId')?.trim() || null
+    const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+
+    // Si viene tenantSlug (ej. dashboard?tenantSlug=metro-padel-360), exigir sesión y acceso al tenant
+    if (queryTenantSlug) {
+      if (!session?.user?.email) {
+        return NextResponse.json(
+          createErrorResponse('No autorizado', 'Inicia sesión para ver las canchas de este club'),
+          { status: 403 }
+        )
+      }
+      const tenant = await getTenantFromSlug(queryTenantSlug)
+      if (!tenant) {
+        return NextResponse.json(
+          createErrorResponse('Tenant no encontrado', `No existe un tenant con slug "${queryTenantSlug}"`),
+          { status: 404 }
+        )
+      }
+      if (!tenant.isActive) {
+        return NextResponse.json(
+          createErrorResponse('Tenant inactivo', 'Este club no está disponible'),
+          { status: 403 }
+        )
+      }
+      const allowed = await canAccessTenant(session.user.email, tenant.id)
+      if (!allowed) {
+        return NextResponse.json(
+          createErrorResponse('No autorizado', 'No tienes acceso a este tenant'),
+          { status: 403 }
+        )
+      }
+      const courts = await getCourts(tenant.id)
+      return NextResponse.json(courts)
+    }
 
     // Construir usuario para validación de permisos
     let user: PermissionsUser | null = null
@@ -36,13 +71,18 @@ export async function GET(request: NextRequest) {
     const isSuperAdmin = user ? await isSuperAdminUser(user) : false
     const userTenantId = user ? await getUserTenantIdSafe(user) : null
 
-    // Si es super admin y no se fuerza vista pública, obtener todas las canchas (sin filtro de tenant)
-    // Si es admin de tenant, obtener todas las canchas de su tenant (incluyendo inactivas)
-    // Caso contrario, devolver solo activas (deduplicadas por nombre) del tenant
-    const courts = (session?.user?.isAdmin && !forcePublic && isSuperAdmin)
-      ? await getAllCourts(undefined, { includeTenant: true })
+    // Si es admin con tenantId en query: super admin puede pedir cualquier tenant; admin solo el suyo
+    // Si es admin con tenant en sesión (userTenantId): devolver solo canchas de ese tenant (incl. super admin "dentro" de un tenant)
+    // Si es super admin sin tenant: devolver todas las canchas (ej. vista desde /super-admin)
+    // Caso contrario: solo activas del tenant o vista pública
+    const canUseQueryTenant =
+      queryTenantId && (isSuperAdmin || queryTenantId === userTenantId)
+    const courts = (session?.user?.isAdmin && !forcePublic && canUseQueryTenant)
+      ? await getAllCourts(queryTenantId!, { includeTenant: isSuperAdmin })
       : (session?.user?.isAdmin && !forcePublic && userTenantId)
-      ? await getAllCourts(userTenantId) // ADMIN: todas las canchas de su tenant (incluyendo inactivas)
+      ? await getAllCourts(userTenantId, { includeTenant: isSuperAdmin }) // Admin o super admin en contexto de tenant: solo ese tenant
+      : (session?.user?.isAdmin && !forcePublic && isSuperAdmin)
+      ? await getAllCourts(undefined, { includeTenant: true }) // Super admin sin tenant: todas
       : await getCourts(userTenantId || undefined) // USER o público: solo activas del tenant
     return NextResponse.json(courts)
   } catch (error) {

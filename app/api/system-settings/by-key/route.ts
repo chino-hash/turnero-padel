@@ -28,13 +28,16 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url)
     const key = url.searchParams.get('key')
+    const queryTenantId = url.searchParams.get('tenantId')?.trim() || null
     if (!key) {
       return NextResponse.json({ success: false, error: 'key requerido' }, { status: 400 })
     }
 
-    // Construir where con filtro de tenantId si no es super admin
+    // Super Admin con tenantId en query: filtrar por ese tenant; si no es super admin: filtrar por tenant del usuario
     const where: any = { key }
-    if (!isSuperAdmin && userTenantId) {
+    if (isSuperAdmin && queryTenantId) {
+      where.tenantId = queryTenantId
+    } else if (!isSuperAdmin && userTenantId) {
       where.tenantId = userTenantId
     }
 

@@ -91,6 +91,7 @@ export type BookingWithDetails = {
     totalCalculated: number;
     pendingBalance: number;
   };
+  expiresAt?: string | null;
 };
 
 export type BookingAvailabilitySlot = {
@@ -139,6 +140,22 @@ export class BookingService {
       return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MINUTES;
     } catch {
       return DEFAULT_MINUTES;
+    }
+  }
+
+  private async getDepositPercentage(tenantId: string): Promise<number> {
+    const VALID_PERCENTAGES = [25, 50, 75, 100];
+    const DEFAULT_PERCENTAGE = 50;
+    try {
+      const setting = await prisma.systemSetting.findFirst({
+        where: { tenantId, key: 'deposit_percentage' },
+        select: { value: true }
+      });
+      if (!setting?.value) return DEFAULT_PERCENTAGE;
+      const parsed = parseInt(setting.value, 10);
+      return Number.isFinite(parsed) && VALID_PERCENTAGES.includes(parsed) ? parsed : DEFAULT_PERCENTAGE;
+    } catch {
+      return DEFAULT_PERCENTAGE;
     }
   }
 
@@ -450,7 +467,8 @@ export class BookingService {
       }
 
       const totalPrice = Math.round(court.basePrice * court.priceMultiplier * (durationMinutes / 60));
-      const depositAmount = Math.round(totalPrice * 0.3); // 30% por defecto
+      const percentage = await this.getDepositPercentage(court.tenantId);
+      const depositAmount = Math.round(totalPrice * (percentage / 100));
 
       const confirmOnCreate = Boolean(input.confirmOnCreate);
       const expirationMinutes = await this.getBookingExpirationMinutes(court.tenantId);
@@ -547,10 +565,25 @@ export class BookingService {
       };
     } catch (error) {
       console.error('Error creando preferencia de pago:', error);
+      const errMsg = error instanceof Error ? error.message : 'Error desconocido';
+      const msgLower = errMsg.toLowerCase();
+      const isMercadoPagoNotConnected =
+        msgLower.includes('no tiene credenciales') ||
+        msgLower.includes('no está habilitado') ||
+        msgLower.includes('inactivo') ||
+        msgLower.includes('mercado pago');
+      if (isMercadoPagoNotConnected) {
+        return {
+          success: false,
+          message: 'Mercado Pago no está conectado. No es posible hacer la transferencia.',
+          error: 'Mercado Pago no está conectado. No es posible hacer la transferencia.',
+          code: 'MERCADOPAGO_NOT_CONNECTED'
+        };
+      }
       return {
         success: false,
         message: 'Error al crear la preferencia de pago',
-        error: error instanceof Error ? error.message : 'Error desconocido'
+        error: 'Error al crear la preferencia de pago'
       };
     }
   }

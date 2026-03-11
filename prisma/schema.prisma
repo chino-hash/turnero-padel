@@ -104,6 +104,7 @@ model Tenant {
   mercadoPagoWebhookSecret String? @db.Text
   mercadoPagoEnabled       Boolean @default(false)
   mercadoPagoEnvironment   String? @default("sandbox")
+  ownerEmail               String?
 
   users             User[]
   courts            Court[]

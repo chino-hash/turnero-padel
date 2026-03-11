@@ -68,16 +68,12 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(redirectUrl, nextUrl))
   }
 
-  // Si el usuario está logueado pero no tiene tenantId y trata de acceder al dashboard
-  // (y no viene de un club), redirigir a la landing page para que seleccione un club
-  if (isLoggedIn && !userTenantId && !isSuperAdmin && nextUrl.pathname === '/dashboard') {
-    // Verificar si viene tenantSlug en la URL (significa que viene de un club)
+  // Dashboard exige tenantSlug en la URL para no super-admin (el tenant viene de la URL)
+  if (isLoggedIn && !isSuperAdmin && nextUrl.pathname === '/dashboard') {
     const tenantSlug = nextUrl.searchParams.get('tenantSlug')
     if (!tenantSlug) {
-      // No viene de un club, redirigir a landing page
       return NextResponse.redirect(new URL('/', nextUrl))
     }
-    // Si viene tenantSlug, dejar que continúe (el callback jwt lo procesará)
   }
 
   // Rutas de super admin (solo SUPER_ADMIN puede acceder)

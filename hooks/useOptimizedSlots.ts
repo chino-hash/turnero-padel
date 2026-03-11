@@ -19,9 +19,10 @@ interface OptimizedSlotsState {
 
 /**
  * Hook optimizado para manejar slots que evita recargas de página
- * y proporciona actualización manual de horarios
+ * y proporciona actualización manual de horarios.
+ * tenantSlug: slug del tenant en la URL; si se pasa, la API devuelve solo turnos de ese tenant.
  */
-export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsState => {
+export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: string | null): OptimizedSlotsState => {
   const [slots, setSlots] = useState<TimeSlot[] | null>(null)
   const [rate, setRate] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -69,7 +70,7 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
     }
 
     const currentDate = stableDate()
-    const cacheKey = `${courtId}-${ymd(currentDate)}`
+    const cacheKey = tenantSlug ? `${courtId}-${ymd(currentDate)}-${tenantSlug}` : `${courtId}-${ymd(currentDate)}`
     const cached = slotsCache.get(cacheKey)
     const now = Date.now()
 
@@ -98,11 +99,10 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
       
       try {
         const dateStr = ymd(currentDate)
-        console.log('🔍 Fetching slots:', { courtId, date: dateStr, currentDate })
-        const res = await fetch(
-          `/api/slots?courtId=${courtId}&date=${dateStr}&force=true`,
-          { signal }
-        )
+        const params = new URLSearchParams({ courtId, date: dateStr, force: 'true' })
+        if (tenantSlug) params.set('tenantSlug', tenantSlug)
+        console.log('🔍 Fetching slots:', { courtId, date: dateStr, tenantSlug, currentDate })
+        const res = await fetch(`/api/slots?${params.toString()}`, { signal })
         
         if (!res.ok) {
           throw new Error(`Error ${res.status}: ${res.statusText}`)
@@ -131,7 +131,7 @@ export const useOptimizedSlots = (courtId: string, date: Date): OptimizedSlotsSt
         setIsRefreshing(false)
       }
     }, isManualRefresh ? 0 : 300) // Sin debounce para refresh manual
-  }, [courtId, stableDate, ymd])
+  }, [courtId, stableDate, ymd, tenantSlug])
 
   // Función para refresh manual
   const refreshSlots = useCallback(async () => {
@@ -177,9 +177,10 @@ interface OptimizedMultipleSlotsState {
 }
 
 /**
- * Hook optimizado para manejar múltiples slots de canchas
+ * Hook optimizado para manejar múltiples slots de canchas.
+ * tenantSlug: slug del tenant en la URL; si se pasa, la API devuelve solo turnos de ese tenant.
  */
-export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Date): OptimizedMultipleSlotsState => {
+export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Date, tenantSlug?: string | null): OptimizedMultipleSlotsState => {
   const [slotsByCourt, setSlotsByCourt] = useState<Record<string, TimeSlot[]>>({})
   const [ratesByCourt, setRatesByCourt] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -203,7 +204,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
   // Función para obtener slots de una cancha específica
   const fetchSlotsForCourt = useCallback(async (court: {id: string}, isManualRefresh = false) => {
     const currentDate = stableDate()
-    const cacheKey = `${court.id}-${ymd(currentDate)}`
+    const cacheKey = tenantSlug ? `${court.id}-${ymd(currentDate)}-${tenantSlug}` : `${court.id}-${ymd(currentDate)}`
     const cached = slotsCache.get(cacheKey)
     const now = Date.now()
 
@@ -223,10 +224,9 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
     abortControllersRef.current.set(court.id, controller)
 
     try {
-      const res = await fetch(
-        `/api/slots?courtId=${court.id}&date=${ymd(currentDate)}&force=true`,
-        { signal: controller.signal }
-      )
+      const params = new URLSearchParams({ courtId: court.id, date: ymd(currentDate), force: 'true' })
+      if (tenantSlug) params.set('tenantSlug', tenantSlug)
+      const res = await fetch(`/api/slots?${params.toString()}`, { signal: controller.signal })
       
       if (!res.ok) {
         throw new Error(`Error ${res.status}: ${res.statusText}`)
@@ -246,7 +246,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
     } finally {
       abortControllersRef.current.delete(court.id)
     }
-  }, [ymd, stableDate])
+  }, [ymd, stableDate, tenantSlug])
 
   // Función para obtener todos los slots
   const fetchAllSlots = useCallback(async (isManualRefresh = false) => {
@@ -313,7 +313,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
         setIsRefreshing(false)
       }
     }, isManualRefresh ? 0 : 300)
-  }, [courts, fetchSlotsForCourt])
+  }, [courts, fetchSlotsForCourt, tenantSlug])
 
   // Función para refresh manual de todas las canchas
   const refreshAllSlots = useCallback(async () => {

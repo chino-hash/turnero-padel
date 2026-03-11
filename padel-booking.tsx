@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "./hooks/useAuth"
 import { 
@@ -113,7 +113,8 @@ function PadelBookingPage() {
     scrollToNextAvailable,
     getAvailableDays,
     handleSlotClick,
-    currentCourtName
+    currentCourtName,
+    removeBookingFromList,
   } = useAppState()
   
   // Estados locales específicos del componente (no compartidos)
@@ -122,6 +123,7 @@ function PadelBookingPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const [selectedSlotForConfirmation, setSelectedSlotForConfirmation] = useState<any>(null)
+  const [confirmReservationLoading, setConfirmReservationLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [newBooking, setNewBooking] = useState<any | null>(null)
   const [selectedAdminDate, setSelectedAdminDate] = useState<Date | undefined>(new Date())
@@ -132,6 +134,15 @@ function PadelBookingPage() {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<any>(null)
   const [refundAmount, setRefundAmount] = useState(0)
   const [canRefund, setCanRefund] = useState(false)
+
+  const hasPendingPayment = useMemo(() => {
+    return currentBookings.some(
+      (b: any) =>
+        (b.paymentStatus === 'Pending' || b.paymentStatus === 'PENDING') &&
+        b.expiresAt &&
+        new Date(b.expiresAt) > new Date()
+    )
+  }, [currentBookings])
   
   // Los useEffect de persistencia ahora están en el contexto global
 
@@ -265,12 +276,38 @@ function PadelBookingPage() {
   const handleConfirmReservation = async () => {
     try {
       if (!selectedSlotForConfirmation) return
-      const data = await createBookingApi(selectedSlotForConfirmation)
-      setNewBooking(data.booking)
-      setShowConfirmationModal(false)
-      setShowPaymentModal(true)
+      setConfirmReservationLoading(true)
+      const createResult = await createBookingApi(selectedSlotForConfirmation)
+      const booking = createResult.data ?? createResult.booking
+      if (!booking?.id) {
+        alert(createResult.error ?? "Error al crear la reserva")
+        return
+      }
+      const prefRes = await fetch(`/api/bookings/${booking.id}/payment-preference`, { method: "POST" })
+      const prefJson = await prefRes.json().catch(() => ({}))
+      if (!prefRes.ok && prefJson.code === "MERCADOPAGO_NOT_CONNECTED") {
+        alert("Mercado Pago no está conectado, no es posible hacer la transferencia.")
+        setShowConfirmationModal(false)
+        setSelectedSlotForConfirmation(null)
+        return
+      }
+      if (!prefRes.ok) {
+        alert(prefJson.error ?? prefJson.message ?? "Error al obtener el link de pago")
+        return
+      }
+      const url = prefJson.data?.sandboxInitPoint ?? prefJson.data?.initPoint
+      if (url) {
+        setShowConfirmationModal(false)
+        setSelectedSlotForConfirmation(null)
+        window.location.href = url
+        return
+      }
+      alert("Error al obtener el link de pago")
     } catch (e) {
       console.error("Error creando reserva:", e)
+      alert("Error al crear la reserva. Inténtalo de nuevo.")
+    } finally {
+      setConfirmReservationLoading(false)
     }
   }
 
@@ -311,6 +348,39 @@ function PadelBookingPage() {
     setShowPaymentModal(false)
     setPaymentSuccess(false)
     setPaymentProcessing(false)
+  }
+
+  const handlePayDeposit = async (booking: { id: string; expiresAt?: string | null; paymentStatus?: string }) => {
+    const isPending = booking.paymentStatus === 'Pending' || booking.paymentStatus === 'PENDING'
+    if (isPending && booking.expiresAt && new Date(booking.expiresAt) <= new Date()) {
+      alert('Reserva expirada')
+      removeBookingFromList(booking.id)
+      return
+    }
+    try {
+      const res = await fetch(`/api/bookings/${booking.id}/payment-preference`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 503 && data?.code === 'MERCADOPAGO_NOT_CONNECTED') {
+        alert('Mercado Pago no está conectado para este club. No es posible realizar el pago en este momento.')
+        return
+      }
+      if (!res.ok) {
+        alert(data?.error || data?.message || 'Error al obtener el link de pago')
+        return
+      }
+      const url = data?.data?.sandboxInitPoint ?? data?.data?.initPoint
+      if (url) {
+        window.location.href = url
+      } else {
+        alert('Error al obtener el link de pago')
+      }
+    } catch (e) {
+      console.error('Error al crear preferencia de pago:', e)
+      alert('Error al procesar el pago. Inténtalo de nuevo.')
+    }
   }
 
   const navItems = [
@@ -785,6 +855,27 @@ function PadelBookingPage() {
 
       {/* Main content with top padding to account for fixed header */}
       <div className="pt-14 sm:pt-16">
+        {/* Banner: pago pendiente (solo en Inicio cuando hay reserva pendiente no expirada) */}
+        {activeNavItem === "inicio" && hasPendingPayment && (
+          <div
+            className={`mx-4 mt-2 mb-3 rounded-lg border px-4 py-3 flex flex-wrap items-center justify-between gap-2 ${
+              isDarkMode
+                ? "border-amber-600/50 bg-amber-900/20 text-amber-100"
+                : "border-amber-400 bg-amber-50 text-amber-900"
+            }`}
+          >
+            <p className="text-sm font-medium">Tenés una reserva con pago pendiente.</p>
+            <Button
+              type="button"
+              size="sm"
+              variant={isDarkMode ? "secondary" : "default"}
+              className={isDarkMode ? "bg-amber-700 hover:bg-amber-600 text-white" : ""}
+              onClick={() => setActiveNavItem("turnos")}
+            >
+              Ir a Mis Turnos
+            </Button>
+          </div>
+        )}
         {/* Main Booking Interface */}
         <HomeSection
           isVisible={activeNavItem !== "turnos" && activeNavItem !== "admin"}
@@ -850,6 +941,7 @@ function PadelBookingPage() {
         formatDate={formatDate}
         getPaymentStatusColor={getPaymentStatusColor}
         getStatusColor={getStatusColor}
+        onPayDeposit={handlePayDeposit}
       />
 
       {/* Administration Panel */}
@@ -947,10 +1039,16 @@ function PadelBookingPage() {
           )}
 
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeConfirmationModal}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmReservation}>
-              <CreditCard className="w-4 h-4 mr-2" />
-              Confirmar Reserva
+            <AlertDialogCancel onClick={closeConfirmationModal} disabled={confirmReservationLoading}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReservation} disabled={confirmReservationLoading}>
+              {confirmReservationLoading ? (
+                <>Redirigiendo a Mercado Pago...</>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Confirmar Reserva
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

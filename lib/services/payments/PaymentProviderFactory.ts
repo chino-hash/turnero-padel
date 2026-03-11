@@ -31,23 +31,29 @@ export async function getPaymentProvider(tenantId?: string): Promise<IPaymentPro
       tenantProviderCache.set(tenantId, provider);
       return provider;
     } catch (error) {
-      const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+      const msg = error instanceof Error ? error.message : String(error);
+      const msgLower = msg.toLowerCase();
 
       // Si el tenant está inactivo o MP está deshabilitado explícitamente, usar Mock (no heredar global).
-      if (msg.includes('inactivo') || msg.includes('no está habilitado')) {
+      if (msgLower.includes('inactivo') || msgLower.includes('no está habilitado')) {
         const provider = new MockPaymentProvider();
         tenantProviderCache.set(tenantId, provider);
         return provider;
       }
 
-      // Si faltan credenciales del tenant, fallback a provider global (env) y si no existe, Mock.
+      // Sandbox sin credenciales: modo demo profesional, usar Mock.
+      if (msg.includes('SANDBOX_SIN_CREDENCIALES_USAR_MOCK')) {
+        const provider = new MockPaymentProvider();
+        tenantProviderCache.set(tenantId, provider);
+        return provider;
+      }
+
+      // No usar credenciales globales (.env): si el tenant no tiene MP, fallar para que el llamador muestre mensaje claro.
       console.warn(
-        `[PaymentProviderFactory] No se pudieron obtener credenciales del tenant ${tenantId}. Usando provider global/mock.`,
+        `[PaymentProviderFactory] El tenant ${tenantId} no tiene Mercado Pago conectado. No se usa provider global.`,
         error
       );
-      const provider = getGlobalPaymentProvider();
-      tenantProviderCache.set(tenantId, provider);
-      return provider;
+      throw error;
     }
   }
 

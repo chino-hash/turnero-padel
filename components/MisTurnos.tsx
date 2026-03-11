@@ -32,6 +32,7 @@ interface Booking {
   status: string
   type: 'current' | 'past'
   players: Player[]
+  expiresAt?: string | null
 }
 
 interface MisTurnosProps {
@@ -48,6 +49,7 @@ interface MisTurnosProps {
   formatDate: (date: string) => string
   getPaymentStatusColor: (status: string, isDarkMode?: boolean) => string
   getStatusColor: (status: string, type: string, isDarkMode?: boolean) => string
+  onPayDeposit?: (booking: Booking) => void
 }
 
 // Helper functions para optimizar clases CSS
@@ -100,8 +102,9 @@ const BookingCard = React.memo<{
   getPaymentStatusColor: (status: string, isDarkMode: boolean) => string;
   formatDate: (date: string) => string;
   onCancelBooking?: (bookingId: string) => void;
+  onPayDeposit?: (booking: Booking) => void;
   isPast?: boolean;
-}>(({ booking, isDarkMode, getCurrentBookingStatus, getRemainingTime, getPaymentStatusColor, formatDate, onCancelBooking, isPast = false }) => {
+}>(({ booking, isDarkMode, getCurrentBookingStatus, getRemainingTime, getPaymentStatusColor, formatDate, onCancelBooking, onPayDeposit, isPast = false }) => {
   // Memoizar cálculos costosos
   const bookingData = useMemo(() => {
     const bookingStatus = getCurrentBookingStatus(booking);
@@ -189,6 +192,17 @@ const BookingCard = React.memo<{
               Cancelar
             </Button>
           )}
+          {/* Botón Pagar seña: solo para Pendiente y no expirado */}
+          {!isPast && onPayDeposit && (booking.paymentStatus === 'Pending' || booking.paymentStatus === 'PENDING') && (!booking.expiresAt || new Date(booking.expiresAt) > new Date()) && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onPayDeposit(booking)}
+              className="text-xs px-2 py-1 h-auto ml-1"
+            >
+              Pagar seña
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -208,7 +222,8 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
   getRemainingTime,
   formatDate,
   getPaymentStatusColor,
-  getStatusColor
+  getStatusColor,
+  onPayDeposit,
 }) => {
   return (
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
@@ -270,6 +285,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     getPaymentStatusColor={getPaymentStatusColor}
                     formatDate={formatDate}
                     onCancelBooking={(bookingId) => onOpenCancelModal(booking)}
+                    onPayDeposit={onPayDeposit}
                     isPast={false}
                   />
                 ))
@@ -329,6 +345,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     getRemainingTime={getRemainingTime}
                     getPaymentStatusColor={getPaymentStatusColor}
                     formatDate={formatDate}
+                    onPayDeposit={onPayDeposit}
                     isPast={true}
                   />
                 ))

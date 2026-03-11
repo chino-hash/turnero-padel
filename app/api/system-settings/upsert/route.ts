@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
     if (typeof value !== 'string' || value.length === 0) {
       return NextResponse.json({ success: false, error: 'value requerido' }, { status: 400 })
     }
+    if (key === 'deposit_percentage' && !['25', '50', '75', '100'].includes(value)) {
+      return NextResponse.json({ success: false, error: 'deposit_percentage debe ser 25, 50, 75 o 100' }, { status: 400 })
+    }
 
     // Validar tenantId: si no es super admin, usar el tenantId del usuario
     let finalTenantId = tenantId

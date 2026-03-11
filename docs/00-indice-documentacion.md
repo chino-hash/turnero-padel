@@ -51,6 +51,8 @@
 - [Revisión Panel Super Admin](./multitenant/REVISION_SUPER_ADMIN_PANEL.md)
 - [Bootstrap Tenant y Pagos](./multitenant/BOOTSTRAP_TENANT_Y_PAGOS.md)
 - [MercadoPago Multitenant Rollback](./multitenant/MERCADOPAGO_MULTITENANT_ROLLBACK.md)
+- [Modo demo MP y administrador del tenant](./actualizaciones/demo-mp-admin-tenant-2026-03.md) — Demo sandbox sin credenciales, ownerEmail en tenant, mock-confirm
+- [Canchas por plan, ensureCourtsForPlan y precio base (2026-03)](./actualizaciones/canchas-por-plan-ensureCourts-precio-systemsetting-2026-03.md) — Sincronizar canchas al guardar tenant, input precio editable, migración SystemSetting (key+tenantId)
 
 ## Especificaciones e implementaciones
 
@@ -68,7 +70,8 @@
 - [Turnos pendientes: bloqueo temporal y expiración](./admin/turnos-pendientes-bloqueo-temporal-y-expiracion.md)
 - [Documentación Admin Canchas](./admin/admin-canchas-documentacion.md)
 - [Admin Turnos 13-11-2025](./admin/admin-turnos-13-11-2025.md)
-- Detalle por fecha: [actualizaciones/](./actualizaciones/) (ej. admin-turnos-cerrados-colapsable-limpieza-2026-03, admin-turnos-una-pagina-sin-paginacion-2026-03, etc.)
+- [Modo demo MP y administrador del tenant (2026-03)](./actualizaciones/demo-mp-admin-tenant-2026-03.md) — Sandbox sin credenciales → Mock; ownerEmail en crear/editar tenant; mock-confirm y página de éxito
+- Detalle por fecha: [actualizaciones/](./actualizaciones/) (ej. [Pago modal reserva sin fallback MP env](./actualizaciones/pago-modal-reserva-sin-fallback-mp-env-2026-03.md), admin-turnos-una-pagina-sin-paginacion-2026-03, etc.)
 
 ## Despliegue y configuración
 

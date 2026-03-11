@@ -142,6 +142,13 @@ export async function getTenantMercadoPagoCredentials(
     );
   }
 
+  const env = (tenant.mercadoPagoEnvironment || 'sandbox') as string;
+  const hasNoAccessToken =
+    !tenant.mercadoPagoAccessToken || !String(tenant.mercadoPagoAccessToken).trim();
+  if (env === 'sandbox' && hasNoAccessToken) {
+    throw new Error('SANDBOX_SIN_CREDENCIALES_USAR_MOCK');
+  }
+
   // Validar que tenga accessToken
   if (!tenant.mercadoPagoAccessToken) {
     throw new Error(
