@@ -103,7 +103,7 @@ export default function SuperAdminPage() {
               <p className="text-gray-500 dark:text-gray-400 mb-4">
                 No hay tenants registrados
               </p>
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button onClick={() => router.push('/super-admin/tenants/new')}>
                 Crear primer tenant
               </Button>
             </CardContent>
