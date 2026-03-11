@@ -193,7 +193,7 @@ const BookingCard = React.memo<{
             </Button>
           )}
           {/* Botón Pagar seña: solo para Pendiente y no expirado */}
-          {!isPast && onPayDeposit && (booking.paymentStatus === 'Pending' || booking.paymentStatus === 'PENDING') && (!booking.expiresAt || new Date(booking.expiresAt) > new Date()) && (
+          {!isPast && onPayDeposit && booking.paymentStatus === 'Pending' && (!booking.expiresAt || new Date(booking.expiresAt) > new Date()) && (
             <Button
               variant="default"
               size="sm"
