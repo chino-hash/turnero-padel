@@ -85,9 +85,9 @@ async function getMercadoPagoSource(): Promise<{
 }
 
 /**
- * Asegura que el tenant tenga exactamente getPlanDefaultCourts(plan) canchas (Cancha 1..N).
- * Crea las faltantes o actualiza las existentes (descripción, basePrice, operatingHours, features, isActive).
- * Idempotente por nombre de cancha. Usado por bootstrap y por PUT /api/tenants/[id].
+ * Asegura que el tenant tenga al menos getPlanDefaultCourts(plan) canchas (Cancha 1..N).
+ * Solo crea las faltantes; no actualiza las existentes (se preservan basePrice, isActive, etc. que configuró el admin).
+ * Las canchas soft-deleted (deletedAt) no cuentan como existentes. Usado por bootstrap y por PUT /api/tenants/[id].
  */
 export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
   const tenant = await prisma.tenant.findUnique({
@@ -104,7 +104,7 @@ export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
     const basePrice = DEFAULT_COURT_VALUES.basePrice
     const features = JSON.stringify(getCourtFeaturesByIndex(n))
     const existing = await prisma.court.findFirst({
-      where: { tenantId, name },
+      where: { tenantId, name, deletedAt: null },
       select: { id: true },
     })
     if (!existing) {
@@ -120,20 +120,8 @@ export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
           isActive: true,
         },
       })
-    } else {
-      await prisma.court.update({
-        where: { id: existing.id },
-        data: {
-          description,
-          basePrice,
-          priceMultiplier: 1.0,
-          features,
-          operatingHours: operatingHoursJson,
-          isActive: true,
-        },
-      })
+      count++
     }
-    count++
   }
   return count
 }
@@ -260,12 +248,16 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
 
   let systemSettingsEnsured = 0
   for (const s of systemSettings) {
-    await prisma.systemSetting.upsert({
+    const existing = await prisma.systemSetting.findUnique({
       where: { key_tenantId: { key: s.key, tenantId } },
-      create: { ...s, tenantId },
-      update: { value: s.value, description: s.description, category: s.category, isPublic: s.isPublic },
+      select: { id: true },
     })
-    systemSettingsEnsured++
+    if (!existing) {
+      await prisma.systemSetting.create({
+        data: { ...s, tenantId },
+      })
+      systemSettingsEnsured++
+    }
   }
 
   // 4) Canchas (cantidad según plan del tenant, colores persistidos)
@@ -289,13 +281,8 @@ export async function bootstrapTenant(input: BootstrapTenantInput): Promise<Boot
       await prisma.producto.create({
         data: { tenantId, ...p },
       })
-    } else {
-      await prisma.producto.update({
-        where: { id: existing.id },
-        data: { precio: p.precio, stock: p.stock, categoria: p.categoria, activo: p.activo },
-      })
+      productsEnsured++
     }
-    productsEnsured++
   }
 
   // 6) Mercado Pago: habilitar sandbox y setear credenciales (si hay fuente)

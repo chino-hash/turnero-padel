@@ -77,7 +77,7 @@ export default function TenantDetailPage() {
   const [adminsLoading, setAdminsLoading] = useState(false)
   const [adminEmail, setAdminEmail] = useState('')
   const [adminAdding, setAdminAdding] = useState(false)
-  const [courts, setCourts] = useState<Array<{ id: string; name: string; basePrice: number; tenantId: string | null }>>([])
+  const [courts, setCourts] = useState<Array<{ id: string; name: string; basePrice: number; tenantId: string | null; isActive?: boolean }>>([])
   const [courtsLoading, setCourtsLoading] = useState(false)
   const [configSettings, setConfigSettings] = useState<Record<string, string>>({})
   const [configLoading, setConfigLoading] = useState(false)
@@ -901,7 +901,7 @@ export default function TenantDetailPage() {
                   <ul className="text-sm space-y-2">
                     {courts.map((c) => (
                       <li key={c.id} className="flex justify-between items-center">
-                        <span>{c.name} — ${c.basePrice}</span>
+                        <span>{c.name} — ${c.basePrice}{c.isActive === false ? ' — Inactiva' : ' — Activa'}</span>
                         <Button type="button" variant="outline" size="sm" onClick={() => handleDeleteCourt(c.id)}>Eliminar</Button>
                       </li>
                     ))}

@@ -221,8 +221,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       })
     }
 
-    // Asegurar canchas según plan (siempre tras guardar, para que las canchas coincidan con el plan actual)
-    await ensureCourtsForPlan(id)
+    // Asegurar canchas según plan solo cuando el superadmin editó el plan (no pisar datos que el admin del tenant configuró)
+    if (validated.subscriptionPlan !== undefined) {
+      await ensureCourtsForPlan(id)
+    }
 
     // Invalidar cache de credenciales y proveedores si se actualizaron credenciales de Mercado Pago
     if (shouldInvalidateCache) {
