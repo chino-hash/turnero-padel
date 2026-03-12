@@ -140,10 +140,10 @@ export class BookingWebhookHandler implements IWebhookHandler {
             },
           });
 
-          // Importante: montos en ARS (pesos). MP devuelve transaction_amount en pesos.
+          // Montos en ARS (pesos). MP devuelve transaction_amount en pesos. booking.depositAmount en BD está en centavos.
           const amount = paymentData.transaction_amount
             ? Math.round(Number(paymentData.transaction_amount))
-            : booking.depositAmount;
+            : Math.round((booking.depositAmount || 0) / 100);
 
           await tx.payment.create({
             data: {
@@ -206,7 +206,7 @@ export class BookingWebhookHandler implements IWebhookHandler {
 
         const amount = paymentData.transaction_amount
           ? Math.round(Number(paymentData.transaction_amount))
-          : booking.depositAmount;
+          : Math.round((booking.depositAmount || 0) / 100);
 
         // Si la cancha sigue libre - Reactivar la reserva
         if (!conflictingBooking) {

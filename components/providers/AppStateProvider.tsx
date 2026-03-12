@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useTenantSlugFromPath } from '@/lib/tenant/TenantSlugFromPathContext'
 import { useAuth } from '../../hooks/useAuth'
 import { useSlots, useMultipleSlots } from '../../hooks/useSlots'
 import { useOptimizedSlots, useOptimizedMultipleSlots } from '../../hooks/useOptimizedSlots'
@@ -358,7 +359,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   // Estado de canchas y carga inicial desde API (por tenant si hay tenantSlug en la URL)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const tenantSlug = searchParams?.get('tenantSlug')?.trim() || null
+  const tenantSlugFromPath = useTenantSlugFromPath()
+  const tenantSlug = searchParams?.get('tenantSlug')?.trim() || tenantSlugFromPath || null
   const [courts, setCourts] = useState<Court[]>([])
   useEffect(() => {
     const loadCourts = async () => {

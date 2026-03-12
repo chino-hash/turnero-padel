@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { setAdminContextTenant } from "@/lib/utils/admin-context-tenant"
+import { useTenantSlugFromPath } from "@/lib/tenant/TenantSlugFromPathContext"
 import { useAuth } from "./hooks/useAuth"
 import { 
   useAppState, 
@@ -75,7 +76,8 @@ function PadelBookingPage() {
   const { user, profile, signOut, isAdmin, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+  const tenantSlugFromPath = useTenantSlugFromPath()
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || tenantSlugFromPath || null
 
   // Persistir tenant en cookie para el panel admin (si entras a canchas sin ?tenantSlug=, se usa este)
   useEffect(() => {

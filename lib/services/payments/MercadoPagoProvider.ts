@@ -53,7 +53,7 @@ export class MercadoPagoProvider implements IPaymentProvider {
       'http://localhost:3000';
     const webhookUrl = `${baseUrl}/api/webhooks/payments`;
 
-    // Nota: Mercado Pago espera montos en ARS (pesos). En este proyecto `amount` ya está en pesos.
+    // Mercado Pago espera unit_price en ARS (pesos). El caller debe pasar amount ya en pesos.
     const unitPrice = params.amount;
 
     const successUrl = params.backUrls?.success || `${baseUrl}/reservas/exito`;

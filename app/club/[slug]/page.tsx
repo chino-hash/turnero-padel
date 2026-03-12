@@ -30,8 +30,8 @@ export default async function ClubPage({ params }: ClubPageProps) {
     redirect('/?error=tenant-inactive')
   }
 
-  // Llevar a login; tras iniciar sesión redirigir al dashboard de este tenant
-  const callbackUrl = `/dashboard?tenantSlug=${encodeURIComponent(slug)}`
+  // Llevar a login; tras iniciar sesión redirigir a la URL corta del tenant
+  const callbackUrl = `/${slug}`
   redirect(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`)
 }
 

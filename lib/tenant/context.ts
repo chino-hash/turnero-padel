@@ -162,11 +162,9 @@ export async function getTenantFromRequest(request: NextRequest): Promise<Tenant
   
   // Opción 1: Path con tenant slug (/tenant-slug/...)
   const pathParts = url.pathname.split('/').filter(Boolean);
-  
-  // Si el primer segmento no es 'api', 'auth', 'login', etc., podría ser un tenant slug
-  const reservedPaths = ['api', 'auth', 'login', 'dashboard', 'admin', 'admin-panel', 'super-admin', '_next', 'favicon.ico'];
-  
-  if (pathParts.length > 0 && !reservedPaths.includes(pathParts[0].toLowerCase())) {
+  const { isReservedPathSegment } = await import('@/lib/constants/reserved-path-segments');
+
+  if (pathParts.length > 0 && !isReservedPathSegment(pathParts[0])) {
     const potentialSlug = pathParts[0];
     const tenant = await getTenantFromSlug(potentialSlug);
     if (tenant) {

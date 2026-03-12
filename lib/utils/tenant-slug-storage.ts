@@ -4,6 +4,7 @@
  */
 
 import { cookies } from 'next/headers'
+import { isReservedPathSegment } from '@/lib/constants/reserved-path-segments'
 
 const TENANT_SLUG_COOKIE_NAME = 'tenant-slug'
 
@@ -41,25 +42,39 @@ export async function clearTenantSlug(): Promise<void> {
 }
 
 /**
- * Extrae tenantSlug del callbackUrl
- * @param callbackUrl - URL que puede contener tenantSlug como query param
+ * Extrae tenantSlug del callbackUrl (query ?tenantSlug=... o path de un segmento /slug)
+ * @param callbackUrl - URL que puede contener tenantSlug como query param o como path
  * @returns El tenantSlug o null si no existe
  */
 export function extractTenantSlugFromUrl(callbackUrl: string | undefined): string | null {
   if (!callbackUrl) return null
-  
+
   try {
-    // Intentar parsear como URL completa
     const url = new URL(callbackUrl, 'http://localhost')
-    return url.searchParams.get('tenantSlug')
+    const fromQuery = url.searchParams.get('tenantSlug')
+    if (fromQuery) return fromQuery
+
+    // Path de un solo segmento: /metro-padel-360 -> metro-padel-360
+    const pathname = url.pathname.replace(/^\/+|\/+$/g, '')
+    const segments = pathname.split('/').filter(Boolean)
+    if (segments.length === 1) {
+      const segment = segments[0]
+      if (!isReservedPathSegment(segment)) return segment
+    }
   } catch {
-    // Si no es una URL válida, intentar extraer manualmente
+    // Si no es una URL válida, intentar extraer query manualmente
     const match = callbackUrl.match(/tenantSlug=([^&]+)/)
     if (match) {
       return decodeURIComponent(match[1])
     }
+    // Path relativo: /metro-padel-360
+    const pathOnly = callbackUrl.replace(/^\/+|\/+$/g, '')
+    const segments = pathOnly.split('/').filter(Boolean)
+    if (segments.length === 1 && !isReservedPathSegment(segments[0])) {
+      return segments[0]
+    }
   }
-  
+
   return null
 }
 

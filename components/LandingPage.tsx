@@ -148,7 +148,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 <DropdownMenuContent align="end" className="w-56 bg-[#1A1A1A] border-gray-800 text-gray-200">
                   {tenantSlug && (
                     <DropdownMenuItem asChild>
-                      <Link href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}>
+                      <Link href={`/${tenantSlug}`}>
                         {tenantName ? `Ir a ${tenantName}` : 'Ir a mi club'}
                       </Link>
                     </DropdownMenuItem>
@@ -216,7 +216,7 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
                 </div>
                 {tenantSlug && (
                   <Link
-                    href={`/dashboard?tenantSlug=${encodeURIComponent(tenantSlug)}`}
+                    href={`/${tenantSlug}`}
                     className="block py-2 px-3 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-[#BEF264] font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >

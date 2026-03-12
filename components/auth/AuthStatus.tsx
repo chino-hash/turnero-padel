@@ -5,6 +5,17 @@ import { AlertCircle, CheckCircle, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Alert, AlertDescription } from '../ui/alert'
 
+/**
+ * Muestra el estado actual de la autenticación (loading, reintento, error, conectado).
+ * Cuando el usuario no está autenticado no renderiza nada, para evitar mensajes
+ * redundantes en la página de login.
+ *
+ * @component
+ * @param {AuthStatusProps} props
+ * @param {boolean} [props.showRetryButton=true] - Mostrar botón "Reintentar" en estado de error
+ * @param {string} [props.className=''] - Clases CSS adicionales
+ * @see docs/actualizaciones/login-ui-authstatus-2026-03.md
+ */
 interface AuthStatusProps {
   showRetryButton?: boolean
   className?: string
@@ -81,12 +92,7 @@ export function AuthStatus({ showRetryButton = true, className = '' }: AuthStatu
   }
 
   if (status === 'unauthenticated') {
-    return (
-      <div className={`flex items-center gap-2 text-sm text-muted-foreground ${className}`}>
-        <AlertCircle className="h-4 w-4" />
-        <span>No autenticado</span>
-      </div>
-    )
+    return null
   }
 
   return null

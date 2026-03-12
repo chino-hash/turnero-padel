@@ -7,6 +7,7 @@
 
 import { auth } from "./lib/auth-middleware"
 import { NextResponse } from "next/server"
+import { isReservedPathSegment } from "./lib/constants/reserved-path-segments"
 
 export default auth((req) => {
   const { nextUrl } = req
@@ -119,9 +120,7 @@ export default auth((req) => {
   
   // Extraer tenant slug del path si existe y agregarlo como header para uso en las rutas
   const pathParts = nextUrl.pathname.split('/').filter(Boolean)
-  const reservedPaths = ['api', 'auth', 'login', 'dashboard', 'admin', 'admin-panel', 'super-admin', '_next', 'favicon.ico', 'test', 'demo']
-  
-  if (pathParts.length > 0 && !reservedPaths.includes(pathParts[0].toLowerCase())) {
+  if (pathParts.length > 0 && !isReservedPathSegment(pathParts[0])) {
     response.headers.set('x-tenant-slug', pathParts[0])
   }
   

@@ -580,7 +580,9 @@ export class BookingService {
       const { getPaymentProvider } = await import('./payments/PaymentProviderFactory');
       const paymentProvider = await getPaymentProvider(tenantId);
 
-      const amount = booking.depositAmount && booking.depositAmount > 0 ? booking.depositAmount : booking.totalPrice;
+      // totalPrice/depositAmount en BD están en centavos (basePrice de cancha se guarda ×100). MP espera pesos.
+      const amountInCentavos = booking.depositAmount && booking.depositAmount > 0 ? booking.depositAmount : booking.totalPrice;
+      const amount = Math.round(amountInCentavos / 100);
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 

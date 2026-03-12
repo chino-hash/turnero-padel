@@ -175,20 +175,12 @@ export const config = {
           console.error('Error obteniendo tenantSlug de cookie:', error)
         }
         
-        // Si no se obtuvo de la cookie, intentar del callbackUrl
+        // Si no se obtuvo de la cookie, intentar del callbackUrl (?tenantSlug=... o path /slug)
         if (!tenantSlug) {
           const callbackUrl = (token.callbackUrl as string) || (account.callbackUrl as string) || ''
           if (callbackUrl) {
-            try {
-              const url = new URL(callbackUrl, 'http://localhost')
-              tenantSlug = url.searchParams.get('tenantSlug')
-            } catch {
-              // Si callbackUrl no es una URL válida, intentar extraer manualmente
-              const match = callbackUrl.match(/tenantSlug=([^&]+)/)
-              if (match) {
-                tenantSlug = decodeURIComponent(match[1])
-              }
-            }
+            const { extractTenantSlugFromUrl } = await import('./utils/tenant-slug-storage')
+            tenantSlug = extractTenantSlugFromUrl(callbackUrl)
           }
         }
         
