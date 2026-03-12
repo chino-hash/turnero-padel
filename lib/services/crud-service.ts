@@ -363,12 +363,11 @@ export class CrudService<T = any> {
         }
       }
 
-      // Agregar metadatos de auditoría
+      // Agregar metadatos de auditoría (createdBy no existe en el esquema Prisma)
       const createData = {
         ...validatedData,
         // Agregar tenantId si el modelo lo requiere y no está en los datos
         ...(this.hasTenantId && !validatedData.tenantId && tenantId && { tenantId }),
-        ...(options.userId && { createdBy: options.userId }),
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -600,10 +599,9 @@ export class CrudService<T = any> {
       const schema = getModelSchema(this.modelName, 'update');
       const validatedData = validateSchema(schema, sanitizedData);
 
-      // Agregar metadatos de auditoría
+      // Agregar metadatos de auditoría (solo updatedAt; updatedBy no existe en el esquema Prisma)
       const updateData = {
         ...validatedData,
-        ...(options.userId && { updatedBy: options.userId }),
         updatedAt: new Date()
       };
 
@@ -664,8 +662,7 @@ export class CrudService<T = any> {
         where: { id },
         data: {
           deletedAt: new Date(),
-          updatedAt: new Date(),
-          ...(options.userId && { deletedBy: options.userId })
+          updatedAt: new Date()
         }
       });
 
@@ -1022,8 +1019,7 @@ export class CrudService<T = any> {
                  data: {
                    ...sanitizedData,
                    createdAt: new Date(),
-                   updatedAt: new Date(),
-                   ...(options.userId && { createdBy: options.userId })
+                   updatedAt: new Date()
                  }
                });
              case 'update':
@@ -1031,8 +1027,7 @@ export class CrudService<T = any> {
                  where: op.where,
                  data: {
                    ...sanitizedData,
-                   updatedAt: new Date(),
-                   ...(options.userId && { updatedBy: options.userId })
+                   updatedAt: new Date()
                  }
                });
              case 'delete':

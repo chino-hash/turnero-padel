@@ -129,10 +129,10 @@ export const paymentCreateSchema = z.object({
 
 export const paymentUpdateSchema = paymentCreateSchema.partial().omit({ bookingId: true });
 
-// Esquema para SystemSetting
+// Esquema para SystemSetting (value puede ser JSON largo, p. ej. home_card_settings con icono base64)
 export const systemSettingCreateSchema = z.object({
   key: z.string().min(1, 'La clave es requerida').max(100, 'La clave es demasiado larga'),
-  value: z.string().min(1, 'El valor es requerido').max(1000, 'El valor es demasiado largo'),
+  value: z.string().min(1, 'El valor es requerido').max(2_000_000, 'El valor es demasiado largo'),
   description: z.string().max(300, 'La descripción es demasiado larga').optional(),
   category: z.string().max(50, 'La categoría es demasiado larga').optional(),
   isPublic: z.boolean().default(false)
