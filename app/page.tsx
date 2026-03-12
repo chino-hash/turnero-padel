@@ -1,10 +1,11 @@
 import { Suspense } from 'react'
+import type { Session } from 'next-auth'
 import { auth } from '@/lib/auth'
 import { getTenantFromId } from '@/lib/tenant/context'
 import LandingPage from '@/components/LandingPage'
 
 export default async function HomePage() {
-  let session: Awaited<ReturnType<typeof auth>> = null
+  let session: Session | null = null
   try {
     session = await auth()
   } catch (err) {
