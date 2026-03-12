@@ -51,7 +51,14 @@ export async function GET(request: NextRequest) {
           { status: 403 }
         )
       }
-      const courts = await getCourts(tenant.id)
+      // Vista pública/booking (dashboard, reservas): solo canchas activas para todos
+      // Panel admin sin view=public sigue usando getAllCourts vía ?tenantId= en otra ruta
+      const isAdmin = session.user.isAdmin || session.user.isSuperAdmin
+      const courts = forcePublic
+        ? await getCourts(tenant.id)
+        : isAdmin
+          ? await getAllCourts(tenant.id, { includeTenant: Boolean(session.user.isSuperAdmin) })
+          : await getCourts(tenant.id)
       return NextResponse.json(courts)
     }
 

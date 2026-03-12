@@ -5,6 +5,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
@@ -541,14 +542,23 @@ export default function TenantDetailPage() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <Button
-          variant="outline"
-          onClick={() => router.push('/super-admin')}
-          className="mb-4"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Volver
-        </Button>
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <Button
+            variant="outline"
+            onClick={() => router.push('/super-admin')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver
+          </Button>
+          {tenantIdForSections && (
+            <Button variant="outline" asChild>
+              <Link href={`/admin-panel/admin?tenantId=${encodeURIComponent(tenantIdForSections)}`}>
+                <Settings className="w-4 h-4 mr-2" />
+                Abrir panel de administración
+              </Link>
+            </Button>
+          )}
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           {newTenant ? 'Crear Nuevo Tenant' : 'Editar Tenant'}
         </h1>

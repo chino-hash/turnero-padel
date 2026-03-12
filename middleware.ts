@@ -18,8 +18,10 @@ export default auth((req) => {
 
   // Rutas públicas que no requieren autenticación
   const publicRoutes = ['/', '/login', '/auth/error', '/test', '/demo', '/test/slots']
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname)
-  
+  // Retorno de Mercado Pago: permitir sin sesión para evitar redirecciones extra y bucles
+  const isReservasReturnRoute = ['/reservas/exito', '/reservas/error', '/reservas/pendiente'].includes(nextUrl.pathname)
+  const isPublicRoute = publicRoutes.includes(nextUrl.pathname) || isReservasReturnRoute
+
   // Rutas de club (públicas, no requieren autenticación)
   const isClubRoute = nextUrl.pathname.startsWith('/club/')
 

@@ -149,6 +149,32 @@ export const isAdminForTenant = async (email: string, tenantId: string): Promise
 }
 
 /**
+ * Devuelve los IDs de tenants donde el usuario es ADMIN (activo).
+ * Útil para asignar al usuario al tenant correcto cuando entra sin tenantSlug
+ * (p. ej. owner creado desde super-admin que aún no entró por la URL del club).
+ */
+export const getTenantIdsWhereUserIsAdmin = async (email: string): Promise<string[]> => {
+  if (!email) return []
+  const prisma = await getPrisma()
+  if (!prisma) return []
+  try {
+    const rows = await prisma.adminWhitelist.findMany({
+      where: {
+        email: email.toLowerCase(),
+        role: 'ADMIN',
+        isActive: true,
+        tenantId: { not: null },
+      },
+      select: { tenantId: true },
+    })
+    return rows.map((r) => r.tenantId as string).filter(Boolean)
+  } catch (error) {
+    console.error('Error obteniendo tenants donde usuario es admin:', error)
+    return []
+  }
+}
+
+/**
  * Verifica si un usuario puede acceder a un tenant específico
  * - Super admin puede acceder a todos
  * - Admin de tenant solo puede acceder a su tenant

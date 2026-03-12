@@ -1,6 +1,7 @@
 import { PrismaClient, Booking, BookingStatus, PaymentStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput } from '../validations/booking';
 import { calculatePaginationMeta } from '../validations/common';
+import { bookingOccupancyWhere } from '../utils/booking-availability-where';
 
 // Tipos para el repository
 export type BookingWithRelations = Booking & {
@@ -287,7 +288,7 @@ export class BookingRepository {
     return bookings as BookingWithRelations[];
   }
 
-  // Verificar disponibilidad (Bookings + CourtBlocks por torneos)
+  // Verificar disponibilidad (Bookings + CourtBlocks por torneos). PENDING expiradas no bloquean.
   async checkAvailability(input: CheckAvailabilityInput): Promise<boolean> {
     const { courtId, bookingDate, startTime, endTime, excludeBookingId } = input;
     const [y, m, d] = String(bookingDate).split('-').map(Number)
@@ -297,7 +298,7 @@ export class BookingRepository {
       where: {
         courtId,
         bookingDate: bookingDateLocal,
-        status: { not: 'CANCELLED' },
+        AND: [bookingOccupancyWhere()],
         ...(excludeBookingId && { id: { not: excludeBookingId } }),
         OR: [
           { startTime: { lte: startTime }, endTime: { gt: startTime } },

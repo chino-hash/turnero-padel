@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { DEFAULT_COURT_VALUES, getDefaultOperatingHoursJson } from '@/lib/constants/court-defaults'
-import { encryptCredential } from '@/lib/encryption/credential-encryption'
+import { tryEncrypt } from '@/lib/encryption/credential-encryption'
 import { getCourtFeaturesByIndex } from '@/lib/court-colors'
 import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
@@ -139,15 +139,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (validated.mercadoPagoAccessToken) {
-      tenantData.mercadoPagoAccessToken = encryptCredential(validated.mercadoPagoAccessToken)
+      tenantData.mercadoPagoAccessToken = tryEncrypt(validated.mercadoPagoAccessToken)
     }
 
     if (validated.mercadoPagoPublicKey) {
-      tenantData.mercadoPagoPublicKey = encryptCredential(validated.mercadoPagoPublicKey)
+      tenantData.mercadoPagoPublicKey = tryEncrypt(validated.mercadoPagoPublicKey)
     }
 
     if (validated.mercadoPagoWebhookSecret) {
-      tenantData.mercadoPagoWebhookSecret = encryptCredential(validated.mercadoPagoWebhookSecret)
+      tenantData.mercadoPagoWebhookSecret = tryEncrypt(validated.mercadoPagoWebhookSecret)
     }
 
     const tenant = await prisma.tenant.create({

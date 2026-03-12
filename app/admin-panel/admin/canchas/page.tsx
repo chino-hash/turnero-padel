@@ -3,7 +3,8 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { Input } from '../../../../components/ui/input'
@@ -24,6 +25,7 @@ import { Save, Plus, Edit2, Trash2, X, Loader2, Calendar as CalendarIcon, Users 
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 import { useAppState } from '../../../../components/providers/AppStateProvider'
+import { setAdminContextTenant, getAdminContextTenant } from '../../../../lib/utils/admin-context-tenant'
 
 interface Court {
   id: string
@@ -67,9 +69,15 @@ function roundTimeTo30Min(time: string): string {
 }
 
 export default function GestionCanchas() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const { isDarkMode } = useAppState()
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  // Tenant desde URL: así el super admin ve solo las canchas del tenant en el que está
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -86,9 +94,57 @@ export default function GestionCanchas() {
     operatingHours: DEFAULT_OPERATING_HOURS,
   })
 
+  // Persistir tenant en cookie cuando viene en la URL (para siguiente visita sin param)
   useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  // Super admin sin tenant en URL: redirigir con el tenant guardado para ver solo ese tenant
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
+  const fetchCourts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+      const url = params.toString() ? `/api/courts?${params.toString()}` : '/api/courts'
+      const response = await fetch(url, { credentials: 'include' })
+      const data = await response.json()
+      if (response.ok) {
+        setCourts(Array.isArray(data) ? data : [])
+      } else {
+        toast.error(data?.message || data?.error || 'Error al cargar las canchas')
+      }
+    } catch {
+      toast.error('Error al cargar las canchas')
+    } finally {
+      setLoading(false)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  // No pedir canchas si vamos a redirigir (super admin sin param pero con tenant en cookie)
+  const willRedirect =
+    isSuperAdmin &&
+    !tenantIdFromUrl &&
+    !tenantSlugFromUrl &&
+    (getAdminContextTenant().tenantId || getAdminContextTenant().tenantSlug)
+  useEffect(() => {
+    if (willRedirect) return
     fetchCourts()
-  }, [])
+  }, [fetchCourts, willRedirect])
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -102,22 +158,6 @@ export default function GestionCanchas() {
         .catch(() => {})
     }
   }, [isSuperAdmin])
-
-  const fetchCourts = async () => {
-    try {
-      const response = await fetch('/api/courts')
-      const data = await response.json()
-      if (response.ok) {
-        setCourts(Array.isArray(data) ? data : [])
-      } else {
-        toast.error(data?.message || data?.error || 'Error al cargar las canchas')
-      }
-    } catch {
-      toast.error('Error al cargar las canchas')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -321,16 +361,14 @@ export default function GestionCanchas() {
                       {court.name}
                     </h2>
                   </div>
-                  {isSuperAdmin && (
-                    <div className="flex flex-col items-end gap-1">
-                      <span className="text-[10px] uppercase tracking-widest text-white/70">Visible</span>
-                      <Switch
-                        disabled={submitting}
-                        checked={court.isActive}
-                        onCheckedChange={() => handleToggleActive(court)}
-                      />
-                    </div>
-                  )}
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[10px] uppercase tracking-widest text-white/70">Activa</span>
+                    <Switch
+                      disabled={submitting}
+                      checked={court.isActive}
+                      onCheckedChange={() => handleToggleActive(court)}
+                    />
+                  </div>
                 </div>
                 {court.description && court.description.trim() !== court.name.trim() && (
                   <p className="text-xs text-white/80 line-clamp-2">
@@ -454,18 +492,16 @@ export default function GestionCanchas() {
             {inactiveCourts.map((court) => (
               <li key={court.id} className="flex items-center gap-2">
                 <span>{court.name}</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => handleEdit(court)}>
+                  <Edit2 className="w-3 h-3" />
+                </Button>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleToggleActive(court)}>
+                  Activar
+                </Button>
                 {isSuperAdmin && (
-                  <>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => handleEdit(court)}>
-                      <Edit2 className="w-3 h-3" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleToggleActive(court)}>
-                      Activar
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" disabled={submitting} onClick={() => handleDeleteClick(court)}>
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs text-destructive" disabled={submitting} onClick={() => handleDeleteClick(court)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 )}
               </li>
             ))}

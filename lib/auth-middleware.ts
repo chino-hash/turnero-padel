@@ -8,8 +8,15 @@
 import NextAuth from "next-auth"
 import type { NextAuthConfig } from "next-auth"
 
+// Usar el mismo secret que lib/auth en dev cuando NEXTAUTH_SECRET no está definido (evita JWTSessionError por desajuste)
+const secret =
+  process.env.NEXTAUTH_SECRET ||
+  (process.env.NODE_ENV !== 'production'
+    ? 'dev-secret-1234567890-1234567890-1234567890'
+    : undefined)
+
 const config = {
-  secret: process.env.NEXTAUTH_SECRET,
+  secret,
   trustHost: true,
   providers: [], // Vacío para Edge; el middleware solo valida JWT existente
   session: { strategy: "jwt" }, // Requerido para que NextAuth decodifique el JWT del cookie

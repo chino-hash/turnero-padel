@@ -19,6 +19,7 @@
 10. [Fix Cerrar sesión en Vercel](#10-fix-cerrar-sesión-en-vercel)
 11. [Pestaña Turnos (admin) - Plan completado](#11-pestaña-turnos-admin---plan-completado)
 12. [Botones Terminar turno y Cancelar en Admin Turnos](#12-botones-terminar-turno-y-cancelar-en-admin-turnos)
+13. [Super Admin: botón "Ir al sitio principal" a landing](#13-super-admin-botón-ir-al-sitio-principal-a-landing)
 
 ---
 
@@ -456,6 +457,16 @@ Ajustes de visibilidad y habilitación de los botones **Terminar turno** y **Can
 
 - **Terminar turno:** `showTerminarTurno = cat === 'in_progress' && booking.status !== 'completado'`
 - **Cancelar:** `isConfirmadoOrEnCurso = cat === 'confirmed' || cat === 'in_progress' || booking.status === 'confirmado'`; `disableCancel = !isConfirmadoOrEnCurso`
+
+---
+
+## 13. SUPER ADMIN: BOTÓN "IR AL SITIO PRINCIPAL" A LANDING (Marzo 2026)
+
+El botón "Ir al sitio principal" (ícono Home) en el header del panel **Super Admin** navegaba a `/dashboard`, que no pertenece a ningún tenant. Se corrigió para que navegue a la **landing** (`/`).
+
+- **Archivo:** `app/super-admin/components/SuperAdminLayoutContent.tsx`
+- **Cambio:** `router.push('/dashboard')` → `router.push('/')`
+- **Documentación detallada:** `docs/actualizaciones/super-admin-boton-landing-2026-03.md`
 
 ---
 

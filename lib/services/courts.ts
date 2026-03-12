@@ -1,4 +1,5 @@
 import { prisma } from '../database/neon-config'
+import { bookingOccupancyWhere } from '../utils/booking-availability-where'
 import type { Court, CourtFeatures, OperatingHours } from '../../types/types'
 import { COURT_COLOR_PALETTE } from '../court-colors'
 import { getPlanMaxCourts, getPlan } from '../subscription-plans'
@@ -347,10 +348,8 @@ async function getBookingsForDateAndCourt(
       where: {
         courtId,
         bookingDate: date,
-        status: {
-          not: 'CANCELLED'
-        },
-        deletedAt: null
+        deletedAt: null,
+        AND: [bookingOccupancyWhere()],
       },
       select: { startTime: true, endTime: true }
     })

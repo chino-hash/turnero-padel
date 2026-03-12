@@ -1,4 +1,5 @@
 import { prisma } from '../database/neon-config'
+import { bookingOccupancyWhere } from '../utils/booking-availability-where'
 
 export async function getAvailableSlots(courtId: string, dateFrom: string, dateTo: string, userRole: 'ADMIN' | 'USER', tenantId?: string | null) {
   const from = new Date(`${dateFrom}T00:00:00`)
@@ -8,11 +9,11 @@ export async function getAvailableSlots(courtId: string, dateFrom: string, dateT
   const threshold = new Date(today)
   threshold.setDate(threshold.getDate() + 7)
 
-  // Construir filtros WHERE con tenantId
+  // Construir filtros WHERE con tenantId. Solo reservas que ocupan slot (excluye PENDING expiradas).
   const bookingWhere: any = {
     courtId,
     bookingDate: { gte: from, lte: to },
-    status: { not: 'CANCELLED' }
+    AND: [bookingOccupancyWhere()],
   }
   if (tenantId) {
     bookingWhere.tenantId = tenantId

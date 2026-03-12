@@ -56,7 +56,11 @@ export class MercadoPagoProvider implements IPaymentProvider {
     // Nota: Mercado Pago espera montos en ARS (pesos). En este proyecto `amount` ya está en pesos.
     const unitPrice = params.amount;
 
-    // Preparar datos de la preferencia
+    const successUrl = params.backUrls?.success || `${baseUrl}/reservas/exito`;
+    const failureUrl = params.backUrls?.failure || `${baseUrl}/reservas/error`;
+    const pendingUrl = params.backUrls?.pending || `${baseUrl}/reservas/pendiente`;
+
+    // La API de MP exige "back_url.success" cuando se usa auto_return (mensaje: back_url.success must be defined)
     const preferenceData: any = {
       items: [
         {
@@ -72,17 +76,25 @@ export class MercadoPagoProvider implements IPaymentProvider {
       notification_url: webhookUrl,
       expires: true,
       expiration_date_to: params.expiresAt.toISOString(),
-      back_urls: {
-        success: params.backUrls?.success || `${baseUrl}/bookings?status=success`,
-        failure: params.backUrls?.failure || `${baseUrl}/bookings?status=failure`,
-        pending: params.backUrls?.pending || `${baseUrl}/bookings?status=pending`,
-      },
+      back_urls: { success: successUrl, failure: failureUrl, pending: pendingUrl },
+      back_url: { success: successUrl, failure: failureUrl, pending: pendingUrl },
       auto_return: 'approved' as const,
     };
 
     try {
-      // Crear la preferencia en Mercado Pago
-      const response = await preference.create({ body: preferenceData });
+      let response: any;
+      try {
+        response = await preference.create({ body: preferenceData });
+      } catch (firstErr: unknown) {
+        const errMsg = typeof (firstErr as { message?: string })?.message === 'string' ? (firstErr as { message: string }).message : '';
+        if (errMsg.includes('auto_return') || errMsg.includes('back_url')) {
+          const { auto_return: _ar, back_url: _bu, ...rest } = preferenceData;
+          const fallbackData = { ...rest, back_urls: { success: successUrl, failure: failureUrl, pending: pendingUrl } };
+          response = await preference.create({ body: fallbackData });
+        } else {
+          throw firstErr;
+        }
+      }
 
       if (!response.id || !response.init_point) {
         throw new Error('Respuesta inválida de Mercado Pago: falta id o init_point');
@@ -93,13 +105,19 @@ export class MercadoPagoProvider implements IPaymentProvider {
         initPoint: response.init_point,
         sandboxInitPoint: response.sandbox_init_point,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MercadoPagoProvider] Error creando preferencia:', error);
-      throw new Error(
-        `Error creando preferencia de pago: ${
-          error instanceof Error ? error.message : 'Error desconocido'
-        }`
-      );
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof (error as { message?: string })?.message === 'string'
+            ? (error as { message: string }).message
+            : (error as { cause?: { message?: string } })?.cause?.message
+              ? String((error as { cause: { message: string } }).cause.message)
+              : typeof error === 'object' && error !== null
+                ? JSON.stringify(error)
+                : String(error);
+      throw new Error(`Error creando preferencia de pago: ${message || 'Error desconocido'}`);
     }
   }
 }

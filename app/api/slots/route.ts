@@ -5,6 +5,8 @@ export const dynamic = 'force-dynamic'
 import { getCourtById, checkMultipleSlotsAvailability } from '../../../lib/services/courts'
 import { auth } from '@/lib/auth'
 import { getAvailableSlots } from '@/lib/services/availabilityService'
+import { ExpiredBookingsService } from '@/lib/services/bookings/ExpiredBookingsService'
+import { clearBookingsCache } from '@/lib/services/courts'
 import { getDefaultOperatingHours } from '../../../lib/services/system-settings'
 import { z } from 'zod'
 import { isDevelopment } from '../../../lib/config/env'
@@ -109,6 +111,17 @@ export async function GET(req: NextRequest) {
     if (!courtRow) {
       return NextResponse.json({ error: 'Cancha no encontrada', courtId }, { status: 404 })
     }
+    // No devolver slots para canchas desactivadas (solo activas pueden reservarse)
+    if (!courtRow.isActive) {
+      return NextResponse.json({
+        slots: [],
+        courtId,
+        date: dateStr,
+        summary: { total: 0, open: 0, rate: 0, date: dateStr, courtName: '' },
+        courtName: '',
+        message: 'Cancha no disponible'
+      })
+    }
 
     let userTenantId: string | null = null
     let isSuperAdmin = false
@@ -191,6 +204,17 @@ export async function GET(req: NextRequest) {
       select: { tenantId: true }
     })
     const tenantId = courtDb?.tenantId || userTenantId
+
+    // Cancelar reservas pendientes expiradas (lazy) para que los slots y Mis Turnos queden coherentes
+    if (tenantId) {
+      try {
+        const expiredService = new ExpiredBookingsService()
+        await expiredService.cancelExpiredBookings(tenantId)
+        clearBookingsCache()
+      } catch (e) {
+        console.warn('Error cancelando reservas expiradas en slots:', e)
+      }
+    }
 
     if (tenantId && !isSuperAdmin) {
       const tenantRecord = await prisma.tenant.findUnique({

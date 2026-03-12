@@ -83,7 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const statusCode =
         result.code === 'MERCADOPAGO_NOT_CONNECTED' ? 503 :
         result.error?.includes('no encontrada') ? 404 :
-        result.error?.includes('fecha de expiración') ? 400 : 400
+        (result.error?.includes('fecha de expiración') || result.error === 'Reserva expirada') ? 400 : 400
       return NextResponse.json(result, { status: statusCode })
     }
 

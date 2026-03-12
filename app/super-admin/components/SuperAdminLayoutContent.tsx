@@ -66,7 +66,8 @@ export default function SuperAdminLayoutContent({ children }: SuperAdminLayoutCo
 
             {/* Información del usuario y toggle de modo oscuro */}
             <div className="flex items-center space-x-4">
-              {/* Botón Ir a Home */}
+              {/* Botón "Ir al sitio principal": navega a la landing (/) y no a /dashboard,
+                  ya que el Super Admin no pertenece a ningún tenant. Ver docs/actualizaciones/super-admin-boton-landing-2026-03.md */}
               <button
                 onClick={() => router.push('/')}
                 className={`transition-all duration-200 shadow-sm p-1.5 sm:p-2 h-8 w-8 border rounded-md flex items-center justify-center hover:scale-105 ${isDarkMode

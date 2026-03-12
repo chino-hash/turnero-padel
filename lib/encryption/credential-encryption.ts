@@ -111,5 +111,23 @@ export function generateEncryptionKey(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+/**
+ * Encripta si CREDENTIAL_ENCRYPTION_KEY está configurada; si no, devuelve el texto en claro.
+ * Útil en desarrollo para poder guardar credenciales de tenants sin configurar la clave.
+ */
+export function tryEncrypt(plaintext: string): string {
+  if (!plaintext || plaintext.length === 0) {
+    return plaintext;
+  }
+  const key = process.env.CREDENTIAL_ENCRYPTION_KEY;
+  if (!key || !/^[0-9a-fA-F]{64}$/.test(key)) {
+    console.warn(
+      '[Encryption] CREDENTIAL_ENCRYPTION_KEY no configurada: las credenciales se guardan en claro (solo para desarrollo).'
+    );
+    return plaintext;
+  }
+  return encryptCredential(plaintext);
+}
+
 
 

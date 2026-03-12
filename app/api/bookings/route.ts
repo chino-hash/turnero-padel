@@ -8,6 +8,7 @@ import { formatZodErrors } from "@/lib/validations/common"
 import { ZodError } from "zod"
 import { eventEmitters } from '@/lib/sse-events'
 import { clearBookingsCache } from '@/lib/services/courts'
+import { ExpiredBookingsService } from '@/lib/services/bookings/ExpiredBookingsService'
 import { canAccessTenant, getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
@@ -239,8 +240,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Asegurar que session.user.id sea un id de nuestra tabla User (evitar FK por token con id de Google)
+    let sessionUserId: string = session.user.id
+    const dbUserById = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    })
+    if (!dbUserById && session.user.email) {
+      const dbUserByEmail = await prisma.user.findFirst({
+        where: { email: (session.user.email as string).toLowerCase() },
+        select: { id: true },
+      })
+      if (dbUserByEmail) sessionUserId = dbUserByEmail.id
+      else {
+        return NextResponse.json(
+          { success: false, error: 'Tu cuenta no está vinculada al club. Cerrá sesión e ingresá de nuevo desde la página del club.' },
+          { status: 401 }
+        )
+      }
+    } else if (!dbUserById) {
+      return NextResponse.json(
+        { success: false, error: 'No se pudo identificar tu usuario. Cerrá sesión e ingresá de nuevo desde la página del club.' },
+        { status: 401 }
+      )
+    }
+
     // Resolver userId: admin puede enviar userId (usuario existente) o guestName+guestEmail (get-or-create)
-    let resolvedUserId: string = session.user.id
+    let resolvedUserId: string = sessionUserId
     if ((user.isAdmin || isSuperAdmin) && (validatedData.userId || (validatedData.guestName && validatedData.guestEmail))) {
       if (validatedData.userId) {
         const targetUser = await prisma.user.findFirst({
@@ -280,8 +306,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Cancelar reservas pendientes expiradas (lazy) para que el horario quede libre si ya pasaron los 15 min
+    try {
+      const expiredService = new ExpiredBookingsService()
+      await expiredService.cancelExpiredBookings(tenantIdForBooking)
+      clearBookingsCache()
+    } catch (e) {
+      console.warn('Error cancelando reservas expiradas antes de crear:', e)
+    }
+
     // Crear reserva usando el servicio optimizado (bookedById = quien está logueado, para estadísticas de uso de la página)
-    const result = await bookingService.createBooking(validatedData, resolvedUserId, session.user.id)
+    const result = await bookingService.createBooking(validatedData, resolvedUserId, sessionUserId)
 
     if (!result.success) {
       return NextResponse.json(result, { status: 400 })
@@ -322,8 +357,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const message = error instanceof Error ? error.message : 'Error interno del servidor'
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      {
+        success: false,
+        error: process.env.NODE_ENV === 'development' ? message : 'Error interno del servidor',
+      },
       { status: 500 }
     )
   }

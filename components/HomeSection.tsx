@@ -9,6 +9,7 @@ import SlotModal from './SlotModal'
 import { TimeSlot, Court } from '../types/types'
 import { useAppState } from './providers/AppStateProvider'
 import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
+import { getCourtHexForDisplay } from '../lib/court-colors'
 
 
 interface HomeSectionProps {
@@ -41,6 +42,8 @@ interface HomeSectionProps {
   onRetry?: () => void
   isRefreshingMultipleSlots?: boolean
   isRefreshingSlots?: boolean
+  /** Al confirmar reserva desde el modal del slot: crear booking y redirigir a pago */
+  onConfirmSlot?: (slot: any) => void | Promise<void>
 }
 
 export default function HomeSection({
@@ -72,7 +75,8 @@ export default function HomeSection({
   error = null,
   onRetry,
   isRefreshingMultipleSlots = false,
-  isRefreshingSlots = false
+  isRefreshingSlots = false,
+  onConfirmSlot
 }: HomeSectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlotForModal, setSelectedSlotForModal] = useState(null)
@@ -977,35 +981,8 @@ export default function HomeSection({
                     const timeRange = slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : slot.startTime || slot.time
                     const pricePerPerson = slot.pricePerPerson ?? Math.round(((slot.finalPrice ?? slot.price ?? 6000) / 4))
 
-                    // Obtener colores específicos de la cancha
-                    const getCourtColor = (courtId: string, courtName: string) => {
-                      const nameLower = (courtName || '').toLowerCase()
-                      // Usar valores hex históricos por cancha
-                      if (
-                        courtId === 'cmew6nvsd0001u2jcngxgt8au' ||
-                        nameLower.includes('cancha 1') ||
-                        nameLower.includes(' a') || nameLower.startsWith('a')
-                      ) {
-                        return '#8b5cf6' // púrpura
-                      }
-                      if (
-                        courtId === 'cmew6nvsd0002u2jcc24nirbn' ||
-                        nameLower.includes('cancha 2') ||
-                        nameLower.includes(' b') || nameLower.startsWith('b')
-                      ) {
-                        return '#ef4444' // rojo
-                      }
-                      if (
-                        courtId === 'cmew6nvi40000u2jcmer3av60' ||
-                        nameLower.includes('cancha 3') ||
-                        nameLower.includes(' c') || nameLower.startsWith('c')
-                      ) {
-                        return '#008000' // verde específico de versiones anteriores
-                      }
-                      return '#4b5563' // gris por defecto
-                    }
-
-                    const courtColor = getCourtColor(slot.courtId || '', courtName)
+                    // Misma paleta que la sección de canchas (por número de cancha)
+                    const courtColor = getCourtHexForDisplay(slot.courtId || '', courtName)
 
                     const isTodaySelected = new Date().toDateString() === selectedDate.toDateString()
                     const slotStartStr = slot.startTime || slot.time
@@ -1080,6 +1057,12 @@ export default function HomeSection({
         slot={selectedSlotForModal}
         isOpen={isModalOpen}
         onClose={closeModal}
+        onConfirm={onConfirmSlot}
+        onError={(message) => {
+          if (message && message.includes('ya no está disponible')) {
+            handleRefreshSlots();
+          }
+        }}
       />
     </div>
   ) : null

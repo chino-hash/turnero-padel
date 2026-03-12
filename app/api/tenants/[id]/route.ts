@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
-import { encryptCredential } from '@/lib/encryption/credential-encryption'
+import { tryEncrypt } from '@/lib/encryption/credential-encryption'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { invalidateTenantProviderCache } from '@/lib/services/payments/PaymentProviderFactory'
 import { ensureCourtsForPlan } from '@/lib/services/tenants/bootstrap'
@@ -163,21 +163,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     
     if (validated.mercadoPagoAccessToken !== undefined) {
       updateData.mercadoPagoAccessToken = validated.mercadoPagoAccessToken
-        ? encryptCredential(validated.mercadoPagoAccessToken)
+        ? tryEncrypt(validated.mercadoPagoAccessToken)
         : null
       shouldInvalidateCache = true;
     }
 
     if (validated.mercadoPagoPublicKey !== undefined) {
       updateData.mercadoPagoPublicKey = validated.mercadoPagoPublicKey
-        ? encryptCredential(validated.mercadoPagoPublicKey)
+        ? tryEncrypt(validated.mercadoPagoPublicKey)
         : null
       shouldInvalidateCache = true;
     }
 
     if (validated.mercadoPagoWebhookSecret !== undefined) {
       updateData.mercadoPagoWebhookSecret = validated.mercadoPagoWebhookSecret
-        ? encryptCredential(validated.mercadoPagoWebhookSecret)
+        ? tryEncrypt(validated.mercadoPagoWebhookSecret)
         : null
       shouldInvalidateCache = true;
     }

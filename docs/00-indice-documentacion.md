@@ -71,6 +71,7 @@
 - [Documentación Admin Canchas](./admin/admin-canchas-documentacion.md)
 - [Admin Turnos 13-11-2025](./admin/admin-turnos-13-11-2025.md)
 - [Modo demo MP y administrador del tenant (2026-03)](./actualizaciones/demo-mp-admin-tenant-2026-03.md) — Sandbox sin credenciales → Mock; ownerEmail en crear/editar tenant; mock-confirm y página de éxito
+- [Admin Canchas: contexto por tenant y navegación (2026-03)](./actualizaciones/admin-canchas-contexto-tenant-2026-03.md) — Super Admin ve solo canchas del tenant; cookie de contexto; Home y enlaces preservan tenant.
 - Detalle por fecha: [actualizaciones/](./actualizaciones/) (ej. [Pago modal reserva sin fallback MP env](./actualizaciones/pago-modal-reserva-sin-fallback-mp-env-2026-03.md), admin-turnos-una-pagina-sin-paginacion-2026-03, etc.)
 
 ## Despliegue y configuración

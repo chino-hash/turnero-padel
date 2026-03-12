@@ -226,61 +226,80 @@ export const config = {
             throw error
           }
         } else {
-          // Si NO viene tenantSlug, buscar un tenant "default" para asignar temporalmente
-          // El superadmin puede mover el usuario al tenant correcto desde /super-admin
+          // Si NO viene tenantSlug: priorizar el tenant donde el usuario es ADMIN
+          // (p. ej. owner creado desde super-admin que entra por /login sin URL del club)
           try {
-            const { prisma } = await import('@/lib/database/neon-config')
-            const defaultTenant = await prisma.tenant.findFirst({
-              where: {
-                slug: 'default',
-                isActive: true
-              }
-            })
-            
-            if (defaultTenant) {
-              finalTenantId = defaultTenant.id
-              // Crear usuario con tenant default
-              const { ensureUserExists } = await import('./services/users')
-              await ensureUserExists(
-                user.email!,
-                user.name || null,
-                user.image || null,
-                defaultTenant.id
-              )
-              console.log(`✅ Usuario ${user.email} creado con tenant default (${defaultTenant.id})`)
-            } else {
-              // Si no existe tenant default, buscar el primer tenant activo como fallback
-              // Esto permite que usuarios puedan hacer login incluso sin tenant default
-              try {
-                const firstActiveTenant = await prisma.tenant.findFirst({
-                  where: { isActive: true },
-                  orderBy: { createdAt: 'asc' }
-                })
-                
-                if (firstActiveTenant) {
-                  finalTenantId = firstActiveTenant.id
-                  const { ensureUserExists } = await import('./services/users')
-                  await ensureUserExists(
-                    user.email!,
-                    user.name || null,
-                    user.image || null,
-                    firstActiveTenant.id
-                  )
-                  console.log(`✅ Usuario ${user.email} creado con primer tenant activo (${firstActiveTenant.id}) como fallback`)
-                } else {
-                  // Si no hay tenants activos, no crear usuario
-                  // El usuario debe ser creado por el superadmin desde /super-admin
-                  console.log(`ℹ️ Usuario ${user.email} hizo login sin tenantSlug y no hay tenants activos - no se creará usuario`)
-                  // No asignar tenantId, el middleware redirigirá a la landing page
-                }
-              } catch (fallbackError: any) {
-                console.error('❌ Error buscando tenant fallback:', fallbackError)
-                // Continuar sin crear usuario
+            const { getTenantIdsWhereUserIsAdmin } = await import('./admin-system')
+            const adminTenantIds = await getTenantIdsWhereUserIsAdmin(user.email!)
+            if (adminTenantIds.length >= 1) {
+              const { prisma } = await import('@/lib/database/neon-config')
+              const tenant = await prisma.tenant.findFirst({
+                where: { id: adminTenantIds[0], isActive: true },
+              })
+              if (tenant) {
+                finalTenantId = tenant.id
+                const { ensureUserExists } = await import('./services/users')
+                await ensureUserExists(
+                  user.email!,
+                  user.name || null,
+                  user.image || null,
+                  tenant.id
+                )
+                console.log(`✅ Usuario ${user.email} asignado al tenant donde es admin (${tenant.id})`)
               }
             }
-          } catch (error: any) {
-            console.error('❌ Error buscando tenant default:', error)
-            // Continuar sin crear usuario
+          } catch (adminTenantError: any) {
+            console.error('Error asignando tenant por AdminWhitelist:', adminTenantError)
+          }
+
+          // Si aún no hay tenant (no es admin de ninguno), usar default o primer activo
+          if (!finalTenantId) {
+            try {
+              const { prisma } = await import('@/lib/database/neon-config')
+              const defaultTenant = await prisma.tenant.findFirst({
+                where: {
+                  slug: 'default',
+                  isActive: true
+                }
+              })
+              
+              if (defaultTenant) {
+                finalTenantId = defaultTenant.id
+                const { ensureUserExists } = await import('./services/users')
+                await ensureUserExists(
+                  user.email!,
+                  user.name || null,
+                  user.image || null,
+                  defaultTenant.id
+                )
+                console.log(`✅ Usuario ${user.email} creado con tenant default (${defaultTenant.id})`)
+              } else {
+                try {
+                  const firstActiveTenant = await prisma.tenant.findFirst({
+                    where: { isActive: true },
+                    orderBy: { createdAt: 'asc' }
+                  })
+                  
+                  if (firstActiveTenant) {
+                    finalTenantId = firstActiveTenant.id
+                    const { ensureUserExists } = await import('./services/users')
+                    await ensureUserExists(
+                      user.email!,
+                      user.name || null,
+                      user.image || null,
+                      firstActiveTenant.id
+                    )
+                    console.log(`✅ Usuario ${user.email} creado con primer tenant activo (${firstActiveTenant.id}) como fallback`)
+                  } else {
+                    console.log(`ℹ️ Usuario ${user.email} hizo login sin tenantSlug y no hay tenants activos - no se creará usuario`)
+                  }
+                } catch (fallbackError: any) {
+                  console.error('❌ Error buscando tenant fallback:', fallbackError)
+                }
+              }
+            } catch (error: any) {
+              console.error('❌ Error buscando tenant default:', error)
+            }
           }
         }
         
@@ -314,6 +333,18 @@ export const config = {
         // Log del acceso
         if (isSuperAdmin || isAdmin) {
           logAdminAccessSafe(user.email!, true, 'google', isSuperAdmin ? 'super_admin_login' : 'admin_login')
+        }
+        
+        // Usar el id del usuario en nuestra DB (Booking y otras tablas usan FK a User.id)
+        try {
+          const { prisma } = await import('@/lib/database/neon-config')
+          const dbUser = await prisma.user.findFirst({
+            where: { email: user.email!.toLowerCase() },
+            select: { id: true }
+          })
+          if (dbUser) token.sub = dbUser.id
+        } catch (e) {
+          console.error('Error obteniendo id de usuario para token:', e)
         }
         
         // Asignar datos al token

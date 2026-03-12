@@ -8,13 +8,18 @@ interface SlotModalProps {
   slot: TimeSlot | null;
   isOpen: boolean;
   onClose: () => void;
+  /** Al confirmar reserva: crear booking + redirigir a pago. Si no se pasa, el botón solo cierra. */
+  onConfirm?: (slot: TimeSlot) => void | Promise<void>;
+  /** Se llama cuando onConfirm falla (ej. horario ya no disponible). Permite cerrar y refrescar. */
+  onError?: (message: string) => void;
 }
 
 // Contador global para manejar múltiples modales
 let modalCount = 0;
 let originalBodyOverflow: string | null = null;
 
-const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
+const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose, onConfirm, onError }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -152,14 +157,30 @@ const SlotModal: React.FC<SlotModalProps> = ({ slot, isOpen, onClose }) => {
             Cancelar
           </button>
           {(slot.isAvailable ?? slot.available) && (
-            <button 
+            <button
+              type="button"
               className="btn-primary"
-              onClick={() => {
-                console.log('Reservar turno:', slot);
-                onClose();
+              disabled={isSubmitting}
+              onClick={async () => {
+                if (onConfirm) {
+                  setIsSubmitting(true);
+                  try {
+                    await onConfirm(slot);
+                    onClose();
+                  } catch (e) {
+                    console.error('Error al confirmar reserva:', e);
+                    const message = e instanceof Error ? e.message : String(e);
+                    onClose();
+                    onError?.(message);
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                } else {
+                  onClose();
+                }
               }}
             >
-              📅 Confirmar Reserva
+              {isSubmitting ? 'Redirigiendo a pago...' : '📅 Confirmar Reserva'}
             </button>
           )}
         </div>

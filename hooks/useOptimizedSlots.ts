@@ -138,10 +138,13 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
     await fetchSlots(true)
   }, [fetchSlots])
 
-  // Efecto para carga inicial y cambios de dependencias
+  // Clave de fecha para forzar refetch cuando cambia el día (evita dependencia solo en callbacks)
+  const dateKey = date.getTime()
+
+  // Efecto para carga inicial y cambios de dependencias (incl. cambio de fecha)
   useEffect(() => {
     fetchSlots(false)
-  }, [fetchSlots])
+  }, [fetchSlots, dateKey])
 
   // Cleanup effect para limpiar timeout y abort controller
   useEffect(() => {
@@ -339,9 +342,12 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
     }
   }, [courts, fetchSlotsForCourt])
 
+  // Clave de fecha para forzar refetch cuando cambia el día
+  const dateKey = date.getTime()
+
   useEffect(() => {
     fetchAllSlots(false)
-  }, [fetchAllSlots])
+  }, [fetchAllSlots, dateKey])
 
   // Cleanup
   useEffect(() => {

@@ -235,22 +235,43 @@ export async function ensureUserExists(
       throw new Error(`Tenant con ID ${tenantId} está inactivo`)
     }
 
-    // Usar upsert para crear o actualizar el usuario
-    // El constraint único [email, tenantId] asegura que no haya duplicados
-    const user = await prisma.user.upsert({
-      where: {
-        email_tenantId: {
-          email: email.toLowerCase(),
-          tenantId: tenantId
-        }
-      },
-      update: {
-        name: name || undefined,
-        image: image || undefined,
-        emailVerified: new Date(), // Marcar email como verificado si viene de OAuth
-      },
-      create: {
-        email: email.toLowerCase(),
+    const emailLower = email.toLowerCase()
+
+    // Buscar por email (soporta tanto DB con unique(email) como unique(email, tenantId))
+    let user = await prisma.user.findFirst({
+      where: { email: emailLower },
+    })
+
+    if (user) {
+      // Usuario existente: actualizar tenantId, name, image por si entró a otro tenant
+      // (p. ej. admin asignado a un tenant que no era el suyo)
+      if (user.tenantId !== tenantId) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            tenantId,
+            name: name ?? user.name,
+            image: image ?? user.image,
+            emailVerified: user.emailVerified ?? new Date(),
+          },
+        })
+      } else {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            name: name ?? user.name,
+            image: image ?? user.image,
+            emailVerified: user.emailVerified ?? new Date(),
+          },
+        })
+      }
+      return user
+    }
+
+    // Crear nuevo usuario
+    user = await prisma.user.create({
+      data: {
+        email: emailLower,
         name: name,
         image: image,
         tenantId: tenantId,
@@ -263,22 +284,6 @@ export async function ensureUserExists(
     return user
   } catch (error: any) {
     console.error('Error en ensureUserExists:', error)
-    
-    // Si es un error de constraint único, intentar obtener el usuario existente
-    if (error.code === 'P2002') {
-      const existingUser = await prisma.user.findUnique({
-        where: {
-          email_tenantId: {
-            email: email.toLowerCase(),
-            tenantId: tenantId
-          }
-        }
-      })
-      if (existingUser) {
-        return existingUser
-      }
-    }
-    
     throw new Error(`Error al crear/actualizar usuario: ${error.message}`)
   }
 }

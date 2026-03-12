@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { setAdminContextTenant } from "@/lib/utils/admin-context-tenant"
 import { useAuth } from "./hooks/useAuth"
 import { 
   useAppState, 
@@ -62,6 +63,7 @@ import { Switch } from "./components/ui/switch"
 import { Label } from "./components/ui/label"
 import MisTurnos from "./components/MisTurnos"
 import HomeSection from "./components/HomeSection"
+import toast from "react-hot-toast"
 
 // Los tipos ahora están definidos en AppStateProvider
 
@@ -72,6 +74,13 @@ import HomeSection from "./components/HomeSection"
 function PadelBookingPage() {
   const { user, profile, signOut, isAdmin, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
+  // Persistir tenant en cookie para el panel admin (si entras a canchas sin ?tenantSlug=, se usa este)
+  useEffect(() => {
+    if (tenantSlugFromUrl) setAdminContextTenant(null, tenantSlugFromUrl)
+  }, [tenantSlugFromUrl])
   
   // Usar el contexto global para el estado compartido
   const {
@@ -257,8 +266,8 @@ function PadelBookingPage() {
 
   const createBookingApi = async (slot: any) => {
     const body = {
-      courtId: selectedCourt,
-      date: ymd(selectedDate),
+      courtId: slot?.courtId || selectedCourt,
+      bookingDate: ymd(selectedDate),
       startTime: slot.startTime,
       endTime: slot.endTime,
     }
@@ -267,7 +276,17 @@ function PadelBookingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
-    if (!res.ok) throw new Error(await res.text())
+    if (!res.ok) {
+      const text = await res.text()
+      let message = "Error al crear la reserva"
+      try {
+        const data = JSON.parse(text)
+        message = data?.message ?? data?.error ?? message
+      } catch {
+        if (text) message = text
+      }
+      throw new Error(typeof message === "string" ? message : "Error al crear la reserva")
+    }
     return res.json()
   }
 
@@ -280,19 +299,19 @@ function PadelBookingPage() {
       const createResult = await createBookingApi(selectedSlotForConfirmation)
       const booking = createResult.data ?? createResult.booking
       if (!booking?.id) {
-        alert(createResult.error ?? "Error al crear la reserva")
+        toast.error(createResult.error ?? "Error al crear la reserva")
         return
       }
       const prefRes = await fetch(`/api/bookings/${booking.id}/payment-preference`, { method: "POST" })
       const prefJson = await prefRes.json().catch(() => ({}))
       if (!prefRes.ok && prefJson.code === "MERCADOPAGO_NOT_CONNECTED") {
-        alert("Mercado Pago no está conectado, no es posible hacer la transferencia.")
+        toast.error("Mercado Pago no está conectado, no es posible hacer la transferencia.")
         setShowConfirmationModal(false)
         setSelectedSlotForConfirmation(null)
         return
       }
       if (!prefRes.ok) {
-        alert(prefJson.error ?? prefJson.message ?? "Error al obtener el link de pago")
+        toast.error(prefJson.error ?? prefJson.message ?? "Error al obtener el link de pago")
         return
       }
       const url = prefJson.data?.sandboxInitPoint ?? prefJson.data?.initPoint
@@ -302,12 +321,45 @@ function PadelBookingPage() {
         window.location.href = url
         return
       }
-      alert("Error al obtener el link de pago")
+      toast.error("Error al obtener el link de pago")
     } catch (e) {
       console.error("Error creando reserva:", e)
-      alert("Error al crear la reserva. Inténtalo de nuevo.")
+      toast.error(e instanceof Error ? e.message : "Error al crear la reserva. Inténtalo de nuevo.")
     } finally {
       setConfirmReservationLoading(false)
+    }
+  }
+
+  /** Confirmar reserva desde el modal de slot (HomeSection): crear booking y redirigir a pago */
+  const confirmReservationWithSlot = async (slot: any) => {
+    try {
+      const createResult = await createBookingApi(slot)
+      const booking = createResult.data ?? createResult.booking
+      if (!booking?.id) {
+        toast.error(createResult.error ?? "Error al crear la reserva")
+        return
+      }
+      const prefRes = await fetch(`/api/bookings/${booking.id}/payment-preference`, { method: "POST", credentials: "include" })
+      const prefJson = await prefRes.json().catch(() => ({}))
+      if (!prefRes.ok && prefJson.code === "MERCADOPAGO_NOT_CONNECTED") {
+        toast.error("Mercado Pago no está conectado, no es posible hacer la transferencia.")
+        return
+      }
+      if (!prefRes.ok) {
+        toast.error(prefJson.error ?? prefJson.message ?? "Error al obtener el link de pago")
+        return
+      }
+      const url = prefJson.data?.sandboxInitPoint ?? prefJson.data?.initPoint
+      if (url) {
+        window.location.href = url
+        return
+      }
+      toast.error("Error al obtener el link de pago")
+    } catch (e) {
+      console.error("Error creando reserva:", e)
+      const msg = e instanceof Error ? e.message : "Error al crear la reserva. Inténtalo de nuevo."
+      toast.error(msg)
+      throw e
     }
   }
 
@@ -352,12 +404,14 @@ function PadelBookingPage() {
 
   const handlePayDeposit = async (booking: { id: string; expiresAt?: string | null; paymentStatus?: string }) => {
     const isPending = booking.paymentStatus === 'Pending' || booking.paymentStatus === 'PENDING'
+    // No abrir Mercado Pago si la reserva ya expiró (evita "Algo salió mal" y bucles de redirección)
     if (isPending && booking.expiresAt && new Date(booking.expiresAt) <= new Date()) {
-      alert('Reserva expirada')
+      alert('Reserva expirada. El tiempo para pagar ya pasó. El horario quedó liberado.')
       removeBookingFromList(booking.id)
       return
     }
     try {
+      // Siempre crear preferencia nueva (POST); no reutilizar URLs de pago anteriores
       const res = await fetch(`/api/bookings/${booking.id}/payment-preference`, {
         method: 'POST',
         credentials: 'include',
@@ -368,7 +422,11 @@ function PadelBookingPage() {
         return
       }
       if (!res.ok) {
-        alert(data?.error || data?.message || 'Error al obtener el link de pago')
+        const msg = data?.message || data?.error || 'Error al obtener el link de pago'
+        if (res.status === 400 && (data?.error === 'Reserva expirada' || msg.includes('expirada'))) {
+          removeBookingFromList(booking.id)
+        }
+        alert(msg)
         return
       }
       const url = data?.data?.sandboxInitPoint ?? data?.data?.initPoint
@@ -794,7 +852,8 @@ function PadelBookingPage() {
                   title="Panel de Administración"
                   onClick={() => {
                     if (isAdmin) {
-                      router.push('/admin-panel/admin')
+                      const qs = tenantSlugFromUrl ? `?tenantSlug=${encodeURIComponent(tenantSlugFromUrl)}` : ''
+                      router.push(`/admin-panel/admin${qs}`)
                     }
                   }}
                 >
@@ -906,6 +965,7 @@ function PadelBookingPage() {
           loading={slotsLoading}
           error={slotsError}
           onRetry={retrySlots}
+          onConfirmSlot={confirmReservationWithSlot}
         />
 
 

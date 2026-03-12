@@ -4,7 +4,14 @@ import { getTenantFromId } from '@/lib/tenant/context'
 import LandingPage from '@/components/LandingPage'
 
 export default async function HomePage() {
-  const session = await auth()
+  let session: Awaited<ReturnType<typeof auth>> = null
+  try {
+    session = await auth()
+  } catch (err) {
+    // JWTSessionError: cookie malformada, secret distinto o JWT inválido; tratar como sin sesión
+    console.warn('[HomePage] Error al obtener sesión (se muestra landing sin usuario):', (err as Error)?.message ?? err)
+  }
+
   let tenantSlug: string | null = null
   let tenantName: string | null = null
 

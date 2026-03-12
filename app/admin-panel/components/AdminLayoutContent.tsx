@@ -1,7 +1,9 @@
 'use client'
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { setAdminContextTenant } from "@/lib/utils/admin-context-tenant"
 import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home, Building2, Menu } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
@@ -27,13 +29,32 @@ const NAV_LINKS = [
   { href: "/admin-panel/admin/torneos", label: "Torneo", icon: Trophy, testId: "admin-tournaments-link" },
 ] as const
 
+/** Añade tenantId/tenantSlug de la URL actual a un href para mantener contexto de tenant (super admin) */
+function withTenantQuery(href: string, searchParams: URLSearchParams): string {
+  const tenantId = searchParams.get('tenantId')?.trim()
+  const tenantSlug = searchParams.get('tenantSlug')?.trim()
+  if (!tenantId && !tenantSlug) return href
+  const q = new URLSearchParams()
+  if (tenantId) q.set('tenantId', tenantId)
+  else if (tenantSlug) q.set('tenantSlug', tenantSlug)
+  return `${href}?${q.toString()}`
+}
+
 export default function AdminLayoutContent({ children }: AdminLayoutContentProps) {
+  const searchParams = useSearchParams()
   const { isDarkMode, setIsDarkMode } = useAppState()
   const router = useRouter()
   const pathname = usePathname()
   const { data: session } = useSession()
   const isSuperAdmin = session?.user?.isSuperAdmin || false
   const [openMobileNav, setOpenMobileNav] = useState(false)
+
+  // Persistir tenant de la URL para que canchas (y otras secciones) lo usen si se entra sin param
+  useEffect(() => {
+    const tid = searchParams.get('tenantId')?.trim()
+    const tslug = searchParams.get('tenantSlug')?.trim()
+    if (tid || tslug) setAdminContextTenant(tid || null, tslug || null)
+  }, [searchParams])
 
   const baseClasses = "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
   const darkClasses = "text-gray-300 hover:text-blue-400 hover:bg-gray-700"
@@ -73,7 +94,7 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               {NAV_LINKS.map(({ href, label, icon: Icon, testId }) => (
                 <Link
                   key={href}
-                  href={href}
+                  href={withTenantQuery(href, searchParams)}
                   className={`${linkClass(href)} shrink-0`}
                   aria-current={pathname.startsWith(href) ? "page" : undefined}
                   data-testid={testId}
@@ -108,9 +129,14 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
                 <Menu className={`w-6 h-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
               </button>
 
-              {/* Botón Ir a Home */}
+              {/* Botón Ir a Home: conservar tenant en la URL para volver al dashboard del mismo tenant */}
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => {
+                  const tid = searchParams.get('tenantId')?.trim()
+                  const tslug = searchParams.get('tenantSlug')?.trim()
+                  const qs = tid ? `?tenantId=${encodeURIComponent(tid)}` : tslug ? `?tenantSlug=${encodeURIComponent(tslug)}` : ''
+                  router.push(`/dashboard${qs}`)
+                }}
                 className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-md border transition-all duration-200 hover:scale-105 ${isDarkMode
                   ? 'border-blue-500 text-blue-400 hover:bg-blue-900/20'
                   : 'border-blue-600 text-blue-600 hover:bg-blue-50'
@@ -150,9 +176,9 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
           </SheetHeader>
           <nav className="flex flex-col gap-1 p-4 overflow-y-auto flex-1 min-h-0" aria-label="Navegación móvil">
             {NAV_LINKS.map(({ href, label, icon: Icon, testId }) => (
-              <Link
-                key={href}
-                href={href}
+                <Link
+                  key={href}
+                  href={withTenantQuery(href, searchParams)}
                 className={linkClass(href) + " min-h-[44px] justify-start"}
                 aria-current={pathname.startsWith(href) ? "page" : undefined}
                 data-testid={testId}

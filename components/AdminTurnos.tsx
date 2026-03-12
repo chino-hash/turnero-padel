@@ -1664,9 +1664,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         {filteredBookings.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay turnos</h3>
-              <p className="text-gray-600">No se encontraron reservas con los filtros aplicados.</p>
+              <Calendar className="w-12 h-12 mx-auto text-white mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">No hay turnos</h3>
+              <p className="text-white">No se encontraron reservas con los filtros aplicados.</p>
             </CardContent>
           </Card>
         ) : (

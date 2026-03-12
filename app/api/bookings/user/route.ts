@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '../../../../lib/auth'
 import { getUserBookings } from '../../../../lib/services/bookings'
+import { ExpiredBookingsService } from '../../../../lib/services/bookings/ExpiredBookingsService'
 
 export async function GET() {
   try {
@@ -8,6 +9,17 @@ export async function GET() {
     
     if (!session) {
       return NextResponse.json([])
+    }
+
+    // Cancelar reservas pendientes expiradas del tenant (lazy) para que Mis Turnos no muestre pendientes vencidas
+    const tenantId = (session.user as { tenantId?: string | null }).tenantId ?? null
+    if (tenantId) {
+      try {
+        const expiredService = new ExpiredBookingsService()
+        await expiredService.cancelExpiredBookings(tenantId)
+      } catch (_) {
+        // ignorar; no afectar la respuesta de reservas
+      }
     }
 
     // Esta API solo obtiene las reservas del usuario autenticado

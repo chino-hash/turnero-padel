@@ -498,9 +498,44 @@ export class BookingService {
         data: this.transformBookingData(booking),
         message: 'Reserva creada exitosamente'
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      const prismaCode = (error as { code?: string })?.code;
+      if (prismaCode === 'P2002') {
+        const [y, m, d] = input.bookingDate.split('-').map(Number);
+        const bookingDateObj = new Date(y as number, (m as number) - 1, d as number);
+        const existing = await prisma.booking.findFirst({
+          where: {
+            courtId: input.courtId,
+            bookingDate: bookingDateObj,
+            startTime: input.startTime,
+            endTime: input.endTime,
+            status: { not: 'CANCELLED' },
+          },
+          select: { userId: true, status: true },
+        });
+        const isOwnBooking = existing?.userId === userId;
+        return {
+          success: false,
+          message: isOwnBooking
+            ? 'Ya tenés una reserva para este horario. Revisá Mis Turnos para pagarla o cancelarla.'
+            : 'El horario ya no está disponible (otra persona pudo haberlo reservado).',
+          error: isOwnBooking ? 'Reserva duplicada' : 'El horario ya no está disponible',
+        };
+      }
       console.error('Error creating booking:', error);
-      throw new Error('Error al crear la reserva');
+      if (prismaCode === 'P2003') {
+        return {
+          success: false,
+          message: 'Error de datos: usuario o cancha no encontrados',
+          error: 'Error de datos'
+        };
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        process.env.NODE_ENV === 'development'
+          ? `Error al crear la reserva: ${message}`
+          : 'Error al crear la reserva'
+      );
     }
   }
 
@@ -520,6 +555,15 @@ export class BookingService {
           success: false,
           message: 'La reserva no tiene fecha de expiración',
           error: 'La reserva no tiene fecha de expiración'
+        };
+      }
+
+      // No crear preferencia para reservas pendientes ya expiradas (evita errores y bucles en MP)
+      if (booking.status === 'PENDING' && new Date(booking.expiresAt) <= new Date()) {
+        return {
+          success: false,
+          message: 'Reserva expirada. El tiempo para pagar ya pasó.',
+          error: 'Reserva expirada'
         };
       }
 

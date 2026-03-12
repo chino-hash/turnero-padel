@@ -96,10 +96,36 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Permitir GET para verificación del endpoint
+/**
+ * GET: usado por Vercel Cron (cada 5 min). Con token CRON_SECRET ejecuta la cancelación.
+ * Sin token válido exige sesión y devuelve solo estadísticas.
+ */
 export async function GET(request: NextRequest) {
   try {
-    // Verificar autenticación
+    const { searchParams } = new URL(request.url);
+    const tenantIdParam = searchParams.get('tenantId');
+
+    // En producción: si viene el token de cron, ejecutar cancelación (igual que POST)
+    if (isProduction) {
+      const authHeader = request.headers.get('authorization') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+      const { secret } = getCronConfig();
+      if (secret && token === secret) {
+        const service = new ExpiredBookingsService();
+        const tenantId = tenantIdParam || null;
+        const stats = await service.getExpiredBookingsStats(tenantId);
+        const cancelledCount = await service.cancelExpiredBookings(tenantId);
+        return NextResponse.json({
+          success: true,
+          cancelled: cancelledCount,
+          stats: { totalExpired: stats.totalExpired, expiredIds: stats.expiredIds, byTenant: stats.byTenant },
+          tenantId: tenantId || 'all',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    // Sin token de cron: exigir sesión y devolver solo estadísticas
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -108,15 +134,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener tenantId del query string (opcional)
-    const { searchParams } = new URL(request.url);
-    const tenantIdParam = searchParams.get('tenantId');
-
-    // Si se proporciona tenantId, validar permisos
     if (tenantIdParam) {
       const user = session.user;
       const isSuperAdmin = await isSuperAdminUser(user);
-      
       if (!isSuperAdmin && user.tenantId !== tenantIdParam) {
         return NextResponse.json(
           { success: false, error: 'No autorizado para ver estadísticas de este tenant' },
@@ -124,7 +144,6 @@ export async function GET(request: NextRequest) {
         );
       }
     } else {
-      // Si no se proporciona tenantId, solo super admin puede ver todos
       const user = session.user;
       const isSuperAdmin = await isSuperAdminUser(user);
       if (!isSuperAdmin) {
@@ -138,7 +157,6 @@ export async function GET(request: NextRequest) {
     const service = new ExpiredBookingsService();
     const tenantId = tenantIdParam || null;
     const stats = await service.getExpiredBookingsStats(tenantId);
-    
     return NextResponse.json({
       active: true,
       stats,

@@ -1,13 +1,17 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // Componente de botón que mantiene el estilo del h1
 export default function AdminTitleButton() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tenantId = searchParams.get('tenantId')?.trim()
+  const tenantSlug = searchParams.get('tenantSlug')?.trim()
+  const qs = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : tenantSlug ? `?tenantSlug=${encodeURIComponent(tenantSlug)}` : ''
   
   const handleClick = () => {
-    router.push('/admin-panel/admin')
+    router.push(`/admin-panel/admin${qs}`)
   }
 
   return (
