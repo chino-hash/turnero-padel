@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
+import { ExpiredBookingsService } from '@/lib/services/bookings/ExpiredBookingsService'
+import { clearBookingsCache } from '@/lib/services/courts'
 import { withRateLimit, bookingReadRateLimit } from '@/lib/rate-limit'
 import { checkAvailabilitySchema } from '@/lib/validations/booking'
 import { formatZodErrors } from '@/lib/validations/common'
@@ -86,6 +88,22 @@ export async function GET(request: NextRequest) {
           { success: false, error: 'Este club no está habilitado todavía' },
           { status: 400 }
         )
+      }
+    }
+
+    // Lazy: cancelar reservas PENDING expiradas del tenant antes de calcular disponibilidad
+    const { prisma } = await import('@/lib/database/neon-config')
+    const courtForTenant = await prisma.court.findUnique({
+      where: { id: validatedParams.courtId },
+      select: { tenantId: true },
+    })
+    if (courtForTenant?.tenantId) {
+      try {
+        const expiredService = new ExpiredBookingsService()
+        await expiredService.cancelExpiredBookings(courtForTenant.tenantId)
+        clearBookingsCache()
+      } catch (e) {
+        console.warn('Error cancelando reservas expiradas en availability GET:', e)
       }
     }
 
@@ -199,6 +217,22 @@ export async function POST(request: NextRequest) {
           { success: false, error: 'Este club no está habilitado todavía' },
           { status: 400 }
         )
+      }
+    }
+
+    // Lazy: cancelar reservas PENDING expiradas del tenant antes de devolver slots
+    const { prisma: prismaPost } = await import('@/lib/database/neon-config')
+    const courtForTenant = await prismaPost.court.findUnique({
+      where: { id: courtId },
+      select: { tenantId: true },
+    })
+    if (courtForTenant?.tenantId) {
+      try {
+        const expiredService = new ExpiredBookingsService()
+        await expiredService.cancelExpiredBookings(courtForTenant.tenantId)
+        clearBookingsCache()
+      } catch (e) {
+        console.warn('Error cancelando reservas expiradas en availability POST:', e)
       }
     }
 

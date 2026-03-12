@@ -51,21 +51,24 @@ No existe una entidad separada de "bloqueo temporal": el propio **Booking** con 
 
 ### 2.3 Disponibilidad y bloqueo
 
-- **checkAvailability** (BookingRepository) y **getAvailabilitySlots** (BookingService) usan reservas con `status: { not: 'CANCELLED' }`.
-- Por tanto, una reserva **PENDING** (aunque ya haya pasado su `expiresAt`) sigue bloqueando el slot **hasta que un job la cancele**. Por eso es importante que el job de cancelación se ejecute con frecuencia (p. ej. cada 5 minutos).
+- **checkAvailability** y **getAvailabilitySlots** usan `bookingOccupancyWhere()`: las reservas **PENDING** con `expiresAt < now` **no** bloquean el slot (se tratan como liberadas). Las CANCELLED tampoco bloquean.
+- La cancelación efectiva (PENDING → CANCELLED) se hace de forma **lazy** al consultar `/api/slots` o `/api/bookings/availability`, y como respaldo con un **cron 1 vez al día** (ver siguiente sección).
 
 ### 2.4 Expiración y liberación automática
 
 - **ExpiredBookingsService** (`lib/services/bookings/ExpiredBookingsService.ts`):
   - Busca reservas con `status: 'PENDING'` y `expiresAt < now`.
   - Las actualiza a `status: 'CANCELLED'`, `cancellationReason: 'Timeout: pago no completado dentro del tiempo límite'`.
-- Este servicio se invoca desde el endpoint **POST /api/jobs/cancel-expired-bookings**, que debe ser llamado periódicamente por un **cron** (p. ej. Vercel Cron cada 5 minutos).
-- Tras la cancelación, el slot vuelve a estar libre en las consultas de disponibilidad.
+- **Invocación:**
+  - **Lazy (principal):** Al llamar a **GET /api/slots** o **GET/POST /api/bookings/availability**, antes de devolver datos se ejecuta `cancelExpiredBookings(tenantId)` para ese tenant. El slot aparece libre en la misma respuesta.
+  - **Cron (respaldo):** **GET/POST /api/jobs/cancel-expired-bookings** con Vercel Cron **1 vez al día** (`0 3 * * *`, 03:00 UTC) para tenants sin tráfico.
+- Tras la cancelación, el slot vuelve a estar libre. Si otro usuario reserva ese mismo slot, se **reutiliza la fila** CANCELLED (ver doc [lazy-cron-reutilizar-fila-cancelada-2026-03](../actualizaciones/lazy-cron-reutilizar-fila-cancelada-2026-03.md)).
 
 **Archivos relevantes:**
 
 - `lib/services/bookings/ExpiredBookingsService.ts`: `cancelExpiredBookings()`, `getExpiredBookingsStats()`.
-- `app/api/jobs/cancel-expired-bookings/route.ts`: endpoint del job (protección por token en producción).
+- `app/api/jobs/cancel-expired-bookings/route.ts`: endpoint del cron (protección por token en producción).
+- `app/api/slots/route.ts`, `app/api/bookings/availability/route.ts`: lazy cleanup antes de devolver slots/disponibilidad.
 
 ---
 
@@ -80,12 +83,12 @@ No existe una entidad separada de "bloqueo temporal": el propio **Booking** con 
 
 Para usar 5 o 10 minutos, configurar el valor de `booking_expiration_minutes` para el tenant correspondiente (tabla `SystemSetting` o flujo de configuración del club).
 
-### 3.2 Job de cancelación (cron)
+### 3.2 Job de cancelación (cron, respaldo)
 
-- **Endpoint:** `POST /api/jobs/cancel-expired-bookings`
-- **Query opcional:** `?tenantId=xxx` para procesar solo ese tenant (admin de tenant o super admin). Sin `tenantId`, solo super admin puede ejecutarlo (procesa todos los tenants).
-- **Producción:** el endpoint exige un token de autorización (header `Authorization: Bearer <secret>`); el secret se obtiene de `getCronConfig().secret`.
-- **Recomendación:** ejecutar el cron **cada 5 minutos** para que los slots expirados se liberen con poca demora.
+- **Endpoint:** `GET` o `POST /api/jobs/cancel-expired-bookings`
+- **Vercel Cron:** schedule **`0 3 * * *`** (1 vez al día a las 03:00 UTC). La liberación habitual es **lazy** al consultar slots/disponibilidad.
+- **Query opcional:** `?tenantId=xxx` para procesar solo ese tenant. Sin `tenantId`, solo super admin (procesa todos los tenants).
+- **Producción:** header `Authorization: Bearer <CRON_SECRET>`.
 
 ---
 
@@ -102,9 +105,10 @@ Para usar 5 o 10 minutos, configurar el valor de `booking_expiration_minutes` pa
 | Archivo | Responsabilidad |
 |---------|-----------------|
 | `lib/services/BookingService.ts` | `getBookingExpirationMinutes()`, creación de reserva con `expiresAt` cuando no es `confirmOnCreate`. |
-| `lib/repositories/BookingRepository.ts` | Crear reserva con `expiresAt`; disponibilidad sin distinguir PENDING por `expiresAt`. |
-| `lib/services/bookings/ExpiredBookingsService.ts` | Cancelar PENDING con `expiresAt < now`; estadísticas de expiradas. |
-| `app/api/jobs/cancel-expired-bookings/route.ts` | Endpoint del cron; validación de permisos y token en producción. |
+| `lib/repositories/BookingRepository.ts` | Crear reserva (o reutilizar fila CANCELLED para el mismo slot); disponibilidad vía `bookingOccupancyWhere()` (PENDING expiradas no bloquean). |
+| `lib/services/bookings/ExpiredBookingsService.ts` | Cancelar PENDING con `expiresAt < now`; invocado de forma lazy y por cron diario. |
+| `app/api/jobs/cancel-expired-bookings/route.ts` | Endpoint del cron (respaldo 1 vez al día); validación de permisos y token en producción. |
+| `app/api/slots/route.ts`, `app/api/bookings/availability/route.ts` | Lazy: cancelar expiradas del tenant antes de devolver slots/disponibilidad. |
 | `lib/services/tenants/bootstrap.ts` | Valor por defecto `booking_expiration_minutes` (15) en settings del tenant. |
 
 ---
@@ -131,17 +135,14 @@ Booking creado: status=PENDING, expiresAt=now+15min (o valor configurado)
                 ▼
             expiresAt < now
                 │
-                ▼
-            Cron llama POST /api/jobs/cancel-expired-bookings (ej. cada 5 min)
+                ├── Lazy: alguien consulta /api/slots o /api/bookings/availability
+                │   → ExpiredBookingsService.cancelExpiredBookings(tenantId)
+                │   → Booking: PENDING → CANCELLED
+                │   → Slot LIBRE en esa misma respuesta
                 │
-                ▼
-            ExpiredBookingsService.cancelExpiredBookings()
-                │
-                ▼
-            Booking: PENDING → CANCELLED, cancellationReason = "Timeout: ..."
-                │
-                ▼
-            Slot LIBRE de nuevo
+                └── Respaldo: cron 1 vez al día (0 3 * * * UTC)
+                    → GET /api/jobs/cancel-expired-bookings
+                    → Slot LIBRE para tenants sin tráfico
 ```
 
-Esta funcionalidad está **terminada** en el código actual; solo debe asegurarse que el cron esté configurado en el entorno de despliegue.
+Al crear una nueva reserva para un slot que tiene una fila CANCELLED, **BookingRepository.create()** reutiliza esa fila (UPDATE) en lugar de INSERT, evitando P2002 y el mensaje "horario no disponible". Ver [lazy-cron-reutilizar-fila-cancelada-2026-03](../actualizaciones/lazy-cron-reutilizar-fila-cancelada-2026-03.md).

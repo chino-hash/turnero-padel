@@ -1,10 +1,13 @@
 /**
- * Endpoint para ejecutar el job de cancelación de reservas expiradas
- * Este endpoint debe ser llamado periódicamente por un cron job (ej: Vercel Cron)
- * 
- * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin)
- * 
- * Protección: Debería protegerse con un secret token en producción
+ * Endpoint para ejecutar el job de cancelación de reservas expiradas (PENDING con expiresAt pasada).
+ *
+ * La cancelación principal es lazy: al consultar /api/slots o /api/bookings/availability se
+ * cancelan las expiradas del tenant antes de devolver datos. Este cron es respaldo (1 vez al día)
+ * para tenants sin tráfico.
+ *
+ * Vercel Cron: schedule "0 3 * * *" (una vez al día, 3:00 UTC).
+ * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin).
+ * Protección: en producción se exige header Authorization: Bearer <CRON_SECRET>.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET: usado por Vercel Cron (cada 5 min). Con token CRON_SECRET ejecuta la cancelación.
+ * GET: usado por Vercel Cron (1 vez al día). Con token CRON_SECRET ejecuta la cancelación.
  * Sin token válido exige sesión y devuelve solo estadísticas.
  */
 export async function GET(request: NextRequest) {

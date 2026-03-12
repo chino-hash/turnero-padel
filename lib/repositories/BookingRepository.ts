@@ -320,10 +320,9 @@ export class BookingRepository {
     return !conflictingBlock;
   }
 
-  // Crear reserva con transacción
+  // Crear reserva con transacción. Si existe una fila CANCELLED para el mismo slot, se reutiliza (evita P2002).
   async create(data: BookingCreateInput): Promise<BookingWithRelations> {
     return await this.prisma.$transaction(async (tx) => {
-      // Obtener tenantId de la cancha
       const court = await tx.court.findUnique({
         where: { id: data.courtId },
         select: { tenantId: true }
@@ -333,8 +332,67 @@ export class BookingRepository {
         throw new Error('Cancha no encontrada');
       }
 
-      // Crear la reserva (status CONFIRMED cuando el admin confirma al crear, si no PENDING)
       const initialStatus = data.status ?? 'PENDING';
+
+      // Buscar reserva CANCELLED para el mismo slot (mismo unique) para reutilizar la fila
+      const cancelledForSlot = await tx.booking.findFirst({
+        where: {
+          tenantId: court.tenantId,
+          courtId: data.courtId,
+          bookingDate: data.bookingDate,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          status: 'CANCELLED'
+        },
+        select: { id: true }
+      });
+
+      if (cancelledForSlot) {
+        // Reutilizar la fila: actualizar a la nueva reserva y limpiar datos de cancelación
+        await tx.booking.update({
+          where: { id: cancelledForSlot.id },
+          data: {
+            userId: data.userId,
+            bookedById: data.bookedById ?? undefined,
+            bookingDate: data.bookingDate,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            expiresAt: initialStatus === 'CONFIRMED' ? null : data.expiresAt,
+            durationMinutes: data.durationMinutes,
+            totalPrice: data.totalPrice,
+            depositAmount: data.depositAmount ?? 0,
+            notes: data.notes,
+            paymentMethod: data.paymentMethod,
+            status: initialStatus,
+            paymentStatus: 'PENDING',
+            cancelledAt: null,
+            cancellationReason: null,
+            updatedAt: new Date()
+          }
+        });
+
+        // Reemplazar jugadores: borrar los anteriores y crear los nuevos
+        await tx.bookingPlayer.deleteMany({ where: { bookingId: cancelledForSlot.id } });
+        if (data.players && data.players.length > 0) {
+          await tx.bookingPlayer.createMany({
+            data: data.players.map((player, index) => ({
+              bookingId: cancelledForSlot.id,
+              playerName: player.playerName,
+              playerPhone: player.playerPhone,
+              playerEmail: player.playerEmail,
+              position: player.position ?? index + 1
+            }))
+          });
+        }
+
+        const completeBooking = await tx.booking.findUnique({
+          where: { id: cancelledForSlot.id },
+          include: this.getIncludeRelations()
+        });
+        return completeBooking as BookingWithRelations;
+      }
+
+      // No hay fila cancelada: crear nueva reserva
       const booking = await tx.booking.create({
         data: {
           courtId: data.courtId,
@@ -347,7 +405,7 @@ export class BookingRepository {
           expiresAt: initialStatus === 'CONFIRMED' ? null : data.expiresAt,
           durationMinutes: data.durationMinutes,
           totalPrice: data.totalPrice,
-          depositAmount: data.depositAmount || 0,
+          depositAmount: data.depositAmount ?? 0,
           notes: data.notes,
           paymentMethod: data.paymentMethod,
           status: initialStatus,
@@ -355,7 +413,6 @@ export class BookingRepository {
         }
       });
 
-      // Crear jugadores si se proporcionan
       if (data.players && data.players.length > 0) {
         await tx.bookingPlayer.createMany({
           data: data.players.map((player, index) => ({
@@ -363,17 +420,15 @@ export class BookingRepository {
             playerName: player.playerName,
             playerPhone: player.playerPhone,
             playerEmail: player.playerEmail,
-            position: player.position || index + 1
+            position: player.position ?? index + 1
           }))
         });
       }
 
-      // Obtener la reserva completa con relaciones
       const completeBooking = await tx.booking.findUnique({
         where: { id: booking.id },
         include: this.getIncludeRelations()
       });
-
       return completeBooking as BookingWithRelations;
     });
   }

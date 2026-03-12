@@ -8,7 +8,7 @@
   "crons": [
     {
       "path": "/api/jobs/cancel-expired-bookings",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [

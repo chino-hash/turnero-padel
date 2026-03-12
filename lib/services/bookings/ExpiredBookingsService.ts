@@ -1,8 +1,10 @@
 /**
- * Servicio para cancelar reservas expiradas automáticamente
- * Este servicio debe ejecutarse periódicamente (ej: cada 5 minutos) vía cron job
- * 
- * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin)
+ * Servicio para cancelar reservas PENDING con expiresAt pasada.
+ *
+ * Se invoca de forma lazy al consultar /api/slots y /api/bookings/availability (por tenant),
+ * y como respaldo 1 vez al día vía cron en /api/jobs/cancel-expired-bookings.
+ *
+ * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin).
  */
 
 import { prisma } from '../../database/neon-config';
