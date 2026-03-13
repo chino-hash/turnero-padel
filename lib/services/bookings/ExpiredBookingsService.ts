@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '../../database/neon-config';
+import { buildExpiredPendingWithoutPaymentsWhere } from './expired-bookings-where';
 
 export class ExpiredBookingsService {
   /**
@@ -19,20 +20,10 @@ export class ExpiredBookingsService {
     const now = new Date();
 
     try {
-      // Construir filtro base
-      const whereClause: any = {
-        status: 'PENDING',
-        expiresAt: {
-          lt: now // expiresAt < now
-        }
-      };
+      // PENDING, expiradas, y sin ningún pago (no cancelar si ya hay pago y el webhook no actualizó aún)
+      const whereClause = buildExpiredPendingWithoutPaymentsWhere(now, tenantId ?? undefined);
 
-      // Si se proporciona tenantId, filtrar por tenant
-      if (tenantId) {
-        whereClause.tenantId = tenantId;
-      }
-
-      // Buscar reservas expiradas con status PENDING
+      // Buscar reservas expiradas con status PENDING y sin pagos
       const expiredBookings = await prisma.booking.findMany({
         where: whereClause,
         select: {
@@ -49,7 +40,7 @@ export class ExpiredBookingsService {
         return 0;
       }
 
-      // Cancelar todas las reservas expiradas
+      // Cancelar solo las que siguen PENDING, expiradas y sin pagos
       const result = await prisma.booking.updateMany({
         where: {
           id: {

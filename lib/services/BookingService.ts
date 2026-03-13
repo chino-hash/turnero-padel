@@ -4,6 +4,7 @@ import { BookingFilters, CheckAvailabilityInput, BulkUpdateBookingsInput, Create
 import { ApiResponse, PaginatedResponse } from '../validations/common';
 import { prisma } from '../database/neon-config';
 import { computePricing } from './bookings/pricing';
+import { buildPaymentSuccessUrl } from './bookings/payment-success-url';
 
 // Tipos específicos del servicio
 export type BookingWithDetails = {
@@ -576,6 +577,10 @@ export class BookingService {
         };
       }
 
+      const { getTenantFromId } = await import('@/lib/tenant/context');
+      const tenant = await getTenantFromId(tenantId);
+      const tenantSlug = tenant?.slug;
+
       // Importar dinámicamente para evitar dependencias circulares
       const { getPaymentProvider } = await import('./payments/PaymentProviderFactory');
       const paymentProvider = await getPaymentProvider(tenantId);
@@ -586,6 +591,9 @@ export class BookingService {
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
+      // Tras el pago, MP redirige a la tienda (club) en la sección Mis Turnos; no mostramos /reservas/exito
+      const successUrl = buildPaymentSuccessUrl(baseUrl, tenantSlug);
+
       const preference = await paymentProvider.createPreference({
         bookingId: booking.id,
         title: `Reserva Cancha ${booking.court.name}`,
@@ -594,7 +602,7 @@ export class BookingService {
         expiresAt: booking.expiresAt,
         userId: booking.userId,
         backUrls: {
-          success: `${baseUrl}/reservas/exito`,
+          success: successUrl,
           failure: `${baseUrl}/reservas/error`,
           pending: `${baseUrl}/reservas/pendiente`
         }

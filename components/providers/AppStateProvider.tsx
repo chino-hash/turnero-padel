@@ -426,7 +426,21 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     loadCourts()
     return () => {}
   }, [tenantSlug, router])
-  
+
+  // Tras volver de Mercado Pago (éxito), la URL viene con ?section=turnos: abrir Mis Turnos, refrescar reservas y limpiar la URL
+  useEffect(() => {
+    const section = searchParams?.get('section')?.trim()
+    if (section === 'turnos') {
+      setActiveNavItem('turnos')
+      if (typeof window !== 'undefined' && window.history.replaceState) {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('section')
+        const clean = url.pathname + (url.search || '')
+        window.history.replaceState({}, '', clean)
+      }
+    }
+  }, [searchParams])
+
   useEffect(() => {
     if (selectedCourt) {
       setIsUnifiedView(false)
@@ -574,7 +588,16 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     fetchAndSetUserBookings(controller.signal)
     return () => controller.abort()
   }, [fetchAndSetUserBookings])
-  
+
+  // Tras volver de MP con ?section=turnos: refrescar reservas al entrar y de nuevo a los 3s (webhook puede tardar)
+  useEffect(() => {
+    const section = searchParams?.get('section')?.trim()
+    if (section !== 'turnos') return
+    refetchUserBookings()
+    const t = setTimeout(() => refetchUserBookings(), 3000)
+    return () => clearTimeout(t)
+  }, [searchParams, refetchUserBookings])
+
   // Filtrar slots según configuración - memoizado para evitar re-renderizados
   const filteredTimeSlots = useMemo(() => {
     const list = timeSlots || []
