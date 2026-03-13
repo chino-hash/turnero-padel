@@ -72,7 +72,9 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    return NextResponse.json({ success: true, data: tenants })
+    return NextResponse.json({ success: true, data: tenants }, {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     console.error('Error in GET /api/tenants:', error)
     return NextResponse.json(

@@ -41,7 +41,7 @@ export default function SuperAdminPage() {
   const loadTenants = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/tenants', { credentials: 'include' })
+      const res = await fetch('/api/tenants', { credentials: 'include', cache: 'no-store' })
       if (!res.ok) {
         throw new Error(`Error ${res.status}`)
       }

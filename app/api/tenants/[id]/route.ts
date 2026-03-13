@@ -80,7 +80,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, data: tenant })
+    return NextResponse.json({ success: true, data: tenant }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' },
+    })
   } catch (error) {
     console.error('Error in GET /api/tenants/[id]:', error)
     return NextResponse.json(
@@ -184,6 +186,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     
     if (validated.mercadoPagoEnabled !== undefined || validated.mercadoPagoEnvironment !== undefined) {
       shouldInvalidateCache = true;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No se enviaron datos válidos para actualizar' },
+        { status: 400 }
+      )
     }
 
     const tenant = await prisma.tenant.update({

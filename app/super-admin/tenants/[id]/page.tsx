@@ -99,7 +99,7 @@ export default function TenantDetailPage() {
     const load = async () => {
       setAdminsLoading(true)
       try {
-        const r = await fetch(`/api/admin?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/admin?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) {
           const j = await r.json()
           setAdmins(Array.isArray(j?.data) ? j.data : [])
@@ -114,7 +114,7 @@ export default function TenantDetailPage() {
     const load = async () => {
       setCourtsLoading(true)
       try {
-        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) {
           const list = await r.json()
           setCourts(Array.isArray(list) ? list : [])
@@ -132,7 +132,7 @@ export default function TenantDetailPage() {
       try {
         const out: Record<string, string> = {}
         for (const key of keys) {
-          const r = await fetch(`/api/system-settings/by-key?key=${encodeURIComponent(key)}&tenantId=${tenantIdForSections}`, { credentials: 'include' })
+          const r = await fetch(`/api/system-settings/by-key?key=${encodeURIComponent(key)}&tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
           if (r.ok) {
             const j = await r.json()
             if (j?.data?.value != null) out[key] = String(j.data.value)
@@ -150,7 +150,7 @@ export default function TenantDetailPage() {
     const load = async () => {
       setProductosLoading(true)
       try {
-        const r = await fetch(`/api/productos?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/productos?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) {
           const j = await r.json()
           const list = j?.data ?? j
@@ -165,7 +165,7 @@ export default function TenantDetailPage() {
   const loadTenant = async (id: string) => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/tenants/${id}`, { credentials: 'include' })
+      const res = await fetch(`/api/tenants/${id}`, { credentials: 'include', cache: 'no-store' })
       if (!res.ok) {
         throw new Error(`Error ${res.status}`)
       }
@@ -280,10 +280,19 @@ export default function TenantDetailPage() {
         })
       }
 
-      const data = await res.json()
+      let data: { success?: boolean; error?: string; details?: unknown }
+      try {
+        data = await res.json()
+      } catch {
+        toast.error('Error de red o respuesta inválida al guardar')
+        return
+      }
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Error al guardar tenant')
+        const message = data.error
+          || (Array.isArray(data.details) ? (data.details as Array<{ message?: string }>).map(d => d.message).filter(Boolean).join('. ') : null)
+          || 'Error al guardar tenant'
+        throw new Error(message)
       }
 
       toast.success(newTenant ? 'Tenant creado exitosamente' : 'Tenant actualizado exitosamente')
@@ -323,7 +332,7 @@ export default function TenantDetailPage() {
         toast.success('Bootstrap ejecutado correctamente')
         if (tenantIdForSections) {
           setCourtsLoading(true)
-          fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+          fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
             .then(r => r.ok ? r.json() : [])
             .then(list => setCourts(Array.isArray(list) ? list : []))
             .catch(() => {})
@@ -350,7 +359,7 @@ export default function TenantDetailPage() {
       const data = await res.json().catch(() => ({}))
       if (res.ok && data?.success) {
         toast.success('Canchas creadas según el plan')
-        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) {
           const list = await r.json()
           setCourts(Array.isArray(list) ? list : [])
@@ -380,7 +389,7 @@ export default function TenantDetailPage() {
       if (res.ok && data?.success) {
         toast.success('Administrador agregado')
         setAdminEmail('')
-        const r = await fetch(`/api/admin?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/admin?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) { const j = await r.json(); setAdmins(Array.isArray(j?.data) ? j.data : []) }
       } else {
         toast.error(data?.error || 'Error al agregar administrador')
@@ -418,7 +427,7 @@ export default function TenantDetailPage() {
       if (res.ok) {
         toast.success('Cancha creada')
         form.reset()
-        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) { const list = await r.json(); setCourts(Array.isArray(list) ? list : []) }
       } else {
         toast.error(data?.error || data?.message || 'Error al crear cancha')
@@ -437,7 +446,7 @@ export default function TenantDetailPage() {
       if (res.ok) {
         toast.success('Cancha eliminada')
         if (tenantIdForSections) {
-          const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+          const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
           if (r.ok) { const list = await r.json(); setCourts(Array.isArray(list) ? list : []) }
         }
       } else {
@@ -497,7 +506,7 @@ export default function TenantDetailPage() {
       if (res.ok) {
         toast.success('Producto creado')
         form.reset()
-        const r = await fetch(`/api/productos?tenantId=${tenantIdForSections}`, { credentials: 'include' })
+        const r = await fetch(`/api/productos?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) { const j = await r.json(); const list = j?.data ?? j; setProductos(Array.isArray(list) ? list : []) }
       } else {
         toast.error(data?.error || 'Error al crear producto')
