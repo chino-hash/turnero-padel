@@ -7,6 +7,7 @@
  * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin).
  */
 
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/neon-config';
 import { buildExpiredPendingWithoutPaymentsWhere } from './expired-bookings-where';
 
@@ -23,9 +24,9 @@ export class ExpiredBookingsService {
       // PENDING, expiradas, y sin ningún pago (no cancelar si ya hay pago y el webhook no actualizó aún)
       const whereClause = buildExpiredPendingWithoutPaymentsWhere(now, tenantId ?? undefined);
 
-      // Buscar reservas expiradas con status PENDING y sin pagos
+      // Buscar reservas expiradas con status PENDING y sin pagos (where viene de JS, castear a tipo Prisma)
       const expiredBookings = await prisma.booking.findMany({
-        where: whereClause,
+        where: whereClause as Prisma.BookingWhereInput,
         select: {
           id: true,
           tenantId: true,
