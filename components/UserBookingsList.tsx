@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale'
 import { Calendar, Clock, MapPin, Users, CreditCard, RefreshCw } from 'lucide-react'
 import type { BookingWithDetails } from '../lib/services/bookings'
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS, type BookingStatus } from '../types/booking'
+import { parseBookingDateLocal } from '@/lib/utils/booking-utils'
 
 interface UserBookingsListProps {
   className?: string
@@ -28,13 +29,14 @@ export function UserBookingsList({
   const filteredBookings = useMemo(() => {
     let filtered = bookings
     const now = new Date()
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
     switch (filter) {
       case 'upcoming':
-        filtered = bookings.filter(b => new Date(b.bookingDate) >= now)
+        filtered = bookings.filter(b => parseBookingDateLocal(b.bookingDate).getTime() >= todayMidnight.getTime())
         break
       case 'past':
-        filtered = bookings.filter(b => new Date(b.bookingDate) < now)
+        filtered = bookings.filter(b => parseBookingDateLocal(b.bookingDate).getTime() < todayMidnight.getTime())
         break
       case 'confirmed':
         filtered = bookings.filter(b => b.status === 'confirmed')
@@ -171,7 +173,9 @@ export function UserBookingsList({
 
 // Componente para cada tarjeta de reserva
 function BookingCard({ booking }: { booking: BookingWithDetails }) {
-  const isUpcoming = new Date(booking.bookingDate) >= new Date()
+  const now = new Date()
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const isUpcoming = parseBookingDateLocal(booking.bookingDate).getTime() >= todayMidnight.getTime()
   const statusKey = (booking.status || 'pending').toUpperCase() as BookingStatus
   
   return (
@@ -198,7 +202,7 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
           <div className="flex items-center gap-2 text-gray-700">
             <Calendar className="w-4 h-4" />
             <span className="font-medium">
-              {format(new Date(booking.bookingDate), 'EEEE, d MMMM yyyy', { locale: es })}
+              {format(parseBookingDateLocal(booking.bookingDate), 'EEEE, d MMMM yyyy', { locale: es })}
             </span>
           </div>
           

@@ -7,6 +7,30 @@ import {
   TIME_SLOTS 
 } from '../../types/booking'
 
+/**
+ * Parsea una fecha de reserva en hora local (medianoche local del día indicado).
+ * Evita que "YYYY-MM-DD" o ISO UTC se interprete como día anterior en zonas al oeste de UTC.
+ * @param dateInput - string "YYYY-MM-DD", ISO con T, o Date
+ * @returns Date en hora local (año, mes-1, día) o hoy si el input es inválido
+ */
+export function parseBookingDateLocal(dateInput: string | Date | unknown): Date {
+  if (dateInput instanceof Date) {
+    return new Date(dateInput.getFullYear(), dateInput.getMonth(), dateInput.getDate())
+  }
+  if (typeof dateInput !== 'string' || !dateInput.trim()) {
+    return new Date()
+  }
+  const dateStr = dateInput.trim().split('T')[0]
+  const parts = dateStr.split('-').map(Number)
+  const [y, m, d] = parts
+  if (parts.length < 3 || !Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+    return new Date()
+  }
+  const month = Math.max(0, Math.min(11, m - 1))
+  const day = Math.max(1, Math.min(31, d))
+  return new Date(y, month, day)
+}
+
 // Utilidades de fecha y hora
 export const formatDate = (date: Date | string): string => {
   const d = typeof date === 'string' ? new Date(date) : date

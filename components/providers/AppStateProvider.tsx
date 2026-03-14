@@ -9,6 +9,7 @@ import { useOptimizedSlots, useOptimizedMultipleSlots } from '../../hooks/useOpt
 import { useDashboardRealTimeUpdates } from '../../hooks/useRealTimeUpdates'
 import { TimeSlot, Court } from '../../types/types'
 import { removeDuplicates, removeDuplicatesByKey } from '../../lib/utils/array-utils'
+import { parseBookingDateLocal } from '@/lib/utils/booking-utils'
 
 // Tipos para el estado global
 type Player = {
@@ -199,61 +200,46 @@ const formatDate = (date: string) => {
 
 const getCurrentBookingStatus = (booking: any): 'active' | 'completed' | 'upcoming' => {
   const now = new Date()
-  const bookingDate = new Date(booking.date)
-  const [startHour, startMinute] = booking.timeRange.split(' - ')[0].split(' ')[0].split(':')
-  const [endHour, endMinute] = booking.timeRange.split(' - ')[1].split(' ')[0].split(':')
-  
+  const bookingDate = parseBookingDateLocal(booking.date)
+  const timeRange = String(booking.timeRange || '')
+  const parts = timeRange.split(' - ').map((s: string) => s.trim().split(' ')[0] || '00:00')
+  const [startStr, endStr] = [parts[0] || '00:00', parts[1] || '00:00']
+  const [startHour, startMinute] = startStr.split(':').map(Number)
+  const [endHour, endMinute] = endStr.split(':').map(Number)
+
   const startTime = new Date(bookingDate)
-  startTime.setHours(parseInt(startHour), parseInt(startMinute))
-  
+  startTime.setHours(Number.isFinite(startHour) ? startHour : 0, Number.isFinite(startMinute) ? startMinute : 0, 0, 0)
   const endTime = new Date(bookingDate)
-  endTime.setHours(parseInt(endHour), parseInt(endMinute))
-  
+  endTime.setHours(Number.isFinite(endHour) ? endHour : 0, Number.isFinite(endMinute) ? endMinute : 0, 0, 0)
+
   if (now >= startTime && now <= endTime) {
     return 'active'
-  } else if (now > endTime) {
-    return 'completed'
-  } else {
-    return 'upcoming'
   }
+  if (now > endTime) {
+    return 'completed'
+  }
+  return 'upcoming'
 }
 
 const getRemainingTime = (booking: any) => {
   const now = new Date()
-  
-  // Convertir la fecha del booking a Date si es string
-  const bookingDate = typeof booking.date === 'string' ? new Date(booking.date) : booking.date
-  
-  // Extraer la hora de fin del timeRange (formato: "2:00 PM - 3:30 PM")
-  const timeRange = booking.timeRange || ''
-  const endTimeStr = timeRange.split(' - ')[1] || ''
-  
+  const bookingDate = parseBookingDateLocal(booking.date)
+  const timeRange = String(booking.timeRange || '')
+  const endTimeStr = timeRange.split(' - ')[1]?.trim().split(' ')[0] || ''
   if (!endTimeStr) return 'Hora no disponible'
-  
-  // Parsear la hora de fin
-  const [time, period] = endTimeStr.split(' ')
-  const [hours, minutes] = time.split(':').map(Number)
-  
-  let endHours = hours
-  if (period === 'PM' && hours !== 12) endHours += 12
-  if (period === 'AM' && hours === 12) endHours = 0
-  
-  // Crear la fecha y hora de fin completa
+  const [hours, minutes] = endTimeStr.split(':').map(Number)
+  const endHours = Number.isFinite(hours) ? hours : 0
+  const endMins = Number.isFinite(minutes) ? minutes : 0
   const endDateTime = new Date(bookingDate)
-  endDateTime.setHours(endHours, minutes, 0, 0)
-  
+  endDateTime.setHours(endHours, endMins, 0, 0)
   const diff = endDateTime.getTime() - now.getTime()
-  
   if (diff <= 0) return 'Finalizado'
-  
   const diffHours = Math.floor(diff / (1000 * 60 * 60))
   const diffMinutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-  
   if (diffHours > 0) {
     return `${diffHours}h ${diffMinutes}m restantes`
-  } else {
-    return `${diffMinutes}m restantes`
   }
+  return `${diffMinutes}m restantes`
 }
 
 const getPaymentStatusColor = (paymentStatus: string, isDarkMode: boolean = false) => {
@@ -547,7 +533,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       const list = Array.isArray(data) ? data : (Array.isArray(data?.bookings) ? data.bookings : (Array.isArray(data?.data) ? data.data : []))
       const now = new Date()
       const current = list.filter((b: any) => {
-        const bd = new Date(b.bookingDate)
+        const bd = parseBookingDateLocal(b.bookingDate)
         const [sh, sm] = String(b.startTime || '00:00').split(':').map(Number)
         const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
         const start = new Date(bd); start.setHours(sh || 0, sm || 0, 0, 0)
@@ -555,7 +541,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
         return now <= end
       })
       const past = list.filter((b: any) => {
-        const bd = new Date(b.bookingDate)
+        const bd = parseBookingDateLocal(b.bookingDate)
         const [eh, em] = String(b.endTime || '00:00').split(':').map(Number)
         const end = new Date(bd); end.setHours(eh || 0, em || 0, 0, 0)
         return now > end
