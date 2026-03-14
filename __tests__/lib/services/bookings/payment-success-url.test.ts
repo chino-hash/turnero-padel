@@ -15,27 +15,36 @@ describe('buildPaymentSuccessUrl', () => {
     );
   });
 
-  it('returns baseUrl/reservas/exito when tenantSlug is null', () => {
+  it('returns baseUrl/reservas/exito?section=turnos when tenantSlug is null', () => {
     expect(buildPaymentSuccessUrl(baseUrl, null)).toBe(
-      'https://www.padelbook.com.ar/reservas/exito'
+      'https://www.padelbook.com.ar/reservas/exito?section=turnos'
     );
   });
 
-  it('returns baseUrl/reservas/exito when tenantSlug is undefined', () => {
+  it('returns baseUrl/reservas/exito?section=turnos when tenantSlug is undefined', () => {
     expect(buildPaymentSuccessUrl(baseUrl, undefined)).toBe(
-      'https://www.padelbook.com.ar/reservas/exito'
+      'https://www.padelbook.com.ar/reservas/exito?section=turnos'
     );
   });
 
-  it('returns baseUrl/reservas/exito when tenantSlug is empty string', () => {
+  it('returns baseUrl/reservas/exito?section=turnos when tenantSlug is empty string', () => {
     expect(buildPaymentSuccessUrl(baseUrl, '')).toBe(
-      'https://www.padelbook.com.ar/reservas/exito'
+      'https://www.padelbook.com.ar/reservas/exito?section=turnos'
     );
   });
 
   it('strips trailing slash from baseUrl', () => {
     expect(buildPaymentSuccessUrl(baseUrl + '/', 'metro-padel-360')).toBe(
       'https://www.padelbook.com.ar/metro-padel-360?section=turnos'
+    );
+  });
+
+  it('appends bookingId to query when provided', () => {
+    expect(buildPaymentSuccessUrl(baseUrl, 'metro-padel-360', 'booking-123')).toBe(
+      'https://www.padelbook.com.ar/metro-padel-360?section=turnos&bookingId=booking-123'
+    );
+    expect(buildPaymentSuccessUrl(baseUrl, null, 'booking-456')).toBe(
+      'https://www.padelbook.com.ar/reservas/exito?section=turnos&bookingId=booking-456'
     );
   });
 });

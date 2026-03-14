@@ -1,10 +1,20 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '../../../components/ui/button'
 import { CheckCircle2 } from 'lucide-react'
 
 export default function ReservaExitoPage() {
+  const searchParams = useSearchParams()
+  const bookingId = searchParams?.get('bookingId')?.trim()
+
+  useEffect(() => {
+    if (!bookingId) return
+    fetch(`/api/bookings/${bookingId}/sync-payment-status`, { method: 'POST', credentials: 'include' }).catch(() => {})
+  }, [bookingId])
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800">
       <div className="max-w-md w-full text-center space-y-6">

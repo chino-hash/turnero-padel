@@ -81,10 +81,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
     }
 
+    // Diagnóstico: log al recibir (type, data.id, external_reference)
+    const dataId = body.data?.id?.toString?.() ?? body.data?.id;
+    const extRef = body.data?.external_reference ?? '(no enviado)';
+    console.log('[Webhook] POST recibido:', { type: body.type, dataId, external_reference: extRef });
+
     // Validar firma si tenemos headers y algún secret configurado (global o por tenant)
     const signature = request.headers.get('x-signature');
     const requestId = request.headers.get('x-request-id');
-    const dataId = body.data?.id?.toString?.() || body.data?.id;
 
     if (signature && requestId && dataId) {
       let validation = validateMercadoPagoSignature(signature, requestId, String(dataId));

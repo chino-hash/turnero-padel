@@ -107,6 +107,8 @@ export class BookingWebhookHandler implements IWebhookHandler {
         return { processed: false, error: 'Payment sin referencia de reserva' };
       }
 
+      console.log('[BookingWebhookHandler] paymentStatus y bookingId:', { paymentStatus, bookingId });
+
       const booking = await prisma.booking.findUnique({
         where: { id: bookingId },
         include: {
@@ -159,6 +161,7 @@ export class BookingWebhookHandler implements IWebhookHandler {
           });
         });
 
+        console.log('[BookingWebhookHandler] Reserva actualizada a CONFIRMED:', bookingId);
         return { processed: true, bookingUpdated: true, bookingId };
       }
 

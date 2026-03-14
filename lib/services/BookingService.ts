@@ -591,8 +591,8 @@ export class BookingService {
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-      // Tras el pago, MP redirige a la tienda (club) en la sección Mis Turnos; no mostramos /reservas/exito
-      const successUrl = buildPaymentSuccessUrl(baseUrl, tenantSlug);
+      // Tras el pago, MP redirige a la tienda (club) en la sección Mis Turnos; bookingId permite sync-payment-status al volver
+      const successUrl = buildPaymentSuccessUrl(baseUrl, tenantSlug, booking.id);
 
       const preference = await paymentProvider.createPreference({
         bookingId: booking.id,

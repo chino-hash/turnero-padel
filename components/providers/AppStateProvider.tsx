@@ -427,7 +427,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     return () => {}
   }, [tenantSlug, router])
 
-  // Tras volver de Mercado Pago (éxito), la URL viene con ?section=turnos: abrir Mis Turnos, refrescar reservas y limpiar la URL
+  // Tras volver de Mercado Pago (éxito), la URL viene con ?section=turnos (y opcionalmente &bookingId=xxx): abrir Mis Turnos, limpiar la URL
   useEffect(() => {
     const section = searchParams?.get('section')?.trim()
     if (section === 'turnos') {
@@ -435,6 +435,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       if (typeof window !== 'undefined' && window.history.replaceState) {
         const url = new URL(window.location.href)
         url.searchParams.delete('section')
+        url.searchParams.delete('bookingId')
         const clean = url.pathname + (url.search || '')
         window.history.replaceState({}, '', clean)
       }
@@ -561,14 +562,17 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       })
       const currentMapped = current.map((b: any) => mapToMisTurnosShape(b, 'current'))
       const pastMapped = past.map((b: any) => mapToMisTurnosShape(b, 'past'))
-      // Excluir de "Reservas Actuales" las pendientes ya expiradas
-      const currentFiltered = currentMapped.filter((b: any) => {
-        if (b.paymentStatus !== 'Pending') return true
-        if (!b.expiresAt) return true
-        return new Date(b.expiresAt) > now
+      // Pendientes solo en la grilla: no mostrar PENDING en Mis Turnos (solo CONFIRMED, ACTIVE, COMPLETED)
+      const currentFiltered = currentMapped.filter((b: any) => (b.status || '').toUpperCase() !== 'PENDING')
+      // Historial: no mostrar canceladas sin pago (turnos viejos que no se pagaron/cancelaron — datos innecesarios)
+      const pastFiltered = pastMapped.filter((b: any) => {
+        const isCancelled = (b.status || '').toUpperCase() === 'CANCELLED'
+        const noPayment = b.paymentStatus === 'Pending'
+        if (isCancelled && noPayment) return false
+        return true
       })
       setCurrentBookings(currentFiltered)
-      setPastBookings(pastMapped)
+      setPastBookings(pastFiltered)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return
       setCurrentBookings([])
@@ -589,11 +593,23 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     return () => controller.abort()
   }, [fetchAndSetUserBookings])
 
-  // Tras volver de MP con ?section=turnos: refrescar reservas al entrar y de nuevo a los 3s (webhook puede tardar)
+  // Tras volver de MP con ?section=turnos (y opcionalmente &bookingId=xxx): sincronizar pago con MP y refrescar reservas
   useEffect(() => {
     const section = searchParams?.get('section')?.trim()
-    if (section !== 'turnos') return
-    refetchUserBookings()
+    const bookingId = searchParams?.get('bookingId')?.trim()
+    if (section !== 'turnos' && !bookingId) return
+
+    const run = async () => {
+      if (bookingId) {
+        try {
+          await fetch(`/api/bookings/${bookingId}/sync-payment-status`, { method: 'POST', credentials: 'include' })
+        } catch (_) {
+          // ignorar; refetch mostrará el estado actual
+        }
+      }
+      refetchUserBookings()
+    }
+    run()
     const t = setTimeout(() => refetchUserBookings(), 3000)
     return () => clearTimeout(t)
   }, [searchParams, refetchUserBookings])
