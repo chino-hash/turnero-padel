@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '../../../components/ui/button'
 import { CheckCircle2 } from 'lucide-react'
 
-export default function ReservaExitoPage() {
+function ReservaExitoContent() {
   const searchParams = useSearchParams()
   const bookingId = searchParams?.get('bookingId')?.trim()
 
@@ -33,5 +33,24 @@ export default function ReservaExitoPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ReservaExitoFallback() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-md w-full text-center space-y-6">
+        <CheckCircle2 className="w-16 h-16 mx-auto text-green-600 dark:text-green-400 animate-pulse" />
+        <p className="text-gray-600 dark:text-gray-300">Cargando...</p>
+      </div>
+    </div>
+  )
+}
+
+export default function ReservaExitoPage() {
+  return (
+    <Suspense fallback={<ReservaExitoFallback />}>
+      <ReservaExitoContent />
+    </Suspense>
   )
 }
