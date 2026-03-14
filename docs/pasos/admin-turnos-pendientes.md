@@ -35,7 +35,8 @@ La pestaña Turnos permite ver reservas, crear nuevas (puntuales y recurrentes),
 - [x] **Toasts:** sonner en página turnos y AdminTurnos (sustitución de alert())
 - [x] **Terminar turno / Cerrar turno:** dos botones por categoría y saldo; PUT acepta COMPLETED sin pago completo
 - [x] **Confirmación al pagar depósito:** SystemSetting `depositConfirmPercent` por tenant; auto CONFIRMED al alcanzar el % en PATCH pago jugador
-- [x] **Una sola página sin paginación global:** lista con hasta 500 turnos, cuatro secciones visibles (Pendientes, Confirmados, En curso, Cerrados), sin "Página X de Y" ni Anterior/Siguiente. Ver [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md).
+- [x] **Una sola página sin paginación global:** lista con hasta 500 turnos, seis secciones (Fijos, Confirmados, En curso, Pendiente de cierre, Completados, Cerrados). Ver [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md).
+- [x] **Flujo Pendiente de cierre:** turnos cuya hora ya terminó se muestran en "PENDIENTE DE CIERRE" (no vuelven a Confirmados); botón "Terminar turno" visible hasta que el admin lo pulse. Ver [admin-turnos-pendiente-de-cierre-flujo-2026-03.md](../actualizaciones/admin-turnos-pendiente-de-cierre-flujo-2026-03.md).
 - [x] **Sección TURNOS CERRADOS:** colapsable por defecto; limpieza a las 06:00 del día siguiente. Ver [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](../actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md).
 - [x] **Tarjetas de turnos:** diseño compacto y texto legible. Ver [admin-turnos-tarjetas-compactas-texto-legible-2026-03.md](../actualizaciones/admin-turnos-tarjetas-compactas-texto-legible-2026-03.md).
 
@@ -44,6 +45,7 @@ La pestaña Turnos permite ver reservas, crear nuevas (puntuales y recurrentes),
 ## Referencias
 
 - Documentación detallada: [admin-turnos-pendientes-completado-2026-03.md](../actualizaciones/admin-turnos-pendientes-completado-2026-03.md)
+- Flujo Pendiente de cierre: [admin-turnos-pendiente-de-cierre-flujo-2026-03.md](../actualizaciones/admin-turnos-pendiente-de-cierre-flujo-2026-03.md)
 - Una página sin paginación: [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md)
 - Turnos cerrados colapsable y limpieza: [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](../actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md)
 - Tarjetas compactas: [admin-turnos-tarjetas-compactas-texto-legible-2026-03.md](../actualizaciones/admin-turnos-tarjetas-compactas-texto-legible-2026-03.md)
