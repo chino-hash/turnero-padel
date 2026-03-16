@@ -488,6 +488,16 @@ export class BookingService {
       const expirationMinutes = await this.getBookingExpirationMinutes(court.tenantId);
       const expiresAt = confirmOnCreate ? null : new Date(Date.now() + expirationMinutes * 60 * 1000);
 
+      // Si no se envían jugadores, crear al menos el titular (posición 1) para poder marcar pago de seña después
+      let players = input.players;
+      if (!players || players.length === 0) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+        players = [{ playerName: user?.name ?? 'Titular', position: 1 }];
+      }
+
       const createData: BookingCreateInput = {
         courtId: input.courtId,
         userId: userId,
@@ -501,7 +511,7 @@ export class BookingService {
         depositAmount,
         notes: input.notes,
         paymentMethod: input.paymentMethod,
-        players: input.players,
+        players,
         ...(confirmOnCreate && { status: 'CONFIRMED' as const })
       };
 

@@ -4,12 +4,13 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
-import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle, Download } from "lucide-react"
+import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle, Download, Loader2 } from "lucide-react"
 import { Input } from "./ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select"
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover"
 import { splitEven } from "../lib/utils/extras"
 import { removeDuplicates } from '../lib/utils/array-utils'
+import { centsToPesos, formatPesosFromCents } from '@/lib/utils/currency'
 import { useAppState } from './providers/AppStateProvider'
 import { BOOKING_STATUS_COLORS, BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
 import { useCourtPrices } from '../hooks/useCourtPrices'
@@ -839,7 +840,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         const estado = BOOKING_STATUS_LABELS[statusKey] ?? b.status
         const pago = b.paymentStatus === 'pagado' ? 'Pagado' : b.paymentStatus === 'parcial' ? 'Parcial' : 'Pendiente'
         const extrasTotal = b.extras.reduce((sum, e) => sum + e.cost, 0)
-        const extrasStr = b.extras.length ? b.extras.map(e => `${e.name} ($${e.cost})`).join('; ') : ''
+        const extrasStr = b.extras.length ? b.extras.map(e => `${e.name} ($${formatPesosFromCents(e.cost)})`).join('; ') : ''
         return [
           b.date,
           b.courtName,
@@ -848,7 +849,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           b.userEmail,
           estado,
           pago,
-          extrasStr || (extrasTotal > 0 ? `$${extrasTotal}` : ''),
+          extrasStr || (extrasTotal > 0 ? `$${formatPesosFromCents(extrasTotal)}` : ''),
         ].map(escapeCsv).join(',')
       })
       const csv = '\uFEFF' + headers.join(',') + '\r\n' + rows.join('\r\n')
@@ -874,7 +875,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const updateBookingStatus = async (bookingId: string, newStatus: Booking['status']) => {
     const current = bookings.find(b => b.id === bookingId)
     if (!current) return
-    // Permitir pasar a completado sin exigir pago completo cuando el admin usa "Terminar turno"
+    // updateBookingStatus se mantiene por si otros flujos lo usan; el cierre explícito del admin es vía closeBooking (POST /close)
     const previousStatus = current.status
     setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: newStatus } : b)))
     try {
@@ -996,8 +997,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     if (!(position >= 1 && position <= 4)) return
     const newPaidStatus = previousState.individualPayments[playerKey] === 'pagado' ? false : true
 
-    // UI optimista: aplicar el cambio localmente de inmediato
-    setInFlightUpdates(prev => ({ ...prev, [bookingId]: true }))
+    // UI optimista: aplicar el cambio localmente de inmediato (bloqueo solo este jugador)
+    setInFlightUpdates(prev => ({ ...prev, [`${bookingId}-${playerKey}`]: true }))
     setBookings(prevBookings => prevBookings.map(booking => {
       if (booking.id !== bookingId) return booking
       const newPayments = {
@@ -1063,13 +1064,17 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
       if (!patchRes.ok) {
         if (patchRes.status === 429 || json?.error === 'RATE_LIMIT_EXCEEDED') {
+          if (previousState) {
+            setBookings(prev => prev.map(b => (b.id === bookingId ? previousState : b)))
+          }
+          toast.error('Demasiadas solicitudes; reintentá en un momento.')
           fetch('/api/admin/test-event', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify({
               type: 'bookings_updated',
-              message: `RATE_LIMIT al actualizar pago ${bookingId}. Estado optimista mantenido.`
+              message: `RATE_LIMIT al actualizar pago ${bookingId}. Estado revertido.`
             })
           }).catch(() => {})
           return
@@ -1093,7 +1098,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           }
           if (putJson?.success && putJson?.data) {
             const mapped = mapApiBookingToLocal(putJson.data)
-            setBookings(prev => prev.map(b => (b.id === bookingId ? mapped : b)))
+            setBookings(prev => prev.map(b => (b.id === bookingId ? { ...mapped, status: b.status, closedAt: b.closedAt ?? null } : b)))
           }
         } else {
           throw new Error(errorMsg || `Error actualizando pago (HTTP ${patchRes.status})`)
@@ -1101,7 +1106,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       } else {
         if (json?.success && json?.data) {
           const mapped = mapApiBookingToLocal(json.data)
-          setBookings(prev => prev.map(b => (b.id === bookingId ? mapped : b)))
+          setBookings(prev => prev.map(b => (b.id === bookingId ? { ...mapped, status: b.status, closedAt: b.closedAt ?? null } : b)))
         }
       }
 
@@ -1150,7 +1155,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         setBookings(prevBookings => prevBookings.map(b => (b.id === bookingId ? previousState : b)))
       }
     } finally {
-      setInFlightUpdates(prev => ({ ...prev, [bookingId]: false }))
+      setInFlightUpdates(prev => ({ ...prev, [`${bookingId}-${playerKey}`]: false }))
     }
   }
 
@@ -1164,7 +1169,32 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     return (
       <div className="border-t pt-4 space-y-4">
         <div>
-          <h4 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Jugadores y Pagos Individuales</h4>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Jugadores y Pagos Individuales</h4>
+            {(() => {
+              const paidCount = Object.values(booking.individualPayments).filter((s) => s === 'pagado').length
+              const percent = paidCount === 0 ? 0 : paidCount * 25
+              return (
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    percent === 100
+                      ? isDarkMode
+                        ? 'bg-green-800/60 text-green-200'
+                        : 'bg-green-100 text-green-800'
+                      : percent > 0
+                        ? isDarkMode
+                          ? 'bg-amber-800/50 text-amber-200'
+                          : 'bg-amber-100 text-amber-800'
+                        : isDarkMode
+                          ? 'bg-gray-700 text-gray-300'
+                          : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {percent}% pagado
+                </span>
+              )
+            })()}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(['player1','player2','player3','player4'] as Array<keyof Booking['players']>).map((playerKey) => {
               const playerName = (booking.players[playerKey] || '').trim()
@@ -1179,7 +1209,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                   <div>
                     <p className="font-medium text-sm">{displayName}</p>
                     <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{playerKey === 'player1' ? 'Titular' : `Jugador ${playerKey.slice(-1)}`}</p>
-                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>${playerAmount.toLocaleString()}</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>${formatPesosFromCents(playerAmount)}</p>
                   </div>
                   <Button
                     variant={isPaid ? 'default' : 'outline'}
@@ -1191,12 +1221,18 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                         : (isDarkMode
                             ? 'border-red-500 text-red-300 bg-red-900/30 hover:bg-red-900/40'
                             : 'border-red-300 text-red-600 hover:bg-red-50')
-                    } ${(disableToggle || inFlightUpdates[booking.id]) ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    disabled={disableToggle || !!inFlightUpdates[booking.id]}
-                    aria-disabled={disableToggle || !!inFlightUpdates[booking.id]}
+                    } ${(disableToggle || inFlightUpdates[`${booking.id}-${playerKey}`]) ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    disabled={disableToggle || !!inFlightUpdates[`${booking.id}-${playerKey}`]}
+                    aria-disabled={disableToggle || !!inFlightUpdates[`${booking.id}-${playerKey}`]}
                     data-testid={`admin-player-payment-toggle-${idx + 1}-${playerKey}`}
                   >
-                    {isPaid ? (<><CheckCircle className="w-3 h-3 mr-1" />Pagado</>) : (<><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>)}
+                    {inFlightUpdates[`${booking.id}-${playerKey}`] ? (
+                      <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Guardando...</>
+                    ) : isPaid ? (
+                      <><CheckCircle className="w-3 h-3 mr-1" />Pagado</>
+                    ) : (
+                      <><AlertCircle className="w-3 h-3 mr-1" />Pendiente</>
+                    )}
                   </Button>
                 </div>
               )
@@ -1287,7 +1323,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                       <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-500'}`}>({group.label})</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(group.cost)}</span>
+                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${formatPesosFromCents(group.cost)}</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -1311,11 +1347,11 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
           <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
             <p className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total original</p>
-            <p className={`text-xl font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>${formatCurrency(totalOriginal)}</p>
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>${formatCurrency(centsToPesos(totalOriginal))}</p>
           </div>
           <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
             <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Pagado</p>
-            <p className={`text-xl font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>${formatCurrency(amountPaid)}</p>
+            <p className={`text-xl font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>${formatCurrency(centsToPesos(amountPaid))}</p>
           </div>
         <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
           {pendingBalance === 0 ? (
@@ -1323,7 +1359,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           ) : (
             <p className={`text-sm font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>Saldo pendiente</p>
           )}
-          <p className={`text-xl font-bold ${pendingBalance === 0 ? (isDarkMode ? 'text-green-200' : 'text-green-700') : (isDarkMode ? 'text-yellow-200' : 'text-yellow-700')} animate-in fade-in`}>${formatCurrency(pendingBalance)}</p>
+          <p className={`text-xl font-bold ${pendingBalance === 0 ? (isDarkMode ? 'text-green-200' : 'text-green-700') : (isDarkMode ? 'text-yellow-200' : 'text-yellow-700')} animate-in fade-in`}>${formatCurrency(centsToPesos(pendingBalance))}</p>
         </div>
         </div>
 
@@ -1334,23 +1370,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           </Button>
           {(() => {
             const cat = getCategoryAndRemaining(booking).category
-            const showTerminarTurno = (cat === 'in_progress' || cat === 'awaiting_completion') && booking.status !== 'completado'
             const isClosed = booking.status === 'completado' && !!booking.closedAt
-            const canCerrarTurno = pendingBalance === 0 && booking.status === 'completado' && !booking.closedAt
+            const canCerrarTurno = pendingBalance === 0 && (cat === 'awaiting_completion' || (booking.status === 'completado' && !booking.closedAt))
             return (
               <>
-                {showTerminarTurno && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => updateBookingStatus(booking.id, 'completado')}
-                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                    data-testid={`admin-terminar-turno-btn-${idx + 1}`}
-                  >
-                    <Clock className="w-4 h-4 mr-1" />
-                    Terminar turno
-                  </Button>
-                )}
                 {canCerrarTurno && (
                   <Button
                     variant="outline"
@@ -1573,7 +1596,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Ingresos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">${totalRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">${formatPesosFromCents(totalRevenue)}</p>
               </div>
             </div>
           </CardContent>
@@ -1592,15 +1615,15 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <p className="text-sm text-green-600 dark:text-green-300 font-medium">Total Recaudado</p>
-              <p className="text-xl font-bold text-green-700 dark:text-green-400">${totalCollected.toLocaleString()}</p>
+              <p className="text-xl font-bold text-green-700 dark:text-green-400">${formatPesosFromCents(totalCollected)}</p>
             </div>
             <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
               <p className="text-sm text-yellow-600 dark:text-yellow-300 font-medium">Saldo Pendiente</p>
-              <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">${pendingBalance.toLocaleString()}</p>
+              <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">${formatPesosFromCents(pendingBalance)}</p>
             </div>
             <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <p className="text-sm text-blue-600 dark:text-blue-300 font-medium">Total Reserva</p>
-              <p className="text-xl font-bold text-blue-700 dark:text-blue-400">${reserveTotal.toLocaleString()}</p>
+              <p className="text-xl font-bold text-blue-700 dark:text-blue-400">${formatPesosFromCents(reserveTotal)}</p>
             </div>
           </div>
         </CardContent>
@@ -1733,11 +1756,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const chipValue = d.chipValue
                               return (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
-                                  ${formatCurrency(chipValue)}
+                                  ${formatPesosFromCents(chipValue)}
                                 </span>
                               )
                             })()}
@@ -1836,11 +1858,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                           </div>
                           <div className="flex items-center gap-2">
                             {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const chipValue = d.chipValue
                               return (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
-                                  ${formatCurrency(chipValue)}
+                                  ${formatPesosFromCents(chipValue)}
                                 </span>
                               )
                             })()}
@@ -1935,11 +1956,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               )
                             })()}
                             {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const chipValue = d.chipValue
                               return (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
-                                  ${formatCurrency(chipValue)}
+                                  ${formatPesosFromCents(chipValue)}
                                 </span>
                               )
                             })()}
@@ -2023,11 +2043,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               )
                             })()}
                             {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
                               const chipValue = d.chipValue
                               return (
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
-                                  ${formatCurrency(chipValue)}
+                                  ${formatPesosFromCents(chipValue)}
                                 </span>
                               )
                             })()}

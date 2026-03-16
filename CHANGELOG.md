@@ -15,6 +15,13 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
   - Documentación: `docs/actualizaciones/estadisticas-uso-pagina-2026-03.md`.
 
 ### Corregido
+- **Admin Turnos: toggle de pago y cierre de turno**
+  - Al marcar un jugador como pagado con el toggle, el turno ya no pasaba solo a "turnos terminados"; ahora se preservan `status` y `closedAt` al aplicar la respuesta del PATCH/PUT, por lo que el turno no cambia de sección solo por actualizar pagos.
+  - Se eliminó el botón "Terminar turno" que pasaba el turno a completado sin exigir saldo en cero. El único cierre es "Cerrar turno", que se muestra solo cuando el saldo pendiente es 0 y (el horario ya finalizó o es turno legacy completado sin cerrar); al confirmar se llama a POST `/api/bookings/[id]/close`.
+  - Ante rate limit (429) en el toggle de pago se revierte el optimistic update y se muestra un toast para reintentar.
+  - Documentación: `docs/actualizaciones/fix-toggle-pago-cierre-turno-admin-2026-03.md`.
+- **Precios en sección de turnos (centavos vs pesos)**
+  - En Mis Turnos, admin de turnos y dashboard admin los precios se mostraban en centavos como si fueran pesos (ej. $2000 en lugar de $20). Se añadió `lib/utils/currency.ts` con `centsToPesos` y `formatPesosFromCents`, y se aplicó la conversión solo en la visualización de totalPrice, depositAmount, extras y totales en los componentes afectados. La lógica de negocio y las APIs siguen usando centavos. Documentación: `docs/actualizaciones/fix-precios-turnos-centavos-pesos-2026-03.md`.
 - **API análisis de usuarios – error 500**
   - La ruta `GET /api/usuarios/analisis` fallaba porque usaba `_count` con `where` en una relación (conteo filtrado de Prisma), que requiere la preview feature `filteredRelationCount`. Se eliminó ese uso y `reservasMes` se calcula en el mapeo a partir de las reservas ya cargadas. Documentación: `docs/actualizaciones/admin-usuarios-tabla-sin-acciones-fix-analisis-2026-03.md`.
 - **Admin Usuarios – tabla sin acciones**

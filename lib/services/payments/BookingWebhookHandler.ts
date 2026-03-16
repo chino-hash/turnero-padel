@@ -113,6 +113,7 @@ export class BookingWebhookHandler implements IWebhookHandler {
         where: { id: bookingId },
         include: {
           court: true,
+          user: { select: { name: true } },
           payments: {
             where: {
               paymentType: 'PAYMENT',
@@ -128,6 +129,13 @@ export class BookingWebhookHandler implements IWebhookHandler {
       }
 
       const tenantId = booking.tenantId;
+
+      // paidAmount para jugador en centavos (BD: totalPrice/depositAmount en centavos)
+      const paidAmountCents =
+        (booking.depositAmount ?? 0) > 0
+          ? booking.depositAmount!
+          : Math.round((booking.totalPrice ?? 0) / 4);
+      const titularName = (booking as { user?: { name: string | null } }).user?.name ?? 'Titular';
 
       // Caso Normal: Pago aprobado y reserva en PENDING
       if (paymentStatus === 'approved' && booking.status === 'PENDING') {
@@ -159,6 +167,35 @@ export class BookingWebhookHandler implements IWebhookHandler {
               notes: `Pago aprobado vía webhook - MP Payment ID: ${paymentId}`,
             },
           });
+
+          // Marcar jugador posición 1 (titular) como pagado; si no existe, crearlo (idempotente: find → update or create)
+          try {
+            const player1 = await tx.bookingPlayer.findFirst({
+              where: { bookingId, position: 1 },
+            });
+            if (player1) {
+              await tx.bookingPlayer.update({
+                where: { id: player1.id },
+                data: { hasPaid: true, paidAmount: paidAmountCents, updatedAt: new Date() },
+              });
+            } else {
+              await tx.bookingPlayer.create({
+                data: {
+                  bookingId,
+                  position: 1,
+                  playerName: titularName,
+                  hasPaid: true,
+                  paidAmount: paidAmountCents,
+                },
+              });
+            }
+          } catch (playerErr) {
+            console.warn(
+              '[BookingWebhookHandler] Error actualizando/creando jugador posición 1 (reserva ya confirmada):',
+              playerErr
+            );
+            // No re-lanzar: booking y payment ya quedaron persistidos; el admin puede marcar manualmente
+          }
         });
 
         console.log('[BookingWebhookHandler] Reserva actualizada a CONFIRMED:', bookingId);
@@ -238,6 +275,34 @@ export class BookingWebhookHandler implements IWebhookHandler {
                 notes: `Pago tardío aprobado - Reserva reactivada - MP Payment ID: ${paymentId}`,
               },
             });
+
+            // Marcar jugador posición 1 (titular) como pagado; si no existe, crearlo (idempotente)
+            try {
+              const player1 = await tx.bookingPlayer.findFirst({
+                where: { bookingId, position: 1 },
+              });
+              if (player1) {
+                await tx.bookingPlayer.update({
+                  where: { id: player1.id },
+                  data: { hasPaid: true, paidAmount: paidAmountCents, updatedAt: new Date() },
+                });
+              } else {
+                await tx.bookingPlayer.create({
+                  data: {
+                    bookingId,
+                    position: 1,
+                    playerName: titularName,
+                    hasPaid: true,
+                    paidAmount: paidAmountCents,
+                  },
+                });
+              }
+            } catch (playerErr) {
+              console.warn(
+                '[BookingWebhookHandler] Error actualizando/creando jugador posición 1 (pago tardío):',
+                playerErr
+              );
+            }
           });
 
           return { processed: true, bookingUpdated: true, bookingId };

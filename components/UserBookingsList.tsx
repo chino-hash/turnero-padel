@@ -8,6 +8,7 @@ import { Calendar, Clock, MapPin, Users, CreditCard, RefreshCw } from 'lucide-re
 import type { BookingWithDetails } from '../lib/services/bookings'
 import { BOOKING_STATUS_LABELS, BOOKING_STATUS_COLORS, type BookingStatus } from '../types/booking'
 import { parseBookingDateLocal } from '@/lib/utils/booking-utils'
+import { formatPesosFromCents } from '@/lib/utils/currency'
 
 interface UserBookingsListProps {
   className?: string
@@ -219,10 +220,10 @@ function BookingCard({ booking }: { booking: BookingWithDetails }) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-gray-700">
             <CreditCard className="w-4 h-4" />
-            <span className="font-semibold">${booking.totalPrice}</span>
-            {booking.depositAmount && (
+            <span className="font-semibold">${formatPesosFromCents(booking.totalPrice)}</span>
+            {booking.depositAmount != null && booking.depositAmount > 0 && (
               <span className="text-sm text-gray-500">
-                (Seña: ${booking.depositAmount})
+                (Seña: ${formatPesosFromCents(booking.depositAmount)})
               </span>
             )}
           </div>

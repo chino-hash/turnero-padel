@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { ArrowLeft, BookOpen, Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
 import { BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
+import { formatPesosFromCents } from '@/lib/utils/currency'
 
 interface Player {
   name: string
@@ -155,14 +156,14 @@ const BookingCard = React.memo<{
               <div className="flex items-center gap-1">
                 <DollarSign className={`w-3 h-3 ${getTextClasses(isDarkMode, 'muted')}`} />
                 <span className={`text-xs ${getTextClasses(isDarkMode, 'muted')}`}>
-                  Pagado: ${booking.deposit?.toLocaleString() || 0}
+                  Pagado: ${formatPesosFromCents(booking.deposit ?? 0)}
                 </span>
               </div>
               {booking.paymentStatus !== 'Paid' && (
                 <div className="flex items-center gap-1">
                   <AlertCircle className={`w-3 h-3 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}`} />
                   <span className={`text-xs ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                    Pendiente: ${(booking.totalPrice - (booking.deposit || 0)).toLocaleString()}
+                    Pendiente: ${formatPesosFromCents(booking.totalPrice - (booking.deposit ?? 0))}
                   </span>
                 </div>
               )}
@@ -175,7 +176,7 @@ const BookingCard = React.memo<{
           {/* Precio */}
           <div className="text-right">
             <p className={`text-base sm:text-lg font-bold ${getTextClasses(isDarkMode, 'primary')}`}>
-              ${booking.totalPrice.toLocaleString()}
+              ${formatPesosFromCents(booking.totalPrice)}
             </p>
             
             {/* Estado de confirmación */}

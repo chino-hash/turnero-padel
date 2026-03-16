@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { setAdminContextTenant } from "@/lib/utils/admin-context-tenant"
+import { formatPesosFromCents } from "@/lib/utils/currency"
 import { useTenantSlugFromPath } from "@/lib/tenant/TenantSlugFromPathContext"
 import { useAuth } from "./hooks/useAuth"
 import { 
@@ -146,6 +147,9 @@ function PadelBookingPage() {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<any>(null)
   const [refundAmount, setRefundAmount] = useState(0)
   const [canRefund, setCanRefund] = useState(false)
+
+  // Modal para confirmar salir del tenant hacia la landing
+  const [showExitToLandingModal, setShowExitToLandingModal] = useState(false)
 
   const hasPendingPayment = useMemo(() => {
     return currentBookings.some(
@@ -631,7 +635,7 @@ function PadelBookingPage() {
                     <p className={`text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                       Ingresos Totales
                     </p>
-                    <p className="text-2xl font-bold text-green-600">${paymentSummary.totalRevenue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-green-600">${formatPesosFromCents(paymentSummary.totalRevenue)}</p>
                   </div>
                   <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                     <DollarSign className="w-6 h-6 text-green-600" />
@@ -664,7 +668,7 @@ function PadelBookingPage() {
                       Pagos Pendientes
                     </p>
                     <p className="text-2xl font-bold text-orange-600">
-                      ${paymentSummary.pendingPayments.toLocaleString()}
+                      ${formatPesosFromCents(paymentSummary.pendingPayments)}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -840,26 +844,19 @@ function PadelBookingPage() {
             
             {/* Divs de acción con dimensiones exactas de los botones */}
             <div className="flex gap-0.5 sm:gap-1">
-              {/* Div Salir - mismas dimensiones que el botón */}
+              {/* Botón Salir: volver a la página principal (landing) */}
               <div
+                role="button"
+                tabIndex={0}
                 className={`text-xs px-2 sm:px-3 py-1 sm:py-1.5 h-7 sm:h-8 transition-all duration-200 border rounded-md flex items-center justify-center cursor-pointer hover:opacity-80 ${
                   isDarkMode 
                     ? "bg-gray-700 text-white border-gray-600 hover:bg-gray-600" 
                     : "bg-gray-50 text-gray-900 border-gray-300 hover:bg-gray-100"
                 }`}
-                aria-label="Cerrar sesión"
+                aria-label="Volver a la página principal"
                 title="Salir"
-                onClick={async () => {
-                  try {
-                    await signOut()
-                    // signOut usa callbackUrl: '/' y redirect: true, así que la redirección la hace NextAuth.
-                    // Si por alguna razón no redirige, hacer fallback a landing.
-                    router.push('/')
-                  } catch (error) {
-                    console.error('Error al cerrar sesión:', error)
-                    router.push('/')
-                  }
-                }}
+                onClick={() => setShowExitToLandingModal(true)}
+                onKeyDown={(e) => e.key === 'Enter' && setShowExitToLandingModal(true)}
               >
                 <span className="hidden sm:inline">Salir</span>
                 <span className="sm:hidden">×</span>
@@ -1066,6 +1063,33 @@ function PadelBookingPage() {
         </div>
       </div>
 
+      {/* Modal: ¿Volver a la página principal? (salir del tenant) */}
+      <AlertDialog open={showExitToLandingModal} onOpenChange={setShowExitToLandingModal}>
+        <AlertDialogContent className={`max-w-sm sm:max-w-md mx-4 ${isDarkMode ? "bg-gray-800 text-white" : "bg-white"}`}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold">
+              Volver a la página principal
+            </AlertDialogTitle>
+            <AlertDialogDescription className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+              ¿Quieres volver a la página principal?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowExitToLandingModal(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowExitToLandingModal(false)
+                router.push('/')
+              }}
+            >
+              Sí
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Confirmation Modal */}
       <AlertDialog open={showConfirmationModal} onOpenChange={closeConfirmationModal}>
         <AlertDialogContent className={`max-w-sm sm:max-w-md mx-4 ${isDarkMode ? "bg-gray-800 text-white" : "bg-white"}`}>
@@ -1176,7 +1200,7 @@ function PadelBookingPage() {
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span>Total:</span>
-                  <span>${(newBooking.totalPrice || 24000).toLocaleString()}</span>
+                  <span>${formatPesosFromCents(newBooking.totalPrice || 0)}</span>
                 </div>
               </div>
             </div>
@@ -1239,7 +1263,7 @@ function PadelBookingPage() {
                   </div>
                   <div className="flex justify-between font-semibold">
                     <span>Seña pagada:</span>
-                    <span>${selectedBookingForCancel.deposit?.toLocaleString()}</span>
+                    <span>${formatPesosFromCents(selectedBookingForCancel.deposit ?? 0)}</span>
                   </div>
                 </div>
               </div>
@@ -1266,7 +1290,7 @@ function PadelBookingPage() {
                   canRefund ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
                 }`}>
                   {canRefund ? (
-                    `✅ Reembolso: $${refundAmount.toLocaleString()}`
+                    `✅ Reembolso: $${formatPesosFromCents(refundAmount)}`
                   ) : (
                     '❌ Sin reembolso disponible'
                   )}

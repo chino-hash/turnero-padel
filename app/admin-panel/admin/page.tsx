@@ -15,6 +15,7 @@ import { Textarea } from '../../../components/ui/textarea'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../components/ui/select'
 import { Popover, PopoverTrigger, PopoverContent } from '../../../components/ui/popover'
 import { splitEven } from '../../../lib/utils/extras'
+import { formatPesosFromCents } from '@/lib/utils/currency'
 import { 
   Calendar, 
   Users, 
@@ -825,7 +826,7 @@ export default function AdminDashboard() {
               <div className="text-sm text-gray-600 dark:text-gray-400">{labelPagados}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-[#FFB347] dark:text-[#FFB347]">{currencyPrefix}{filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold text-[#FFB347] dark:text-[#FFB347]">{currencyPrefix}{formatPesosFromCents(filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0))}</div>
               <div className="text-sm text-gray-600 dark:text-gray-400">{labelIngresos}</div>
             </div>
             <div className="text-center">
@@ -1171,7 +1172,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Hoy</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{currencyPrefix}{filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{currencyPrefix}{formatPesosFromCents(filteredBookings.reduce((sum, b) => sum + b.totalPrice + b.extras.reduce((eSum, e) => eSum + e.cost, 0), 0))}</p>
               </div>
               <Button asChild variant="outline" size="sm"><Link href="/admin-panel/estadisticas">Ver</Link></Button>
             </div>

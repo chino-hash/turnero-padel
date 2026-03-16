@@ -85,6 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         totalPrice: true,
         bookingDate: true,
         courtId: true,
+        user: { select: { name: true } },
       },
     })
 
@@ -137,6 +138,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       ? Math.round(Number(approvedPayment.transaction_amount))
       : Math.round((booking.depositAmount || 0) / 100)
 
+    const paidAmountCents =
+      (booking.depositAmount ?? 0) > 0
+        ? booking.depositAmount!
+        : Math.round((booking.totalPrice ?? 0) / 4)
+    const titularName = booking.user?.name ?? 'Titular'
+
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({
         where: { id: bookingId },
@@ -159,6 +166,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           notes: `Pago sincronizado desde MP - Payment ID: ${approvedPayment.id}`,
         },
       })
+
+      // Marcar jugador posición 1 (titular) como pagado; si no existe, crearlo (idempotente)
+      try {
+        const player1 = await tx.bookingPlayer.findFirst({
+          where: { bookingId, position: 1 },
+        })
+        if (player1) {
+          await tx.bookingPlayer.update({
+            where: { id: player1.id },
+            data: { hasPaid: true, paidAmount: paidAmountCents, updatedAt: new Date() },
+          })
+        } else {
+          await tx.bookingPlayer.create({
+            data: {
+              bookingId,
+              position: 1,
+              playerName: titularName,
+              hasPaid: true,
+              paidAmount: paidAmountCents,
+            },
+          })
+        }
+      } catch (playerErr) {
+        console.warn('[sync-payment-status] Error actualizando/creando jugador posición 1:', playerErr)
+      }
     })
 
     const result = await bookingService.getBookingById(bookingId)

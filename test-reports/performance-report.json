@@ -1,20 +1,224 @@
 {
-  "timestamp": "2026-03-14T20:32:07.375Z",
-  "totalRuntime": 1134,
+  "timestamp": "2026-03-16T14:32:09.167Z",
+  "totalRuntime": 595,
   "slowestTests": [
     {
       "file": "\\__tests__\\lib\\services\\bookings\\payment-success-url.test.ts",
-      "runtime": 1134,
+      "runtime": 301,
       "numTests": 6,
-      "avgTimePerTest": 189
+      "avgTimePerTest": 50.166666666666664
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\bookings\\ExpiredBookingsService.payment-filter.test.ts",
+      "runtime": 294,
+      "numTests": 2,
+      "avgTimePerTest": 147
+    },
+    {
+      "file": "\\__tests__\\integration\\crud-integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\api-database.integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\bookings\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\admin\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\multitenant-permissions.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\slots\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\multitenant-isolation.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\bookings-api.integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
     }
   ],
   "allTests": [
     {
       "file": "\\__tests__\\lib\\services\\bookings\\payment-success-url.test.ts",
-      "runtime": 1134,
+      "runtime": 301,
       "numTests": 6,
-      "avgTimePerTest": 189
+      "avgTimePerTest": 50.166666666666664
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\bookings\\ExpiredBookingsService.payment-filter.test.ts",
+      "runtime": 294,
+      "numTests": 2,
+      "avgTimePerTest": 147
+    },
+    {
+      "file": "\\__tests__\\integration\\crud-integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\api-database.integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\bookings\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\admin\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\multitenant-permissions.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\slots\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\multitenant-isolation.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\bookings-api.integration.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\auth\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\performance\\bookings-performance.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\integration\\multitenant-jobs.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\courts\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\admin-system.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\courts.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\estadisticas\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\booking-utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useBookings.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\bookings.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\hooks\\useAuth.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\components\\AdminTurnos.closed.test.tsx",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\app\\api\\bookings\\user\\route.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\utils\\extras.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
+    },
+    {
+      "file": "\\__tests__\\lib\\services\\booking-service.availability.test.ts",
+      "runtime": 0,
+      "numTests": 0,
+      "avgTimePerTest": null
     }
   ]
 }

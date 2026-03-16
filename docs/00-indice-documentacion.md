@@ -74,6 +74,9 @@
 - [Admin Canchas: contexto por tenant y navegación (2026-03)](./actualizaciones/admin-canchas-contexto-tenant-2026-03.md) — Super Admin ve solo canchas del tenant; cookie de contexto; Home y enlaces preservan tenant.
 - [Precio del turno por cancha y visualización en Admin Turnos (2026-03)](./actualizaciones/precio-turno-cancha-y-display-admin-2026-03.md) — Cálculo de `totalPrice` por slot (90 min), visualización con `booking.totalPrice` para que la seña coincida.
 - [Mis Turnos: "Pendiente" aunque ya pagado y botón Sincronizar (2026-03)](./actualizaciones/mis-turnos-pendiente-ya-pagado-sincronizar-2026-03.md) — Por qué un turno puede mostrarse Pendiente si ya se pagó; botón "¿Ya pagaste? Sincronizar".
+- [Corrección precios en turnos: centavos → pesos (2026-03)](./actualizaciones/fix-precios-turnos-centavos-pesos-2026-03.md) — Visualización de totalPrice/deposit en pesos en Mis Turnos, admin turnos y dashboard; utilidad `lib/utils/currency.ts`.
+- [Admin Turnos: toggle pagos sin espera (2026-03)](./actualizaciones/admin-turnos-toggle-pagos-sin-espera-2026-03.md) — Bloqueo por jugador en toggles de pago (Pendiente/Pagado); se pueden marcar varios jugadores seguidos sin esperar la respuesta del PATCH; indicador "Guardando...".
+- [Reflejar seña en Admin Turnos: toggles y porcentaje (2026-03)](./actualizaciones/reflejar-seña-admin-turnos-toggles-porcentaje-2026-03.md) — Webhook y sync marcan jugador 1 como pagado al confirmar seña; reservas sin players crean titular; badge "X% pagado" (25/50/75/100); endpoint de migración para DEPOSIT_PAID.
 - Detalle por fecha: [actualizaciones/](./actualizaciones/) (ej. [Pago modal reserva sin fallback MP env](./actualizaciones/pago-modal-reserva-sin-fallback-mp-env-2026-03.md), admin-turnos-una-pagina-sin-paginacion-2026-03, etc.)
 
 ## Despliegue y configuración
