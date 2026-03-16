@@ -32,6 +32,8 @@ export interface UseUsuariosListParams {
   q?: string
   categoria?: 'VIP' | 'Premium' | 'Regular'
   actividad?: 'activos' | 'inactivos' | 'nuevos'
+  tenantId?: string | null
+  tenantSlug?: string | null
 }
 
 export interface UseUsuariosListReturn {
@@ -51,6 +53,8 @@ export function useUsuariosList(params: UseUsuariosListParams = {}): UseUsuarios
     q = '',
     categoria,
     actividad,
+    tenantId,
+    tenantSlug,
   } = params
 
   const [data, setData] = useState<UsuarioListItem[]>([])
@@ -70,6 +74,8 @@ export function useUsuariosList(params: UseUsuariosListParams = {}): UseUsuarios
       if (q.trim()) searchParams.set('q', q.trim())
       if (categoria) searchParams.set('categoria', categoria)
       if (actividad) searchParams.set('actividad', actividad)
+      if (tenantId) searchParams.set('tenantId', tenantId)
+      else if (tenantSlug) searchParams.set('tenantSlug', tenantSlug)
 
       const res = await fetch(`/api/usuarios?${searchParams.toString()}`, { credentials: 'include' })
       const json = await res.json()
@@ -94,7 +100,7 @@ export function useUsuariosList(params: UseUsuariosListParams = {}): UseUsuarios
     } finally {
       setLoading(false)
     }
-  }, [page, limit, sortBy, sortOrder, q, categoria, actividad])
+  }, [page, limit, sortBy, sortOrder, q, categoria, actividad, tenantId, tenantSlug])
 
   useEffect(() => {
     fetchList()

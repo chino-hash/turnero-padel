@@ -7,6 +7,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card'
 import AdminAvailabilityGrid from '../../../../components/admin/AdminAvailabilityGrid'
 import { Button } from '../../../../components/ui/button'
@@ -17,9 +18,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu'
 import { Calendar, Clock, Users, TrendingUp, Plus, User, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { useSession } from 'next-auth/react'
 import { useAuth } from '../../../../hooks/useAuth'
 import { useBookings } from '../../../../hooks/useBookings'
 import { useCourtPrices } from '../../../../hooks/useCourtPrices'
+import { setAdminContextTenant, getAdminContextTenant } from '../../../../lib/utils/admin-context-tenant'
 
 // Importación dinámica para evitar problemas de prerenderización
 // Se asegura de resolver explícitamente el export default del módulo
@@ -33,12 +36,55 @@ const AdminTurnos = dynamic(() => import('../../../../components/AdminTurnos').t
 })
 
 export default function TurnosPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
   const { isAuthenticated, isAdmin, user, loading: authLoading } = useAuth()
-  const { bookings, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({ autoFetch: isAuthenticated })
+  const { bookings, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({
+    autoFetch: isAuthenticated,
+    tenantId: tenantIdFromUrl,
+    tenantSlug: tenantSlugFromUrl
+  })
   const [statsLocal, setStatsLocal] = useState<{ byDay: Record<string, number>; activeUsers: number; occupancyRate: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
 
-  const { courts, loading: courtsLoading } = useCourtPrices({ publicView: true })
+  const { courts, loading: courtsLoading } = useCourtPrices({
+    publicView: true,
+    tenantId: tenantIdFromUrl,
+    tenantSlug: tenantSlugFromUrl
+  })
+
+  // Persistir tenant en cookie cuando viene en la URL
+  useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  // Super admin sin tenant en URL: redirigir con el tenant guardado para ver solo ese tenant
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
+  const willRedirect =
+    isSuperAdmin &&
+    !tenantIdFromUrl &&
+    !tenantSlugFromUrl &&
+    (getAdminContextTenant().tenantId || getAdminContextTenant().tenantSlug)
+
   const [showCreateBookingModal, setShowCreateBookingModal] = useState(false)
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([])
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -236,7 +282,7 @@ export default function TurnosPage() {
   const activeUsers = statsLocal?.activeUsers ?? 0
 
   useEffect(() => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || willRedirect) return
     let cancelled = false
     const run = async () => {
       setStatsLoading(true)
@@ -246,7 +292,10 @@ export default function TurnosPage() {
         start.setDate(start.getDate() - 1)
         const startDate = start.toISOString().split('T')[0]
         const endDate = end.toISOString().split('T')[0]
-        const res = await fetch(`/api/bookings/stats?startDate=${startDate}&endDate=${endDate}`, { credentials: 'same-origin' })
+        const params = new URLSearchParams({ startDate, endDate })
+        if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+        else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+        const res = await fetch(`/api/bookings/stats?${params.toString()}`, { credentials: 'same-origin' })
         if (!cancelled && res.ok) {
           const json = await res.json()
           const data = json?.data
@@ -266,7 +315,7 @@ export default function TurnosPage() {
     }
     run()
     return () => { cancelled = true }
-  }, [isAuthenticated])
+  }, [isAuthenticated, tenantIdFromUrl, tenantSlugFromUrl, willRedirect])
 
   // Función auxiliar para obtener courtId por nombre
   const findCourtIdByName = (name: string) => courts.find(c => c.name === name)?.id
@@ -547,7 +596,7 @@ export default function TurnosPage() {
           <CardTitle className="text-xl">Lista de Turnos y Reservas</CardTitle>
         </CardHeader>
         <CardContent>
-          <AdminTurnos />
+          <AdminTurnos tenantId={tenantIdFromUrl} tenantSlug={tenantSlugFromUrl} />
         </CardContent>
       </Card>
 

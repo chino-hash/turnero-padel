@@ -126,6 +126,7 @@ function PadelBookingPage() {
     handleSlotClick,
     currentCourtName,
     removeBookingFromList,
+    refetchUserBookings,
   } = useAppState()
   
   // Estados locales específicos del componente (no compartidos)
@@ -440,6 +441,28 @@ function PadelBookingPage() {
     } catch (e) {
       console.error('Error al crear preferencia de pago:', e)
       alert('Error al procesar el pago. Inténtalo de nuevo.')
+    }
+  }
+
+  const handleSyncPayment = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/sync-payment-status`, { method: 'POST', credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.updated) {
+        await refetchUserBookings()
+        return
+      }
+      if (res.status === 503 && data?.error?.includes('Mercado Pago')) {
+        alert('Mercado Pago no está configurado para este club.')
+        return
+      }
+      await refetchUserBookings()
+      if (!res.ok) {
+        alert(data?.error || 'No se encontró un pago aprobado para esta reserva.')
+      }
+    } catch (e) {
+      console.error('Error al sincronizar pago:', e)
+      alert('Error al sincronizar. Inténtalo de nuevo.')
     }
   }
 
@@ -879,7 +902,7 @@ function PadelBookingPage() {
           >
             <div className="flex items-center gap-0 mr-1 sm:mr-2">
               <div className="w-10 h-6 sm:w-12 sm:h-7 overflow-hidden flex items-center justify-center">
-                <img src="/logo/padel.svg" alt="padelbook logo" className="w-full h-full object-contain" />
+                <img src="/logo/padel1.svg" alt="padelbook logo" className="w-full h-full object-contain" />
               </div>
               <span className="ml-1 sm:ml-2 text-xs sm:text-sm font-bold tracking-tight text-[color:var(--color-neon-lime)]">
                 padelbook
@@ -1004,6 +1027,7 @@ function PadelBookingPage() {
         getPaymentStatusColor={getPaymentStatusColor}
         getStatusColor={getStatusColor}
         onPayDeposit={handlePayDeposit}
+        onSyncPayment={handleSyncPayment}
       />
 
       {/* Administration Panel */}

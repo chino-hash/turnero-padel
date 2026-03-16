@@ -20,6 +20,9 @@
 11. [Pestaña Turnos (admin) - Plan completado](#11-pestaña-turnos-admin---plan-completado)
 12. [Botones Terminar turno y Cancelar en Admin Turnos](#12-botones-terminar-turno-y-cancelar-en-admin-turnos)
 13. [Super Admin: botón "Ir al sitio principal" a landing](#13-super-admin-botón-ir-al-sitio-principal-a-landing)
+14. [Mis Turnos: turnos viejos pendientes e historial](#14-mis-turnos-turnos-viejos-pendientes-e-historial)
+15. [Aislamiento por tenant en el panel admin](#15-aislamiento-por-tenant-en-el-panel-admin-marzo-2026)
+16. [Precio del turno por cancha y visualización en Admin Turnos](#16-precio-del-turno-por-cancha-y-visualización-en-admin-turnos-marzo-2026)
 
 ---
 
@@ -467,6 +470,44 @@ El botón "Ir al sitio principal" (ícono Home) en el header del panel **Super A
 - **Archivo:** `app/super-admin/components/SuperAdminLayoutContent.tsx`
 - **Cambio:** `router.push('/dashboard')` → `router.push('/')`
 - **Documentación detallada:** `docs/actualizaciones/super-admin-boton-landing-2026-03.md`
+
+---
+
+## 14. MIS TURNOS: TURNOS VIEJOS PENDIENTES E HISTORIAL (Marzo 2026)
+
+Ajustes en la sección **Mis Turnos** del dashboard para que los turnos viejos que no se pagaron o se cancelaron no aparezcan como "Pendiente" y para limpiar el historial de datos innecesarios.
+
+- **Backend:** `ExpiredBookingsService` ahora también cancela reservas PENDING sin pago cuyo **slot ya pasó** (fecha + hora de fin &lt; ahora), no solo las que tienen `expiresAt` pasada. Así dejan de mostrarse como "Pendiente" en Mis Turnos.
+- **Frontend:** En **Historial de Reservas** se dejan de mostrar las reservas canceladas y sin pago (turnos viejos no pagados/cancelados).
+- Los turnos realmente pendientes de pago (PENDING con slot futuro) siguen mostrándose y con aviso; sin cambios.
+
+**Archivos:** `lib/services/bookings/ExpiredBookingsService.ts`, `components/providers/AppStateProvider.tsx`  
+**Documentación detallada:** `docs/actualizaciones/mis-turnos-pendientes-expirados-y-historial-2026-03.md`
+
+---
+
+## 15. AISLAMIENTO POR TENANT EN EL PANEL ADMIN (Marzo 2026)
+
+El **super-admin** debe ver solo los datos del tenant en el que se encuentra (igual que en Canchas). Antes, en Turnos, Ventas, Usuarios, etc., se mostraban datos de todos los tenants cuando el usuario era super-admin.
+
+### Cambios realizados
+
+- **APIs:** Se acepta `tenantId` o `tenantSlug` en la query para super-admin en: `GET /api/bookings`, `GET /api/bookings/stats`, `GET /api/ventas`, `GET /api/productos`, `GET /api/usuarios`, `GET /api/usuarios/analisis`, `GET /api/estadisticas`, `GET /api/torneos`. Si viene `tenantSlug`, se resuelve a `tenantId` con `getTenantFromSlug`.
+- **Páginas del admin:** Turnos, Ventas, Usuarios, Productos, Torneos, Estadísticas y Dashboard leen el tenant de la URL (o cookie), persisten con `setAdminContextTenant`, redirigen al super-admin sin tenant en URL pero con cookie, y pasan `tenantId`/`tenantSlug` en todas las llamadas a las APIs anteriores.
+- **Hooks:** `useBookings`, `useCourtPrices`, `useUsuariosList`, `useAnalisisUsuarios` y `useEstadisticas` aceptan opciones `tenantId`/`tenantSlug` y las incluyen en la query.
+
+Con esto, al abrir por ejemplo `/admin-panel/admin/turnos?tenantSlug=metro-padel-360` solo se muestran reservas (y el resto de datos) de ese tenant.
+
+**Documentación detallada:** `docs/actualizaciones/aislamiento-tenant-admin-panel-2026-03.md`
+
+---
+
+## 16. PRECIO DEL TURNO POR CANCHA Y VISUALIZACIÓN EN ADMIN TURNOS (Marzo 2026)
+
+- **Backend (`lib/services/BookingService.ts`):** Al crear una reserva, el `totalPrice` se calcula usando la duración del slot de la cancha (`operatingHours.slot_duration`, default 90 min). El precio base de la cancha es por turno completo, no por hora: `totalPrice = basePrice * priceMultiplier * (durationMinutes / slotDurationMinutes)`. Nuevo método privado `getSlotDurationMinutes(operatingHours)`.
+- **Frontend (`components/AdminTurnos.tsx`):** En la gestión de turnos se muestra el precio acordado al reservar (`booking.totalPrice`), no el precio actual de la cancha, para que el total original y el precio por jugador (total ÷ 4) coincidan con la seña pagada (25% o 50%).
+
+**Documentación detallada:** `docs/actualizaciones/precio-turno-cancha-y-display-admin-2026-03.md`
 
 ---
 

@@ -50,6 +50,8 @@ interface MisTurnosProps {
   getPaymentStatusColor: (status: string, isDarkMode?: boolean) => string
   getStatusColor: (status: string, type: string, isDarkMode?: boolean) => string
   onPayDeposit?: (booking: Booking) => void
+  /** Si ya pagaste pero sigue en Pendiente, permite sincronizar el estado con Mercado Pago */
+  onSyncPayment?: (bookingId: string) => Promise<void>
 }
 
 // Helper functions para optimizar clases CSS
@@ -103,8 +105,9 @@ const BookingCard = React.memo<{
   formatDate: (date: string) => string;
   onCancelBooking?: (bookingId: string) => void;
   onPayDeposit?: (booking: Booking) => void;
+  onSyncPayment?: (bookingId: string) => Promise<void>;
   isPast?: boolean;
-}>(({ booking, isDarkMode, getCurrentBookingStatus, getRemainingTime, getPaymentStatusColor, formatDate, onCancelBooking, onPayDeposit, isPast = false }) => {
+}>(({ booking, isDarkMode, getCurrentBookingStatus, getRemainingTime, getPaymentStatusColor, formatDate, onCancelBooking, onPayDeposit, onSyncPayment, isPast = false }) => {
   // Memoizar cálculos costosos
   const bookingData = useMemo(() => {
     const bookingStatus = getCurrentBookingStatus(booking);
@@ -123,10 +126,10 @@ const BookingCard = React.memo<{
         <div className="flex-1">
           <h3 className={`font-semibold text-sm sm:text-base ${getTextClasses(isDarkMode, 'primary')}`}>{booking.courtName}</h3>
           
-          {/* Estado de pago - debajo del nombre de la cancha */}
+          {/* Estado de pago - debajo del nombre de la cancha. En historial (isPast), "Deposit Paid" se muestra como "Turno Completado" */}
           <span className={`inline-block px-2 py-1 rounded text-xs mb-2 ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
-            {booking.paymentStatus === 'Paid' ? 'Pagado' : 
-             booking.paymentStatus === 'Deposit Paid' ? 'Seña Pagada' : 'Pendiente'}
+            {booking.paymentStatus === 'Paid' ? 'Pagado' :
+             booking.paymentStatus === 'Deposit Paid' ? (isPast ? 'Turno Completado' : 'Seña Pagada') : 'Pendiente'}
           </span>
           
           <p className={`text-xs sm:text-sm ${getTextClasses(isDarkMode, 'secondary')}`}>
@@ -203,6 +206,17 @@ const BookingCard = React.memo<{
               Pagar seña
             </Button>
           )}
+          {/* Si ya pagaste pero sigue en Pendiente: sincronizar estado con Mercado Pago */}
+          {!isPast && booking.paymentStatus === 'Pending' && onSyncPayment && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSyncPayment(booking.id)}
+              className="text-xs px-2 py-1 h-auto ml-1"
+            >
+              ¿Ya pagaste? Sincronizar
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -224,6 +238,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
   getPaymentStatusColor,
   getStatusColor,
   onPayDeposit,
+  onSyncPayment,
 }) => {
   return (
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
@@ -286,6 +301,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     formatDate={formatDate}
                     onCancelBooking={(bookingId) => onOpenCancelModal(booking)}
                     onPayDeposit={onPayDeposit}
+                    onSyncPayment={onSyncPayment}
                     isPast={false}
                   />
                 ))
@@ -346,6 +362,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     getPaymentStatusColor={getPaymentStatusColor}
                     formatDate={formatDate}
                     onPayDeposit={onPayDeposit}
+                    onSyncPayment={onSyncPayment}
                     isPast={true}
                   />
                 ))

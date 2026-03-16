@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '../../../lib/auth'
 import { prisma } from '../../../lib/database/neon-config'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../lib/utils/permissions'
+import { getTenantFromSlug } from '../../../lib/tenant/context'
 
 // GET - Obtener todos los productos
 export async function GET(request: NextRequest) {
@@ -27,10 +28,17 @@ export async function GET(request: NextRequest) {
       }
     } catch {}
 
-    const queryTenantId = request.nextUrl.searchParams.get('tenantId')?.trim() || null
+    const searchParams = request.nextUrl.searchParams
+    const queryTenantId = searchParams.get('tenantId')?.trim() || null
+    const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+    let resolvedTenantId: string | null = queryTenantId
+    if (!resolvedTenantId && queryTenantSlug && isSuperAdmin) {
+      const tenant = await getTenantFromSlug(queryTenantSlug)
+      if (tenant) resolvedTenantId = tenant.id
+    }
     const whereClause: any = {}
-    if (isSuperAdmin && queryTenantId) {
-      whereClause.tenantId = queryTenantId
+    if (isSuperAdmin && resolvedTenantId) {
+      whereClause.tenantId = resolvedTenantId
     } else if (!isSuperAdmin && userTenantId) {
       whereClause.tenantId = userTenantId
     }

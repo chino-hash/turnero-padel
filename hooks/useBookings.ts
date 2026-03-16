@@ -15,6 +15,9 @@ interface UseBookingsOptions {
   pageSize?: number
   autoFetch?: boolean
   onUpdated?: () => void
+  /** Contexto tenant para super-admin (solo datos de este tenant) */
+  tenantId?: string | null
+  tenantSlug?: string | null
 }
 
 interface UseBookingsReturn {
@@ -71,7 +74,9 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     initialFilters = {},
     pageSize = 10,
     autoFetch = false,
-    onUpdated
+    onUpdated,
+    tenantId: optionTenantId,
+    tenantSlug: optionTenantSlug
   } = options
 
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -144,8 +149,10 @@ export function useBookings(options: UseBookingsOptions = {}): UseBookingsReturn
     if (filters.search) params.set('search', String(filters.search))
     if (filters.sortBy) params.set('sortBy', String(filters.sortBy))
     if (filters.sortOrder) params.set('sortOrder', String(filters.sortOrder))
+    if (optionTenantId) params.set('tenantId', optionTenantId)
+    else if (optionTenantSlug) params.set('tenantSlug', optionTenantSlug)
     return params.toString()
-  }, [])
+  }, [optionTenantId, optionTenantSlug])
 
   const fetchBookings = useCallback(async () => {
     setLoading(true)

@@ -1,8 +1,10 @@
 "use client"
 
 import { useMemo, useState, Fragment, useEffect, useCallback } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { Trophy, Calendar as CalendarIcon, Clock, Plus, Trash2, Check, ChevronRight, Users, Medal, ChevronDown, ChevronUp, X, ArrowLeft, Loader2, Pencil, UserPlus, GripVertical } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { setAdminContextTenant, getAdminContextTenant } from "@/lib/utils/admin-context-tenant"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
@@ -94,10 +96,37 @@ type PartidoItem = {
 }
 
 export default function Page() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get("tenantId")?.trim() || null
+  const tenantSlugFromUrl = searchParams.get("tenantSlug")?.trim() || null
+
+  useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
   const [tenants, setTenants] = useState<TenantOption[]>([])
   const [selectedTenantId, setSelectedTenantId] = useState<string>("")
+  useEffect(() => {
+    if (tenantIdFromUrl) setSelectedTenantId(tenantIdFromUrl)
+  }, [tenantIdFromUrl])
   const [view, setView] = useState<"historial" | "crear" | "detalle">("historial")
   const [selectedTorneo, setSelectedTorneo] = useState<TorneoHistorialItem | null>(null)
   const [deleteTorneoId, setDeleteTorneoId] = useState<string | null>(null)
@@ -148,7 +177,11 @@ export default function Page() {
     setLoading(true)
     setFetchError(null)
     try {
-      const res = await fetch("/api/torneos", { credentials: "include" })
+      const params = new URLSearchParams()
+      if (tenantIdFromUrl) params.set("tenantId", tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set("tenantSlug", tenantSlugFromUrl)
+      const url = params.toString() ? `/api/torneos?${params.toString()}` : "/api/torneos"
+      const res = await fetch(url, { credentials: "include" })
       const json = await res.json()
       if (!res.ok) {
         setFetchError(json?.message ?? "Error al cargar torneos")
@@ -163,7 +196,7 @@ export default function Page() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
 
   useEffect(() => {
     if (view === "historial") fetchTorneos()

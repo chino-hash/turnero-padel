@@ -56,9 +56,12 @@ interface Extra {
 interface AdminTurnosProps {
   className?: string
   isDarkMode?: boolean
+  /** Contexto tenant para super-admin: filtrar lista y export por este tenant */
+  tenantId?: string | null
+  tenantSlug?: string | null
 }
 
-const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: propIsDarkMode }) => {
+const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: propIsDarkMode, tenantId: propTenantId, tenantSlug: propTenantSlug }) => {
   const { isDarkMode: contextIsDarkMode, getPaymentStatusColor } = useAppState()
   const isDarkMode = propIsDarkMode !== undefined ? propIsDarkMode : contextIsDarkMode
   const { courts, getCourtTotalPrice, getCourtPrice, isCourtActive } = useCourtPrices()
@@ -170,18 +173,22 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     if (now >= start && now < end) {
       return { category: 'in_progress' as const, remainingMs: end.getTime() - now.getTime() }
     }
-    // Terminó pero requiere confirmación de cierre (solo si estaba confirmada)
-    return { category: 'awaiting_completion' as const, remainingMs: 0 }
+    // Terminó pero requiere confirmación de cierre (solo si estaba confirmada); remainingMs negativo para -MM:SS
+    return { category: 'awaiting_completion' as const, remainingMs: end.getTime() - now.getTime() }
   }
 
   const formatRemaining = (ms: number) => {
-    if (ms <= 0) return '00:00'
-    const totalSeconds = Math.floor(ms / 1000)
-    const hours = Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
     const pad = (n: number) => String(n).padStart(2, '0')
-    return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
+    const formatPositive = (millis: number) => {
+      const totalSeconds = Math.floor(millis / 1000)
+      const hours = Math.floor(totalSeconds / 3600)
+      const minutes = Math.floor((totalSeconds % 3600) / 60)
+      const seconds = totalSeconds % 60
+      return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`
+    }
+    if (ms < 0) return '-' + formatPositive(-ms)
+    if (ms <= 0) return '00:00'
+    return formatPositive(ms)
   }
 
   // Helpers de mapeo desde la API hacia el modelo local del componente
@@ -681,6 +688,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           params.set('dateFrom', day)
           params.set('dateTo', day)
         }
+        if (propTenantId) params.set('tenantId', propTenantId)
+        else if (propTenantSlug) params.set('tenantSlug', propTenantSlug)
         const fetchWithRetry = async (retries: number, delayMs: number) => {
           try {
             const res = await timedFetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' }, 'GET /api/bookings (AdminTurnos)')
@@ -710,7 +719,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       }
     }
     loadBookings()
-  }, [limit, dateFilter, refreshKey])
+  }, [limit, dateFilter, refreshKey, propTenantId, propTenantSlug])
 
   // Polling: refrescar lista cada 45s solo cuando la pestaña está visible
   useEffect(() => {
@@ -746,14 +755,14 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     const t = setTimeout(() => setSearchTermDebounced(searchTerm), 300)
     return () => clearTimeout(t)
   }, [searchTerm])
-  // Filtro cliente: excluir pendientes, búsqueda por texto; filtros por categoría/status
+  // Filtro cliente: excluir pendientes, búsqueda por texto; filtros por categoría/status (now para que categoría se actualice al cruzar la hora)
   useEffect(() => {
     let filtered = [...bookings].filter(booking => booking.status !== 'pendiente')
     if (statusFilter === 'in_progress') {
-      filtered = filtered.filter(booking => getCategoryAndRemaining(booking).category === 'in_progress')
-    }
-    if (statusFilter === 'awaiting_completion') {
-      filtered = filtered.filter(booking => getCategoryAndRemaining(booking).category === 'awaiting_completion')
+      filtered = filtered.filter(booking => {
+        const cat = getCategoryAndRemaining(booking).category
+        return cat === 'in_progress' || cat === 'awaiting_completion'
+      })
     }
     if (statusFilter === 'confirmed') {
       filtered = filtered.filter(booking => getCategoryAndRemaining(booking).category === 'confirmed')
@@ -770,7 +779,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       )
     }
     setFilteredBookings(filtered)
-  }, [bookings, searchTermDebounced, statusFilter])
+  }, [bookings, searchTermDebounced, statusFilter, now])
 
   const escapeCsv = (value: string): string => {
     const s = String(value ?? '')
@@ -788,7 +797,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       params.set('limit', '1000')
       params.set('sortBy', 'bookingDate')
       params.set('sortOrder', 'desc')
-      if (statusFilter === 'confirmed' || statusFilter === 'awaiting_completion') params.set('status', 'CONFIRMED')
+      if (statusFilter === 'confirmed') params.set('status', 'CONFIRMED')
       if (statusFilter === 'completed') params.set('status', 'COMPLETED')
       if (dateFilter === 'today') {
         const d = new Date()
@@ -803,16 +812,18 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         params.set('dateFrom', day)
         params.set('dateTo', day)
       }
+      if (propTenantId) params.set('tenantId', propTenantId)
+      else if (propTenantSlug) params.set('tenantSlug', propTenantSlug)
       const res = await fetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' })
       if (!res.ok) throw new Error('Error al obtener datos')
       const payload = await res.json()
       const list = Array.isArray(payload?.data) ? payload.data : []
       let mapped: Booking[] = list.map(mapApiBookingToLocal).filter((b: Booking) => b.status !== 'pendiente')
       if (statusFilter === 'in_progress') {
-        mapped = mapped.filter((b: Booking) => getCategoryAndRemaining(b).category === 'in_progress')
-      }
-      if (statusFilter === 'awaiting_completion') {
-        mapped = mapped.filter((b: Booking) => getCategoryAndRemaining(b).category === 'awaiting_completion')
+        mapped = mapped.filter((b: Booking) => {
+          const cat = getCategoryAndRemaining(b).category
+          return cat === 'in_progress' || cat === 'awaiting_completion'
+        })
       }
       if (searchTermDebounced) {
         const term = searchTermDebounced.toLowerCase()
@@ -1398,7 +1409,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   // Calcular estadísticas (usando precio acordado al reservar = total con el que se calculó la seña)
   const totalBookings = useMemo(() => filteredBookings.length, [filteredBookings])
-  const confirmedBookings = useMemo(() => filteredBookings.filter(b => b.status === 'confirmado').length, [filteredBookings])
   const totalRevenue = useMemo(() => filteredBookings.reduce((sum, booking) => {
     const totalAmount = booking.totalPrice + booking.extras.reduce((extraSum, extra) => extraSum + extra.cost, 0)
     return sum + totalAmount
@@ -1431,8 +1441,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
 
   const fixedDerived = useMemo(() => derivedBookings.filter(d => !!d.booking.recurringId), [derivedBookings])
   const confirmedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'confirmed'), [derivedBookings])
-  const inProgressDerived = useMemo(() => derivedBookings.filter(d => d.category === 'in_progress'), [derivedBookings])
-  const awaitingCompletionDerived = useMemo(() => derivedBookings.filter(d => d.category === 'awaiting_completion'), [derivedBookings])
+  const confirmedBookings = confirmedDerived.length
+  const inProgressDerived = useMemo(() => derivedBookings
+    .filter(d => d.category === 'in_progress' || d.category === 'awaiting_completion')
+    .sort((a, b) => a.remainingMs - b.remainingMs), [derivedBookings])
   const completedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'completed'), [derivedBookings])
   const closedDerived = useMemo(() => derivedBookings.filter(d => d.category === 'closed'), [derivedBookings])
 
@@ -1454,7 +1466,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [visibleConfirmed, setVisibleConfirmed] = useState(CONFIRMED_PAGE_SIZE)
   const [visibleClosed, setVisibleClosed] = useState(30)
   const [confirmedSectionCollapsed, setConfirmedSectionCollapsed] = useState(false)
-  const [awaitingSectionCollapsed, setAwaitingSectionCollapsed] = useState(false)
   const [closedSectionCollapsed, setClosedSectionCollapsed] = useState(true)
 
   if (loading) {
@@ -1625,7 +1636,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <option value="all">Todos los estados</option>
             <option value="confirmed">Confirmados</option>
             <option value="in_progress">En curso</option>
-            <option value="awaiting_completion">Pendiente de cierre</option>
             <option value="completed">Completados</option>
           </select>
         </div>
@@ -1917,8 +1927,9 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                           <div className="flex items-center gap-2">
                             {(() => {
                               const remainingMs = d.remainingMs
+                              const isOverdue = remainingMs < 0
                               return (
-                                <span className="px-2 py-1 rounded-full text-xs font-medium border bg-blue-100 text-blue-800 border-blue-200">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${isOverdue ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-100 text-blue-800 border-blue-200'}`}>
                                   EN CURSO · {formatRemaining(remainingMs)}
                                 </span>
                               )
@@ -1957,106 +1968,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     </Card>
                   ))}
               </div>
-            </div>
-
-            {/* Sección: Pendiente de cierre */}
-            <div data-testid="section-awaiting-completion">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 border-t border-amber-300"></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold tracking-widest text-amber-800 bg-amber-50 px-3 py-1 rounded border border-amber-200">
-                    PENDIENTE DE CIERRE {awaitingCompletionDerived.length > 0 && `(${awaitingCompletionDerived.length})`}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAwaitingSectionCollapsed(c => !c)}
-                    aria-expanded={!awaitingSectionCollapsed}
-                    data-testid="expand-awaiting-section"
-                    className="h-8 w-8 p-0"
-                  >
-                    {awaitingSectionCollapsed ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronUp className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="flex-1 border-t border-amber-300"></div>
-              </div>
-              {!awaitingSectionCollapsed && (
-              <div className="mt-4 space-y-4">
-                {awaitingCompletionDerived.map((d, idx) => (
-                    <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
-                      <CardHeader className="pb-2 pt-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
-                              {d.booking.courtName}
-                              {(() => {
-                                const statusKey = toBookingStatus(d.booking.status)
-                                return (
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${BOOKING_STATUS_COLORS[statusKey]}`}>
-                                    {BOOKING_STATUS_LABELS[statusKey]}
-                                  </span>
-                                )
-                              })()}
-                            </CardTitle>
-                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(d.booking.date).toLocaleDateString('es-ES')}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                {d.booking.timeRange}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <User className="w-4 h-4" />
-                                {d.booking.userName}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 rounded-full text-xs font-medium border bg-amber-100 text-amber-800 border-amber-200">
-                              Pendiente de cierre · {formatRemaining(0)}
-                            </span>
-                            {(() => {
-                              const formatCurrency = (value: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)
-                              const chipValue = d.chipValue
-                              return (
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(d.booking.paymentStatus, isDarkMode)}`}>
-                                  ${formatCurrency(chipValue)}
-                                </span>
-                              )
-                            })()}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleBookingExpansion(d.booking.id)}
-                              aria-expanded={expandedBooking === d.booking.id}
-                              data-testid={`expand-booking-${d.booking.id}`}
-                            >
-                              {expandedBooking === d.booking.id ? (
-                                <ChevronUp className="w-4 h-4" />
-                              ) : (
-                                <ChevronDown className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      {expandedBooking === d.booking.id && (
-                        <CardContent className="pt-0">
-                          {renderExpandedContent(d.booking, idx)}
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))}
-              </div>
-              )}
             </div>
 
             {/* Sección: Turnos completados */}
@@ -2390,7 +2301,6 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 <option value="all">Todos los estados</option>
                 <option value="confirmed">Confirmados</option>
                 <option value="in_progress">En curso</option>
-                <option value="awaiting_completion">Pendiente de cierre</option>
                 <option value="completed">Completados</option>
               </select>
             </div>

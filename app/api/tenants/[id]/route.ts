@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params
-    const tenant = await prisma.tenant.findUnique({
+    const tenantRaw = await prisma.tenant.findUnique({
       where: { id },
       select: {
         id: true,
@@ -63,6 +63,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         subscriptionExpiresAt: true,
         mercadoPagoEnabled: true,
         mercadoPagoEnvironment: true,
+        mercadoPagoAccessToken: true,
+        mercadoPagoPublicKey: true,
+        mercadoPagoWebhookSecret: true,
         ownerEmail: true,
         createdAt: true,
         updatedAt: true,
@@ -76,8 +79,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     })
 
-    if (!tenant) {
+    if (!tenantRaw) {
       return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 })
+    }
+
+    const { mercadoPagoAccessToken, mercadoPagoPublicKey, mercadoPagoWebhookSecret, ...rest } = tenantRaw
+    const tenant = {
+      ...rest,
+      hasMercadoPagoCredentials: Boolean(mercadoPagoAccessToken || mercadoPagoPublicKey || mercadoPagoWebhookSecret),
     }
 
     return NextResponse.json({ success: true, data: tenant }, {

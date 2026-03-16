@@ -1,7 +1,7 @@
 {
-  "startTime": "2026-02-23T19:21:23.929Z",
-  "endTime": "2026-02-23T19:29:07.533Z",
-  "duration": 463604,
+  "startTime": "2026-03-12T23:46:56.904Z",
+  "endTime": "2026-03-12T23:47:02.553Z",
+  "duration": 5649,
   "testRun": "completed",
   "environment": {
     "nodeVersion": "v22.17.1",

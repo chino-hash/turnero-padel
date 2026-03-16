@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getTournamentsByTenant, createTournament } from '@/lib/services/tournaments'
 import { getUserTenantIdSafe, isSuperAdminUser, canAccessTenant, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 import { tournamentCreateSchema } from '@/lib/validations/tournament'
 import { createErrorResponse, createSuccessResponse, formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -25,7 +26,17 @@ export async function GET(_request: NextRequest) {
       tenantId: session.user.tenantId ?? null,
     }
 
-    const userTenantId = await getUserTenantIdSafe(user)
+    let userTenantId = await getUserTenantIdSafe(user)
+    if (!userTenantId && (await isSuperAdminUser(user))) {
+      const { searchParams } = new URL(request.url)
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) userTenantId = queryTenantId
+      else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) userTenantId = tenant.id
+      }
+    }
     if (!userTenantId) {
       return NextResponse.json(
         createErrorResponse('No tiene un tenant asignado para ver torneos'),

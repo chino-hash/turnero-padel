@@ -3,6 +3,7 @@ import { auth } from '../../../lib/auth'
 import { prisma } from '../../../lib/database/neon-config'
 import { ventaCreateSchema } from '../../../lib/validations/schemas'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '../../../lib/utils/permissions'
+import { getTenantFromSlug } from '../../../lib/tenant/context'
 
 // POST /api/ventas - Crear nueva venta directa
 export async function POST(request: NextRequest) {
@@ -206,9 +207,18 @@ export async function GET(request: NextRequest) {
     // Construir filtros
     const where: any = {}
 
-    // Filtrar por tenant si no es super admin
+    // Filtrar por tenant: no super-admin usa su tenant; super-admin usa query si viene
     if (!isSuperAdmin && userTenantId) {
       where.tenantId = userTenantId
+    } else if (isSuperAdmin) {
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) {
+        where.tenantId = queryTenantId
+      } else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) where.tenantId = tenant.id
+      }
     }
 
     if (productoId) {

@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import {
   Card,
   CardContent,
@@ -44,6 +47,7 @@ import {
 } from 'recharts'
 import { useEstadisticas } from '@/hooks/useEstadisticas'
 import type { Period } from '@/types/estadisticas'
+import { setAdminContextTenant, getAdminContextTenant } from '@/lib/utils/admin-context-tenant'
 
 const CHART_COLORS = {
   reservas: 'var(--chart-1)',
@@ -74,8 +78,34 @@ function VariacionBadge({ variacion }: { variacion: number | null }) {
 }
 
 export default function EstadisticasPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
+  useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
   const { estadisticas, loading, error, refetch, period, setPeriod } =
-    useEstadisticas('mes')
+    useEstadisticas('mes', { tenantId: tenantIdFromUrl, tenantSlug: tenantSlugFromUrl })
 
   if (loading) {
     return (

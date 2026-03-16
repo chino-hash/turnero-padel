@@ -3,7 +3,9 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import { Button } from '../../../../components/ui/button'
@@ -12,9 +14,9 @@ import { Label } from '../../../../components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../../components/ui/dialog'
 import { Badge } from '../../../../components/ui/badge'
 import { ArrowLeft, Plus, Edit2, Trash2, Package, DollarSign, Archive, ShoppingCart } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { useAppState } from '@/components/providers/AppStateProvider'
+import { setAdminContextTenant, getAdminContextTenant } from '../../../../lib/utils/admin-context-tenant'
 
 interface Producto {
   id: number
@@ -27,6 +29,31 @@ interface Producto {
 
 export default function ProductosPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
+  useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
   const { isDarkMode } = useAppState()
   const [productos, setProductos] = useState<Producto[]>([])
   const [cargando, setCargando] = useState(true)
@@ -112,14 +139,14 @@ export default function ProductosPage() {
     setModalAbierto(true)
   }
 
-  useEffect(() => {
-    cargarProductos()
-  }, [])
-
-  const cargarProductos = async () => {
+  const cargarProductos = useCallback(async () => {
     try {
       setCargando(true)
-      const response = await fetch('/api/productos')
+      const params = new URLSearchParams()
+      if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+      const url = params.toString() ? `/api/productos?${params.toString()}` : '/api/productos'
+      const response = await fetch(url)
       const data = await response.json()
 
       if (data.success) {
@@ -168,7 +195,17 @@ export default function ProductosPage() {
     } finally {
       setCargando(false)
     }
-  }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  const willRedirect =
+    isSuperAdmin &&
+    !tenantIdFromUrl &&
+    !tenantSlugFromUrl &&
+    (getAdminContextTenant().tenantId || getAdminContextTenant().tenantSlug)
+
+  useEffect(() => {
+    if (!willRedirect) cargarProductos()
+  }, [willRedirect, cargarProductos])
 
   const handleGuardarProducto = async (e: React.FormEvent) => {
     e.preventDefault()

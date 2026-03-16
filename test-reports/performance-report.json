@@ -1,20 +1,20 @@
 {
-  "timestamp": "2026-03-06T23:39:35.721Z",
-  "totalRuntime": 0,
+  "timestamp": "2026-03-14T20:32:07.375Z",
+  "totalRuntime": 1134,
   "slowestTests": [
     {
-      "file": "\\__tests__\\app\\api\\admin\\route.test.ts",
-      "runtime": 0,
-      "numTests": 0,
-      "avgTimePerTest": null
+      "file": "\\__tests__\\lib\\services\\bookings\\payment-success-url.test.ts",
+      "runtime": 1134,
+      "numTests": 6,
+      "avgTimePerTest": 189
     }
   ],
   "allTests": [
     {
-      "file": "\\__tests__\\app\\api\\admin\\route.test.ts",
-      "runtime": 0,
-      "numTests": 0,
-      "avgTimePerTest": null
+      "file": "\\__tests__\\lib\\services\\bookings\\payment-success-url.test.ts",
+      "runtime": 1134,
+      "numTests": 6,
+      "avgTimePerTest": 189
     }
   ]
 }

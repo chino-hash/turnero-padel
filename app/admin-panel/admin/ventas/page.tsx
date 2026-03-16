@@ -3,7 +3,8 @@
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../../components/ui/table'
 import { Button } from '../../../../components/ui/button'
@@ -11,9 +12,10 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Badge } from '../../../../components/ui/badge'
 import { ShoppingCart, DollarSign, Package, Calendar, Filter, Download } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useSession } from 'next-auth/react'
 import { useAppState } from '@/components/providers/AppStateProvider'
+import { setAdminContextTenant, getAdminContextTenant } from '../../../../lib/utils/admin-context-tenant'
 
 interface Venta {
   id: string
@@ -53,6 +55,13 @@ interface VentasResponse {
 
 export default function VentasPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
   const { isDarkMode } = useAppState()
   const [ventas, setVentas] = useState<Venta[]>([])
   const [cargando, setCargando] = useState(true)
@@ -76,17 +85,36 @@ export default function VentasPage() {
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string }>>([])
 
   useEffect(() => {
-    cargarProductos()
-    cargarVentas()
-  }, [])
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
 
   useEffect(() => {
-    cargarVentas()
-  }, [pagination.page, filtroProducto, filtroMetodoPago, filtroFechaInicio, filtroFechaFin])
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
 
-  const cargarProductos = async () => {
+  const willRedirect =
+    isSuperAdmin &&
+    !tenantIdFromUrl &&
+    !tenantSlugFromUrl &&
+    (getAdminContextTenant().tenantId || getAdminContextTenant().tenantSlug)
+
+  const cargarProductos = useCallback(async () => {
     try {
-      const response = await fetch('/api/productos')
+      const params = new URLSearchParams()
+      if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+      const url = params.toString() ? `/api/productos?${params.toString()}` : '/api/productos'
+      const response = await fetch(url)
       const data = await response.json()
       if (data.success) {
         setProductos(data.data.map((p: any) => ({ id: p.id, nombre: p.nombre })))
@@ -94,28 +122,21 @@ export default function VentasPage() {
     } catch (error) {
       console.error('Error al cargar productos:', error)
     }
-  }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
 
-  const cargarVentas = async () => {
+  const cargarVentas = useCallback(async () => {
     try {
       setCargando(true)
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
       })
-
-      if (filtroProducto) {
-        params.append('productoId', filtroProducto)
-      }
-      if (filtroMetodoPago) {
-        params.append('paymentMethod', filtroMetodoPago)
-      }
-      if (filtroFechaInicio) {
-        params.append('startDate', filtroFechaInicio)
-      }
-      if (filtroFechaFin) {
-        params.append('endDate', filtroFechaFin)
-      }
+      if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+      if (filtroProducto) params.append('productoId', filtroProducto)
+      if (filtroMetodoPago) params.append('paymentMethod', filtroMetodoPago)
+      if (filtroFechaInicio) params.append('startDate', filtroFechaInicio)
+      if (filtroFechaFin) params.append('endDate', filtroFechaFin)
 
       const response = await fetch(`/api/ventas?${params.toString()}`)
       const data: VentasResponse = await response.json()
@@ -133,7 +154,19 @@ export default function VentasPage() {
     } finally {
       setCargando(false)
     }
-  }
+  }, [pagination.page, filtroProducto, filtroMetodoPago, filtroFechaInicio, filtroFechaFin, tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (willRedirect) return
+    cargarProductos()
+    cargarVentas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar tenant o salir de redirect
+  }, [willRedirect, tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (willRedirect) return
+    cargarVentas()
+  }, [pagination.page, filtroProducto, filtroMetodoPago, filtroFechaInicio, filtroFechaFin, willRedirect, cargarVentas])
 
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {

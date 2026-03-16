@@ -42,7 +42,8 @@ interface UseAnalisisUsuariosReturn {
   refetch: () => Promise<void>
 }
 
-export function useAnalisisUsuarios(): UseAnalisisUsuariosReturn {
+export function useAnalisisUsuarios(options?: { tenantId?: string | null; tenantSlug?: string | null }): UseAnalisisUsuariosReturn {
+  const { tenantId, tenantSlug } = options || {}
   const [analisis, setAnalisis] = useState<AnalisisUsuariosData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +53,11 @@ export function useAnalisisUsuarios(): UseAnalisisUsuariosReturn {
       setLoading(true)
       setError(null)
 
-      const response = await fetch('/api/usuarios/analisis', {
+      const params = new URLSearchParams()
+      if (tenantId) params.set('tenantId', tenantId)
+      else if (tenantSlug) params.set('tenantSlug', tenantSlug)
+      const url = params.toString() ? `/api/usuarios/analisis?${params.toString()}` : '/api/usuarios/analisis'
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -101,7 +106,7 @@ export function useAnalisisUsuarios(): UseAnalisisUsuariosReturn {
 
   useEffect(() => {
     fetchAnalisis()
-  }, [])
+  }, [tenantId, tenantSlug])
 
   return {
     analisis,

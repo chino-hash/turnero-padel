@@ -72,6 +72,8 @@
 - [Admin Turnos 13-11-2025](./admin/admin-turnos-13-11-2025.md)
 - [Modo demo MP y administrador del tenant (2026-03)](./actualizaciones/demo-mp-admin-tenant-2026-03.md) — Sandbox sin credenciales → Mock; ownerEmail en crear/editar tenant; mock-confirm y página de éxito
 - [Admin Canchas: contexto por tenant y navegación (2026-03)](./actualizaciones/admin-canchas-contexto-tenant-2026-03.md) — Super Admin ve solo canchas del tenant; cookie de contexto; Home y enlaces preservan tenant.
+- [Precio del turno por cancha y visualización en Admin Turnos (2026-03)](./actualizaciones/precio-turno-cancha-y-display-admin-2026-03.md) — Cálculo de `totalPrice` por slot (90 min), visualización con `booking.totalPrice` para que la seña coincida.
+- [Mis Turnos: "Pendiente" aunque ya pagado y botón Sincronizar (2026-03)](./actualizaciones/mis-turnos-pendiente-ya-pagado-sincronizar-2026-03.md) — Por qué un turno puede mostrarse Pendiente si ya se pagó; botón "¿Ya pagaste? Sincronizar".
 - Detalle por fecha: [actualizaciones/](./actualizaciones/) (ej. [Pago modal reserva sin fallback MP env](./actualizaciones/pago-modal-reserva-sin-fallback-mp-env-2026-03.md), admin-turnos-una-pagina-sin-paginacion-2026-03, etc.)
 
 ## Despliegue y configuración

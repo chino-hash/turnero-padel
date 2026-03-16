@@ -10,6 +10,7 @@ import { eventEmitters } from '@/lib/sse-events'
 import { clearBookingsCache } from '@/lib/services/courts'
 import { ExpiredBookingsService } from '@/lib/services/bookings/ExpiredBookingsService'
 import { canAccessTenant, getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 
 export const runtime = 'nodejs'
 
@@ -103,6 +104,16 @@ export async function GET(request: NextRequest) {
     // Agregar tenantId al filtro (seguridad en múltiples capas)
     if (!isSuperAdmin && userTenantId) {
       validatedParams.tenantId = userTenantId
+    } else if (isSuperAdmin) {
+      // Super-admin: si viene tenantId o tenantSlug en la URL, filtrar por ese tenant
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) {
+        validatedParams.tenantId = queryTenantId
+      } else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) validatedParams.tenantId = tenant.id
+      }
     }
 
     // Obtener reservas

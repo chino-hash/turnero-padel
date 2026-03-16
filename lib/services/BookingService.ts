@@ -281,6 +281,18 @@ export class BookingService {
     }
   }
 
+  // Duración del slot en minutos desde operatingHours (default 90)
+  private getSlotDurationMinutes(operatingHours: string | null): number {
+    if (!operatingHours) return 90;
+    try {
+      const parsed = JSON.parse(operatingHours);
+      if (parsed && typeof parsed === 'object' && typeof parsed.slot_duration === 'number' && parsed.slot_duration > 0) {
+        return parsed.slot_duration;
+      }
+    } catch {}
+    return 90;
+  }
+
   // Obtener todas las reservas con filtros y paginación
   async getAllBookings(filters: BookingFilters): Promise<PaginatedResponse<BookingWithDetails>> {
     try {
@@ -452,11 +464,11 @@ export class BookingService {
         };
       }
 
-      // Calcular duración y precio
+      // Calcular duración y precio (precio base = precio por turno completo, ej. 90 min)
       const durationMinutes = this.calculateDuration(input.startTime, input.endTime);
       const court = await prisma.court.findUnique({
         where: { id: input.courtId },
-        select: { id: true, tenantId: true, basePrice: true, priceMultiplier: true }
+        select: { id: true, tenantId: true, basePrice: true, priceMultiplier: true, operatingHours: true }
       });
       
       if (!court) {
@@ -467,7 +479,8 @@ export class BookingService {
         };
       }
 
-      const totalPrice = Math.round(court.basePrice * court.priceMultiplier * (durationMinutes / 60));
+      const slotDurationMinutes = this.getSlotDurationMinutes(court.operatingHours);
+      const totalPrice = Math.round(court.basePrice * court.priceMultiplier * (durationMinutes / slotDurationMinutes));
       const percentage = await this.getDepositPercentage(court.tenantId);
       const depositAmount = Math.round(totalPrice * (percentage / 100));
 

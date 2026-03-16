@@ -7,6 +7,7 @@ import { formatZodErrors } from '@/lib/validations/common'
 import { ZodError } from 'zod'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { prisma } from '@/lib/database/neon-config'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 
 export const runtime = 'nodejs'
 
@@ -83,8 +84,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Obtener estadísticas (filtrar por tenant si no es super admin)
-    const tenantIdForStats = isSuperAdmin ? undefined : userTenantId ?? undefined
+    // Obtener estadísticas (filtrar por tenant si no es super admin, o por query si super-admin)
+    let tenantIdForStats: string | undefined = isSuperAdmin ? undefined : (userTenantId ?? undefined)
+    if (isSuperAdmin) {
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) tenantIdForStats = queryTenantId
+      else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) tenantIdForStats = tenant.id
+      }
+    }
     const result = await bookingService.getBookingStats(
       validatedParams.dateFrom,
       validatedParams.dateTo,

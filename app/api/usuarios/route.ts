@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 import { createErrorResponse, createSuccessResponse, calculatePaginationMeta, formatZodErrors } from '@/lib/validations/common'
 import { usuariosListQuerySchema } from '@/lib/validations/usuarios'
 import { getUmbralesCategoria, getCategoriaFromReservas } from '@/lib/services/categorias-usuario'
@@ -18,16 +19,24 @@ export async function GET(request: NextRequest) {
     if (!isAdmin && !isSuper) {
       return NextResponse.json(createErrorResponse('No autorizado'), { status: 401 })
     }
+    const { searchParams } = new URL(request.url)
     let tenantId = await getUserTenantIdSafe(session.user as PermissionsUser)
     if (!tenantId && isSuper) {
-      const xTenantId = request.headers.get('x-tenant-id')
-      if (xTenantId) tenantId = xTenantId
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) tenantId = queryTenantId
+      else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) tenantId = tenant.id
+      }
+      if (!tenantId) {
+        const xTenantId = request.headers.get('x-tenant-id')
+        if (xTenantId) tenantId = xTenantId
+      }
     }
     if (!tenantId) {
       return NextResponse.json(createErrorResponse('Contexto de tenant no disponible'), { status: 403 })
     }
-
-    const { searchParams } = new URL(request.url)
     const query = Object.fromEntries(searchParams.entries())
     const parsed = usuariosListQuerySchema.safeParse(query)
     if (!parsed.success) {

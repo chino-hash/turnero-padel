@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
 import { Badge } from '../../../../components/ui/badge'
@@ -13,6 +15,7 @@ import { Users, Star, Gift, TrendingUp, Calendar, RefreshCw, AlertCircle, Plus, 
 import { useAnalisisUsuarios } from '../../../../hooks/useAnalisisUsuarios'
 import { useUsuariosList, type UsuarioListItem } from '../../../../hooks/useUsuariosList'
 import { toast } from 'sonner'
+import { setAdminContextTenant, getAdminContextTenant } from '../../../../lib/utils/admin-context-tenant'
 
 interface ProductoOption {
   id: number
@@ -60,7 +63,33 @@ const DEFAULTS_CATEGORIAS: Record<string, { requisitos: string; beneficios: stri
 }
 
 export default function UsuariosPage() {
-  const { analisis, loading, error, refetch } = useAnalisisUsuarios()
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+
+  useEffect(() => {
+    if (tenantIdFromUrl || tenantSlugFromUrl) {
+      setAdminContextTenant(tenantIdFromUrl, tenantSlugFromUrl)
+    }
+  }, [tenantIdFromUrl, tenantSlugFromUrl])
+
+  useEffect(() => {
+    if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    const { tenantId, tenantSlug } = getAdminContextTenant()
+    if (tenantId) {
+      router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
+      return
+    }
+    if (tenantSlug) {
+      router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
+    }
+  }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
+
+  const { analisis, loading, error, refetch } = useAnalisisUsuarios({ tenantId: tenantIdFromUrl, tenantSlug: tenantSlugFromUrl })
   const [consumibles, setConsumibles] = useState<Consumible[]>([])
   const [loadingConsumibles, setLoadingConsumibles] = useState(true)
   const [errorConsumibles, setErrorConsumibles] = useState<string | null>(null)
@@ -91,12 +120,16 @@ export default function UsuariosPage() {
 
   useEffect(() => {
     if (showConsumibleModal) {
-      fetch('/api/productos', { credentials: 'include' })
+      const params = new URLSearchParams()
+      if (tenantIdFromUrl) params.set('tenantId', tenantIdFromUrl)
+      else if (tenantSlugFromUrl) params.set('tenantSlug', tenantSlugFromUrl)
+      const url = params.toString() ? `/api/productos?${params.toString()}` : '/api/productos'
+      fetch(url, { credentials: 'include' })
         .then((r) => r.json())
         .then((json) => { if (json?.success && Array.isArray(json.data)) setProductos(json.data) })
         .catch(() => {})
     }
-  }, [showConsumibleModal])
+  }, [showConsumibleModal, tenantIdFromUrl, tenantSlugFromUrl])
 
   const [listPage, setListPage] = useState(1)
   const [listLimit] = useState(10)
@@ -118,6 +151,8 @@ export default function UsuariosPage() {
     q: listQDebounced || undefined,
     categoria: listCategoria ? (listCategoria as 'VIP' | 'Premium' | 'Regular') : undefined,
     actividad: listActividad ? (listActividad as 'activos' | 'inactivos' | 'nuevos') : undefined,
+    tenantId: tenantIdFromUrl,
+    tenantSlug: tenantSlugFromUrl,
   }
   const { data: usuariosList, meta: usuariosMeta, loading: listLoading, error: listError, refetch: refetchList } = useUsuariosList(listParams)
   const toggleSort = useCallback((by: string) => {

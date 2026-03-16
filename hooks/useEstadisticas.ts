@@ -45,7 +45,16 @@ export interface UseEstadisticasReturn {
   setPeriod: (p: Period) => void
 }
 
-export function useEstadisticas(initialPeriod: Period = 'mes'): UseEstadisticasReturn {
+export interface UseEstadisticasOptions {
+  tenantId?: string | null
+  tenantSlug?: string | null
+}
+
+export function useEstadisticas(
+  initialPeriod: Period = 'mes',
+  options?: UseEstadisticasOptions
+): UseEstadisticasReturn {
+  const { tenantId, tenantSlug } = options || {}
   const [period, setPeriod] = useState<Period>(initialPeriod)
   const [estadisticas, setEstadisticas] = useState<EstadisticasData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -58,6 +67,8 @@ export function useEstadisticas(initialPeriod: Period = 'mes'): UseEstadisticasR
 
       const url = new URL('/api/estadisticas', window.location.origin)
       url.searchParams.set('period', period)
+      if (tenantId) url.searchParams.set('tenantId', tenantId)
+      else if (tenantSlug) url.searchParams.set('tenantSlug', tenantSlug)
 
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -82,7 +93,7 @@ export function useEstadisticas(initialPeriod: Period = 'mes'): UseEstadisticasR
     } finally {
       setLoading(false)
     }
-  }, [period])
+  }, [period, tenantId, tenantSlug])
 
   useEffect(() => {
     fetchEstadisticas()

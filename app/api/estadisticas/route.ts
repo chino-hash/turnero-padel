@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
-import { getUserTenantIdSafe, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 import {
   createSuccessResponse,
   createErrorResponse,
@@ -91,15 +92,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const tenantId = await getUserTenantIdSafe(user)
+    const { searchParams } = new URL(request.url)
+    let tenantId = await getUserTenantIdSafe(user)
+    if (!tenantId && (await isSuperAdminUser(user))) {
+      const queryTenantId = searchParams.get('tenantId')?.trim() || null
+      const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+      if (queryTenantId) tenantId = queryTenantId
+      else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (tenant) tenantId = tenant.id
+      }
+    }
     if (!tenantId) {
       return NextResponse.json(
         createErrorResponse('No se pudo determinar el tenant actual'),
         { status: 403 }
       )
     }
-
-    const { searchParams } = new URL(request.url)
     let period: Period = 'mes'
     try {
       const parsed = estadisticasQuerySchema.parse({

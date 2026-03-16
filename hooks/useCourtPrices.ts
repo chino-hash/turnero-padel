@@ -12,8 +12,8 @@ interface Court {
   description?: string
 }
 
-export function useCourtPrices(options?: { publicView?: boolean }) {
-  const { publicView = false } = options || {}
+export function useCourtPrices(options?: { publicView?: boolean; tenantId?: string | null; tenantSlug?: string | null }) {
+  const { publicView = false, tenantId, tenantSlug } = options || {}
   const [courts, setCourts] = useState<Court[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +21,11 @@ export function useCourtPrices(options?: { publicView?: boolean }) {
   // Función para obtener precios iniciales
   const fetchCourts = async (signal?: AbortSignal) => {
     try {
-      const url = publicView ? '/api/courts?view=public' : '/api/courts'
+      const params = new URLSearchParams()
+      if (publicView) params.set('view', 'public')
+      if (tenantId) params.set('tenantId', tenantId)
+      else if (tenantSlug) params.set('tenantSlug', tenantSlug)
+      const url = params.toString() ? `/api/courts?${params.toString()}` : '/api/courts'
       const response = await fetch(url, {
         credentials: 'include',
         signal
@@ -87,7 +91,7 @@ export function useCourtPrices(options?: { publicView?: boolean }) {
         }
       }
     }
-  }, [])
+  }, [tenantId, tenantSlug])
 
   return {
     courts,

@@ -84,6 +84,7 @@ export default function TenantDetailPage() {
   const [depositPercentage, setDepositPercentage] = useState('50')
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string; precio: number; categoria: string }>>([])
   const [productosLoading, setProductosLoading] = useState(false)
+  const [hasMercadoPagoCredentials, setHasMercadoPagoCredentials] = useState(false)
 
   useEffect(() => {
     if (!newTenant && tenantId) {
@@ -182,13 +183,14 @@ export default function TenantDetailPage() {
             ? new Date(tenant.subscriptionExpiresAt).toISOString().split('T')[0]
             : null,
           ownerEmail: tenant.ownerEmail ?? null,
-          mercadoPagoEnabled: tenant.mercadoPagoEnabled ?? false,
-          mercadoPagoEnvironment: tenant.mercadoPagoEnvironment || 'sandbox',
+          mercadoPagoEnabled: Boolean(tenant.mercadoPagoEnabled),
+          mercadoPagoEnvironment: (tenant.mercadoPagoEnvironment === 'production' ? 'production' : 'sandbox') as 'sandbox' | 'production',
           // Las credenciales vienen encriptadas, no las mostramos
           mercadoPagoAccessToken: null,
           mercadoPagoPublicKey: null,
           mercadoPagoWebhookSecret: null,
         })
+        setHasMercadoPagoCredentials(Boolean((tenant as { hasMercadoPagoCredentials?: boolean }).hasMercadoPagoCredentials))
       } else {
         throw new Error(data.error || 'Error al cargar tenant')
       }
@@ -240,11 +242,11 @@ export default function TenantDetailPage() {
       const payload: any = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
-        isActive: formData.isActive,
+        isActive: Boolean(formData.isActive),
         subscriptionPlan: formData.subscriptionPlan?.trim() || null,
         subscriptionExpiresAt: formData.subscriptionExpiresAt || null,
-        mercadoPagoEnabled: formData.mercadoPagoEnabled,
-        mercadoPagoEnvironment: formData.mercadoPagoEnvironment || 'sandbox',
+        mercadoPagoEnabled: Boolean(formData.mercadoPagoEnabled),
+        mercadoPagoEnvironment: formData.mercadoPagoEnvironment === 'production' ? 'production' : 'sandbox',
       }
       if (newTenant) {
         payload.ownerEmail = formData.ownerEmail?.trim() || undefined
@@ -714,7 +716,7 @@ export default function TenantDetailPage() {
               <Switch
                 id="mercadoPagoEnabled"
                 checked={formData.mercadoPagoEnabled}
-                onCheckedChange={(checked) => handleChange('mercadoPagoEnabled', checked)}
+                onCheckedChange={(checked) => handleChange('mercadoPagoEnabled', checked === true)}
               />
               <Label htmlFor="mercadoPagoEnabled" className="cursor-pointer">
                 Habilitar Mercado Pago
@@ -723,6 +725,11 @@ export default function TenantDetailPage() {
 
             {formData.mercadoPagoEnabled && (
               <>
+                {hasMercadoPagoCredentials && (
+                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                    Ya hay credenciales guardadas (no se muestran por seguridad). Deje los campos en blanco para conservarlas, o complete para actualizarlas.
+                  </p>
+                )}
                 <div>
                   <Label htmlFor="mercadoPagoEnvironment">Ambiente</Label>
                   <Select

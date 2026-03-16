@@ -5,7 +5,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -40,6 +41,7 @@ import Link from 'next/link'
 import { useAppState } from '../../../components/providers/AppStateProvider'
 import { useBookings } from '../../../hooks/useBookings'
 import { useDashboardRealTimeUpdates } from '../../../hooks/useRealTimeUpdates'
+import { getAdminContextTenant } from '../../../lib/utils/admin-context-tenant'
 import { toast } from 'react-hot-toast'
 
 // Funciones auxiliares para colores
@@ -114,6 +116,14 @@ interface Extra {
 
 export default function AdminDashboard() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { data: session } = useSession()
+  const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
+  const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+  const { tenantId: tenantIdCookie, tenantSlug: tenantSlugCookie } = getAdminContextTenant()
+  const tenantId = tenantIdFromUrl || tenantIdCookie
+  const tenantSlug = tenantSlugFromUrl || tenantSlugCookie
+
   const { courts, slotsForRender, isUnifiedView, selectedDate, setSelectedDate, refreshMultipleSlots, refreshSlots, isDarkMode } = useAppState()
 
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -226,10 +236,16 @@ export default function AdminDashboard() {
         const now = new Date()
         const end7 = new Date(now)
         end7.setDate(now.getDate() + 7)
+        const tenantParams = new URLSearchParams()
+        if (tenantId) tenantParams.set('tenantId', tenantId)
+        else if (tenantSlug) tenantParams.set('tenantSlug', tenantSlug)
+        const tenantQs = tenantParams.toString()
+        const estadUrl = tenantQs ? `/api/estadisticas?${tenantQs}` : '/api/estadisticas'
+        const bookingsQs = `dateFrom=${encodeURIComponent(now.toISOString())}&dateTo=${encodeURIComponent(end7.toISOString())}&limit=200&sortOrder=asc${tenantQs ? `&${tenantQs}` : ''}`
         const [estadRes, crudRes, upcomingRes] = await Promise.all([
-          fetch('/api/estadisticas'),
+          fetch(estadUrl),
           fetch('/api/crud/stats?model=user'),
-          fetch(`/api/bookings?dateFrom=${encodeURIComponent(now.toISOString())}&dateTo=${encodeURIComponent(end7.toISOString())}&limit=200&sortOrder=asc`)
+          fetch(`/api/bookings?${bookingsQs}`)
         ])
         const estad = await estadRes.json()
         const crud = await crudRes.json()
@@ -257,7 +273,7 @@ export default function AdminDashboard() {
       }
     }
     load()
-  }, [])
+  }, [tenantId, tenantSlug])
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -301,7 +317,12 @@ export default function AdminDashboard() {
     loadSettings()
   }, [])
 
-  const bookingsApi = useBookings({ initialFilters: { limit: 50 }, autoFetch: true })
+  const bookingsApi = useBookings({
+    initialFilters: { limit: 50 },
+    autoFetch: true,
+    tenantId: tenantId || undefined,
+    tenantSlug: tenantSlug || undefined
+  })
 
   useDashboardRealTimeUpdates({
     enabled: false,

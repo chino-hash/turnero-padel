@@ -1,7 +1,9 @@
 /**
- * Servicio para cancelar reservas PENDING con expiresAt pasada.
+ * Servicio para cancelar reservas PENDING que ya no aplican como "pendientes":
+ * - Con expiresAt pasada (tiempo límite de pago)
+ * - Con slot ya pasado (bookingDate + endTime < now) sin pago — turnos viejos mal etiquetados
  *
- * Se invoca de forma lazy al consultar /api/slots y /api/bookings/availability (por tenant),
+ * Se invoca de forma lazy al consultar /api/slots, /api/bookings/availability y /api/bookings/user (por tenant),
  * y como respaldo 1 vez al día vía cron en /api/jobs/cancel-expired-bookings.
  *
  * Soporta multitenancy: puede procesar un tenant específico o todos los tenants (solo super admin).
@@ -11,9 +13,18 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../database/neon-config';
 import { buildExpiredPendingWithoutPaymentsWhere } from './expired-bookings-where';
 
+/** Devuelve el instante de fin del slot (bookingDate + endTime) en hora local. */
+function getSlotEnd(bookingDate: Date, endTime: string): Date {
+  const end = new Date(bookingDate);
+  const [h, m] = String(endTime || '00:00').split(':').map(Number);
+  end.setHours(h ?? 0, m ?? 0, 0, 0);
+  return end;
+}
+
 export class ExpiredBookingsService {
   /**
-   * Cancela todas las reservas que han expirado sin pago
+   * Cancela todas las reservas PENDING sin pago que han expirado (expiresAt) o cuyo slot ya pasó.
+   * Así los turnos viejos no pagados/cancelados dejan de mostrarse como "Pendiente" en Mis Turnos.
    * @param tenantId - ID del tenant (opcional). Si no se proporciona, procesa todos los tenants (solo para super admin)
    * @returns Número de reservas canceladas
    */
@@ -21,11 +32,9 @@ export class ExpiredBookingsService {
     const now = new Date();
 
     try {
-      // PENDING, expiradas, y sin ningún pago (no cancelar si ya hay pago y el webhook no actualizó aún)
+      // 1) Cancelar por expiresAt pasada (comportamiento existente)
       const whereClause = buildExpiredPendingWithoutPaymentsWhere(now, tenantId ?? undefined);
-
-      // Buscar reservas expiradas con status PENDING y sin pagos (where viene de JS, castear a tipo Prisma)
-      const expiredBookings = await prisma.booking.findMany({
+      const expiredByPaymentWindow = await prisma.booking.findMany({
         where: whereClause as Prisma.BookingWhereInput,
         select: {
           id: true,
@@ -37,31 +46,52 @@ export class ExpiredBookingsService {
         }
       });
 
-      if (expiredBookings.length === 0) {
+      const toCancelIds = new Set(expiredByPaymentWindow.map(b => b.id));
+
+      // 2) Cancelar PENDING sin pago cuyo slot ya pasó (turnos viejos mal etiquetados como pending)
+      const cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() - 90);
+      const pendingNoPaymentWhere: Prisma.BookingWhereInput = {
+        status: 'PENDING',
+        payments: { none: {} },
+        bookingDate: { gte: cutoff }
+      };
+      if (tenantId) pendingNoPaymentWhere.tenantId = tenantId;
+
+      const pendingSlots = await prisma.booking.findMany({
+        where: pendingNoPaymentWhere,
+        select: {
+          id: true,
+          bookingDate: true,
+          endTime: true
+        }
+      });
+
+      for (const b of pendingSlots) {
+        if (toCancelIds.has(b.id)) continue;
+        const slotEnd = getSlotEnd(b.bookingDate, b.endTime);
+        if (slotEnd < now) toCancelIds.add(b.id);
+      }
+
+      if (toCancelIds.size === 0) {
         return 0;
       }
 
-      // Cancelar solo las que siguen PENDING, expiradas y sin pagos
       const result = await prisma.booking.updateMany({
         where: {
-          id: {
-            in: expiredBookings.map(b => b.id)
-          },
-          status: 'PENDING',
-          expiresAt: {
-            lt: now
-          }
+          id: { in: Array.from(toCancelIds) },
+          status: 'PENDING'
         },
         data: {
           status: 'CANCELLED',
           cancelledAt: now,
-          cancellationReason: 'Timeout: pago no completado dentro del tiempo límite',
+          cancellationReason: 'Timeout: pago no completado dentro del tiempo límite o turno ya pasado',
           updatedAt: now
         }
       });
 
       const tenantInfo = tenantId ? ` (tenant: ${tenantId})` : ' (todos los tenants)';
-      console.log(`[ExpiredBookingsService] Canceladas ${result.count} reservas expiradas${tenantInfo}`);
+      console.log(`[ExpiredBookingsService] Canceladas ${result.count} reservas expiradas/slot pasado${tenantInfo}`);
 
       return result.count;
     } catch (error) {
