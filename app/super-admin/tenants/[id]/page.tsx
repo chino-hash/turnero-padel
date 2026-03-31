@@ -226,14 +226,17 @@ export default function TenantDetailPage() {
         return
       }
 
-      // Validar credenciales de MP si está habilitado (en production son obligatorias; en sandbox se permite modo demo sin credenciales)
+      // Validar credenciales de MP si está habilitado (en production son obligatorias si aún no hay ninguna guardada; en sandbox se permite modo demo sin credenciales)
       const isSandbox = (formData.mercadoPagoEnvironment || 'sandbox') === 'sandbox'
       if (formData.mercadoPagoEnabled && !isSandbox) {
-        if (!formData.mercadoPagoAccessToken?.trim()) {
+        const missingToken = !formData.mercadoPagoAccessToken?.trim()
+        const missingPk = !formData.mercadoPagoPublicKey?.trim()
+        // Si ya hay credenciales en BD, los campos vacíos conservan los valores (mismo criterio que el texto del formulario)
+        if (missingToken && !hasMercadoPagoCredentials) {
           toast.error('El Access Token de Mercado Pago es requerido en ambiente production')
           return
         }
-        if (!formData.mercadoPagoPublicKey?.trim()) {
+        if (missingPk && !hasMercadoPagoCredentials) {
           toast.error('La Public Key de Mercado Pago es requerida en ambiente production')
           return
         }
