@@ -5,6 +5,7 @@ import { tryEncrypt } from '@/lib/encryption/credential-encryption'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { invalidateTenantProviderCache } from '@/lib/services/payments/PaymentProviderFactory'
 import { ensureCourtsForPlan } from '@/lib/services/tenants/bootstrap'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -224,19 +225,33 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (validated.ownerEmail !== undefined && validated.ownerEmail?.trim()) {
       const email = validated.ownerEmail.trim().toLowerCase()
-      await prisma.adminWhitelist.upsert({
-        where: {
-          email_tenantId: { email, tenantId: id },
-        },
-        create: {
-          tenantId: id,
-          email,
-          role: 'ADMIN',
-          isActive: true,
-          notes: 'Admin del tenant (actualizado desde edición)',
-        },
-        update: { isActive: true, role: 'ADMIN' },
-      })
+      try {
+        await prisma.adminWhitelist.upsert({
+          where: {
+            email_tenantId: { email, tenantId: id },
+          },
+          create: {
+            tenantId: id,
+            email,
+            role: 'ADMIN',
+            isActive: true,
+            notes: 'Admin del tenant (actualizado desde edición)',
+          },
+          update: { isActive: true, role: 'ADMIN' },
+        })
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'No se pudo asociar el admin por una restricción única en la base de datos. Ejecute la migración para permitir el mismo email en distintos tenants.',
+            },
+            { status: 409 }
+          )
+        }
+        throw error
+      }
     }
 
     // Asegurar canchas según plan solo cuando el superadmin editó el plan (no pisar datos que el admin del tenant configuró)

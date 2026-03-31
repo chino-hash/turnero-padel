@@ -6,6 +6,7 @@ import { tryEncrypt } from '@/lib/encryption/credential-encryption'
 import { getCourtFeaturesByIndex } from '@/lib/court-colors'
 import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -171,19 +172,33 @@ export async function POST(request: NextRequest) {
 
     if (ownerEmailTrimmed) {
       const email = ownerEmailTrimmed.toLowerCase()
-      await prisma.adminWhitelist.upsert({
-        where: {
-          email_tenantId: { email, tenantId: tenant.id },
-        },
-        create: {
-          tenantId: tenant.id,
-          email,
-          role: 'ADMIN',
-          isActive: true,
-          notes: 'Admin del tenant (creado al crear tenant)',
-        },
-        update: { isActive: true, role: 'ADMIN' },
-      })
+      try {
+        await prisma.adminWhitelist.upsert({
+          where: {
+            email_tenantId: { email, tenantId: tenant.id },
+          },
+          create: {
+            tenantId: tenant.id,
+            email,
+            role: 'ADMIN',
+            isActive: true,
+            notes: 'Admin del tenant (creado al crear tenant)',
+          },
+          update: { isActive: true, role: 'ADMIN' },
+        })
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                'No se pudo asociar el admin por una restricción única en la base de datos. Ejecute la migración para permitir el mismo email en distintos tenants.',
+            },
+            { status: 409 }
+          )
+        }
+        throw error
+      }
     }
 
     // Crear canchas por defecto según plan (3 / 6 / 9) y home_card_settings inicial.
