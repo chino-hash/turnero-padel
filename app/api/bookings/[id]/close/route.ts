@@ -130,24 +130,43 @@ export async function POST(
     }
 
     // Evitar re-cerrar
-    if (current.data.status === 'COMPLETED') {
+    if (current.data.closedAt) {
       return NextResponse.json(
         { success: false, error: 'La reserva ya está cerrada' },
         { status: 400 }
       )
     }
 
-    // Actualizar estado a COMPLETED
-    const result = await bookingService.updateBooking(
-      bookingId,
-      { status: 'COMPLETED' },
-      session.user.id,
-      session.user.role
-    )
+    // Flujo en 2 etapas: solo permitir cierre si antes fue terminado (COMPLETED).
+    if (current.data.status !== 'COMPLETED') {
+      return NextResponse.json(
+        { success: false, error: 'Primero debes terminar el turno para poder cerrarlo' },
+        { status: 400 }
+      )
+    }
 
-    if (!result.success) {
-      const statusCode = result.error?.includes('permisos') ? 403 : 400
-      return NextResponse.json(result, { status: statusCode })
+    // Cierre definitivo: marcar closedAt (sin cambiar el estado, que ya debe ser COMPLETED).
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        closedAt: new Date(),
+        closedById: session.user.id,
+        updatedAt: new Date()
+      }
+    })
+
+    const refreshed = await bookingService.getBookingById(bookingId)
+    if (!refreshed.success || !refreshed.data) {
+      return NextResponse.json(
+        { success: false, error: 'No se pudo obtener la reserva cerrada' },
+        { status: 500 }
+      )
+    }
+
+    const result = {
+      success: true,
+      data: refreshed.data,
+      message: 'Reserva cerrada definitivamente'
     }
 
     // Emitir SSE

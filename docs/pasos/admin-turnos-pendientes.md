@@ -33,7 +33,7 @@ La pestaña Turnos permite ver reservas, crear nuevas (puntuales y recurrentes),
 - [x] **Exportación:** botón Exportar, CSV con filtros activos (UTF-8 BOM)
 - [x] **Tiempo real:** polling cada 45 s con Page Visibility y limpieza al desmontar
 - [x] **Toasts:** sonner en página turnos y AdminTurnos (sustitución de alert())
-- [x] **Terminar turno / Cerrar turno:** dos botones por categoría y saldo; PUT acepta COMPLETED sin pago completo
+- [x] **Terminar turno / Cerrar turno:** flujo en 2 etapas. `Terminar turno` pasa a `COMPLETED` sin exigir pago completo; `Cerrar turno` solo con saldo 0 y registra `closedAt` (cierre definitivo)
 - [x] **Confirmación al pagar depósito:** SystemSetting `depositConfirmPercent` por tenant; auto CONFIRMED al alcanzar el % en PATCH pago jugador
 - [x] **Una sola página sin paginación global:** lista con hasta 500 turnos, cuatro secciones visibles (Pendientes, Confirmados, En curso, Cerrados), sin "Página X de Y" ni Anterior/Siguiente. Ver [admin-turnos-una-pagina-sin-paginacion-2026-03.md](../actualizaciones/admin-turnos-una-pagina-sin-paginacion-2026-03.md).
 - [x] **Sección TURNOS CERRADOS:** colapsable por defecto; limpieza a las 06:00 del día siguiente. Ver [admin-turnos-cerrados-colapsable-limpieza-2026-03.md](../actualizaciones/admin-turnos-cerrados-colapsable-limpieza-2026-03.md).
@@ -52,3 +52,4 @@ La pestaña Turnos permite ver reservas, crear nuevas (puntuales y recurrentes),
 - Skill dominio: `.cursor/skills/turnero-padel-domain/SKILL.md`
 - Estados de reserva: `lib/booking-status-map.ts`, `types/booking.ts`
 - APIs: `/api/bookings`, `/api/bookings/stats`, `/api/users/search`, `/api/recurring-bookings`, `/api/recurring-exceptions`
+- Definición de cierre: `COMPLETED` sin `closedAt` = terminado; `COMPLETED` con `closedAt` = cerrado definitivamente

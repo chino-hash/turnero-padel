@@ -455,10 +455,8 @@ export class BookingRepository {
         updateData.cancelledAt = new Date();
       }
 
-      // Si se está completando, agregar timestamp de cierre
-      if (data.status === 'COMPLETED') {
-        updateData.closedAt = new Date();
-      }
+      // No cerrar automáticamente al completar:
+      // el cierre definitivo (closedAt) se gestiona vía endpoint /close.
 
       // Actualizar la reserva
       await tx.booking.update({

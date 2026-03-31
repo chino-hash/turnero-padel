@@ -25,6 +25,11 @@ Resumen de la implementación del plan "Admin Turnos Pendientes": métricas real
   - **Terminar turno:** visible cuando la categoría del turno es `in_progress` o `awaiting_completion`. Al clic: PUT `status: COMPLETED`. No se exige pago completo.
   - **Cerrar turno:** visible cuando `pendingBalance === 0`, `status === 'completado'` y no hay `closedAt`. Al clic: POST `/api/bookings/:id/close`. Si ya está cerrado se muestra texto "Cerrado".
   - Backend PUT `/api/bookings/[id]`: acepta `status: COMPLETED` sin exigir pago completo cuando la petición es de un admin.
+  - Backend `/api/bookings/[id]/close`: solo permite cierre definitivo si el turno ya está en `COMPLETED`, terminó el horario y no hay saldo pendiente; el cierre definitivo se representa con `closedAt`.
+
+**Definición de estados en este flujo:**
+- `COMPLETED` + `closedAt = null`: turno terminado (intermedio, sección **TURNOS COMPLETADOS**).
+- `COMPLETED` + `closedAt != null`: turno cerrado definitivamente (sección **TURNOS CERRADOS**).
 
 **Archivos:** `components/AdminTurnos.tsx`, `app/api/bookings/[id]/route.ts` (validación de status).
 

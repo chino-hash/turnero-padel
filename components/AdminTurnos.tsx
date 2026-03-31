@@ -875,7 +875,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const updateBookingStatus = async (bookingId: string, newStatus: Booking['status']) => {
     const current = bookings.find(b => b.id === bookingId)
     if (!current) return
-    // updateBookingStatus se mantiene por si otros flujos lo usan; el cierre explícito del admin es vía closeBooking (POST /close)
+    // updateBookingStatus se usa para "Terminar turno" (paso intermedio a COMPLETED).
+    // El cierre definitivo del admin sigue siendo vía closeBooking (POST /close).
     const previousStatus = current.status
     setBookings(prev => prev.map(b => (b.id === bookingId ? { ...b, status: newStatus } : b)))
     try {
@@ -1370,10 +1371,24 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           </Button>
           {(() => {
             const cat = getCategoryAndRemaining(booking).category
-            const isClosed = booking.status === 'completado' && !!booking.closedAt
-            const canCerrarTurno = pendingBalance === 0 && (cat === 'awaiting_completion' || (booking.status === 'completado' && !booking.closedAt))
+            const isCompleted = booking.status === 'completado'
+            const isClosed = isCompleted && !!booking.closedAt
+            const canTerminarTurno = (cat === 'in_progress' || cat === 'awaiting_completion') && !isCompleted
+            const canCerrarTurno = isCompleted && !booking.closedAt && pendingBalance === 0
             return (
               <>
+                {canTerminarTurno && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateBookingStatus(booking.id, 'completado')}
+                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    data-testid={`admin-terminar-turno-btn-${idx + 1}`}
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Terminar turno
+                  </Button>
+                )}
                 {canCerrarTurno && (
                   <Button
                     variant="outline"

@@ -5,7 +5,7 @@
 
 ## Resumen
 
-En el panel de administración de turnos ocurrían dos problemas: (1) al marcar un jugador como pagado con el toggle, el turno pasaba solo a "turnos terminados" aunque hubiera saldo pendiente; (2) existía un botón "Terminar turno" que pasaba el turno a completado sin exigir saldo en cero ni cierre explícito del admin. Se corrigió preservando el estado del turno al actualizar pagos y unificando el cierre en un único botón "Cerrar turno" que solo se activa con saldo pendiente en cero y requiere confirmación del admin (POST `/api/bookings/[id]/close`).
+En el panel de administración de turnos ocurrían dos problemas: (1) al marcar un jugador como pagado con el toggle, el turno pasaba solo a "turnos terminados" aunque hubiera saldo pendiente; (2) el flujo entre **terminar** y **cerrar** turno quedó inconsistente entre UI, backend y documentación. Se corrigió preservando el estado del turno al actualizar pagos y dejando un flujo de **2 etapas**: `Terminar turno` (sin exigir saldo 0) y `Cerrar turno` (solo con saldo 0).
 
 ---
 
@@ -18,17 +18,19 @@ En el panel de administración de turnos ocurrían dos problemas: (1) al marcar 
 
 ### 1.2 Flujo de cierre incorrecto
 
-- El botón "Terminar turno" hacía un PUT con `status: 'COMPLETED'` sin validar saldo pendiente.
-- El turno podía quedar en "completados" con deuda pendiente y sin que el admin tuviera que cerrarlo de forma explícita.
-- Lo deseado: que el turno solo pase a terminados cuando (a) el saldo pendiente sea cero y (b) el admin cierre con un botón que llame al endpoint de cierre (POST `/close`), con confirmación en modal.
+- El flujo de cierre quedó ambiguo: había documentación y código que trataban `COMPLETED` como cierre final y otros como estado intermedio.
+- Lo deseado: flujo de 2 pasos explícito:
+  1. `Terminar turno` -> `status: COMPLETED` (sin `closedAt`, no exige saldo en cero).
+  2. `Cerrar turno` -> requiere saldo 0 y registra `closedAt` (cierre definitivo).
 
 ---
 
 ## 2. Enfoque de la solución
 
 1. **Al aplicar la respuesta del toggle (PATCH o PUT fallback):** no reemplazar el booking por la respuesta tal cual; hacer merge conservando `status` y `closedAt` del booking actual en la lista. Así el turno nunca cambia de sección solo por marcar/desmarcar un pago.
-2. **Eliminar** el botón "Terminar turno" que hacía PUT a COMPLETED sin validar saldo.
-3. **Un solo botón "Cerrar turno":** mostrarlo solo cuando el saldo pendiente sea 0 y se cumpla una de: (a) el horario del turno ya finalizó (`awaiting_completion`), o (b) turno legacy ya en estado completado pero sin `closedAt`. Al hacer clic, abrir el modal de confirmación y, al confirmar, llamar a `closeBooking` (POST `/api/bookings/[id]/close`).
+2. **Restaurar el flujo de 2 etapas en UI:** reintroducir `Terminar turno` para categorías `in_progress` y `awaiting_completion`; el botón ejecuta PUT con `status: COMPLETED` sin exigir saldo en cero.
+3. **Cerrar turno solo en completados con saldo 0:** mostrarlo únicamente cuando `status === 'completado'`, `closedAt` vacío y `pendingBalance === 0`. Al confirmar, llamar a `closeBooking` (POST `/api/bookings/[id]/close`).
+4. **Separar backend entre completado y cerrado:** `COMPLETED` ya no setea `closedAt` automáticamente; `/close` es el único flujo que marca cierre definitivo.
 4. **Rate limit 429:** ante 429 en el toggle, revertir el optimistic update y mostrar un toast para que el usuario reintente.
 
 ---
@@ -56,19 +58,22 @@ En el panel de administración de turnos ocurrían dos problemas: (1) al marcar 
   - Se muestra un toast: "Demasiadas solicitudes; reintentá en un momento."
   - Se mantiene el `return` para no reintentar el PATCH en ese mismo flujo; el `finally` sigue limpiando `inFlightUpdates`.
 
-### 3.3 Botón "Terminar turno" eliminado y "Cerrar turno" con condiciones
+### 3.3 Flujo de 2 etapas: "Terminar turno" y "Cerrar turno" con condiciones
 
 **Archivo:** `components/AdminTurnos.tsx`  
 **Sección:** botones de acción en el contenido expandido del turno
 
-- **Eliminado:** el botón "Terminar turno" que llamaba a `updateBookingStatus(booking.id, 'completado')` (PUT con status COMPLETED sin validar saldo).
-- **Condición del botón "Cerrar turno":**
-  - `pendingBalance === 0`, y
-  - una de:
-    - `category === 'awaiting_completion'` (el horario del turno ya finalizó), o
-    - `booking.status === 'completado' && !booking.closedAt` (caso legacy: turno ya marcado completado pero aún no cerrado).
-- Al hacer clic en "Cerrar turno" se abre el modal de confirmación existente y, al confirmar, se llama a `closeBooking(bookingId)` (POST `/api/bookings/[id]/close`). El backend valida que el turno haya finalizado y que no haya saldo pendiente.
-- No se muestra "Cerrar turno" durante `in_progress` (turno aún en horario), porque el endpoint `/close` rechaza con "El turno aún no finalizó".
+- **Terminar turno:** visible cuando la categoría es `in_progress` o `awaiting_completion`, mientras la reserva no esté ya completada. Ejecuta `updateBookingStatus(booking.id, 'completado')`.
+- **Cerrar turno:** visible únicamente cuando:
+  - `booking.status === 'completado'`,
+  - `!booking.closedAt`,
+  - `pendingBalance === 0`.
+- Al hacer clic en "Cerrar turno" se abre el modal de confirmación existente y, al confirmar, se llama a `closeBooking(bookingId)` (POST `/api/bookings/[id]/close`).
+- El endpoint `/close` valida que:
+  - el turno haya finalizado,
+  - no exista saldo pendiente,
+  - el turno esté previamente en `COMPLETED`,
+  - y no esté ya cerrado (`closedAt`).
 
 ### 3.4 Comentario en `updateBookingStatus`
 
@@ -82,10 +87,10 @@ En el panel de administración de turnos ocurrían dos problemas: (1) al marcar 
 
 ## 4. Flujo resultante
 
-1. **En curso / Awaiting completion:** el admin marca los jugadores que pagaron con los toggles. El turno sigue en la misma sección; no pasa a terminados por el solo hecho de togglear.
-2. **Cuando el saldo pendiente llega a 0** y el horario del turno ya finalizó (o es un turno legacy completado sin cerrar), se muestra el botón "Cerrar turno".
-3. El admin hace clic en "Cerrar turno", confirma en el modal y se ejecuta POST `/api/bookings/[id]/close`. El backend valida saldo 0 y que el turno haya finalizado, luego pone `status: COMPLETED` y `closedAt`.
-4. El turno pasa a la sección de turnos cerrados/terminados.
+1. **En curso / Awaiting completion:** el admin marca pagos sin cambiar automáticamente el estado del turno.
+2. **Terminar turno:** el admin puede pasarlo a `COMPLETED` aunque haya saldo pendiente; el turno entra en sección de completados (aún no cerrado).
+3. **Cerrar turno:** solo cuando el saldo pendiente llega a 0, el admin puede cerrarlo (POST `/api/bookings/[id]/close`), lo que setea `closedAt`.
+4. El turno pasa a la sección de turnos cerrados.
 
 ---
 
@@ -93,11 +98,13 @@ En el panel de administración de turnos ocurrían dos problemas: (1) al marcar 
 
 | Archivo | Cambios |
 |---------|---------|
-| `components/AdminTurnos.tsx` | Merge preservando `status`/`closedAt` en respuesta PATCH y PUT fallback del toggle; reversión y toast en 429; eliminación del botón "Terminar turno"; condición única para "Cerrar turno"; comentario en `updateBookingStatus`. |
+| `components/AdminTurnos.tsx` | Merge preservando `status`/`closedAt` en respuesta PATCH y PUT fallback del toggle; reversión y toast en 429; flujo en 2 etapas con botones `Terminar turno` y `Cerrar turno` por categoría/saldo; comentario en `updateBookingStatus`. |
+| `lib/repositories/BookingRepository.ts` | `update()` deja de setear `closedAt` automáticamente al pasar a `COMPLETED`. |
+| `app/api/bookings/[id]/close/route.ts` | `/close` exige turno previamente `COMPLETED` y marca cierre definitivo seteando `closedAt`. |
 
 ---
 
 ## 6. Referencias
 
 - Plan: `.cursor/plans/fix_toggle_pago_y_cierre_turno-iterado.plan.md`
-- Endpoint de cierre: `app/api/bookings/[id]/close/route.ts` (valida `now >= endDateTime`, `pendingBalance === 0`, y que no esté ya COMPLETED).
+- Endpoint de cierre: `app/api/bookings/[id]/close/route.ts` (valida `now >= endDateTime`, `pendingBalance === 0`, `status === COMPLETED` y `closedAt` vacío).
