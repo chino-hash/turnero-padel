@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useRef, useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
@@ -10,6 +11,7 @@ import { TimeSlot, Court } from '../types/types'
 import { useAppState } from './providers/AppStateProvider'
 import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
 import { getCourtHexForDisplay } from '../lib/court-colors'
+import { useTenantSlugFromPath } from '@/lib/tenant/TenantSlugFromPathContext'
 
 
 interface HomeSectionProps {
@@ -78,6 +80,27 @@ export default function HomeSection({
   isRefreshingSlots = false,
   onConfirmSlot
 }: HomeSectionProps) {
+  const searchParams = useSearchParams()
+  const tenantSlugFromPath = useTenantSlugFromPath()
+  const tenantSlug = searchParams?.get('tenantSlug')?.trim() || tenantSlugFromPath || null
+  const homeCardStorageKey = useMemo(() => {
+    if (!tenantSlug) return 'home_card_settings_latest'
+    return `home_card_settings_latest:${tenantSlug}`
+  }, [tenantSlug])
+  const homeCardUpdatedAtKey = `${homeCardStorageKey}:updated_at`
+  const readHomeCardSettingsFromStorage = (): any => {
+    if (typeof window === 'undefined') return null
+    const fallbackKeys = [homeCardStorageKey, 'home_card_settings_latest']
+    for (const key of fallbackKeys) {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch {}
+    }
+    return null
+  }
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedSlotForModal, setSelectedSlotForModal] = useState(null)
   const nextAvailableBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -134,6 +157,7 @@ export default function HomeSection({
         if (data?.type === 'system_setting_updated' && data?.key === 'home_card_settings') {
           loadHomeCardSettings()
           window.dispatchEvent(new Event('home_card_settings_updated'))
+          localStorage.setItem(homeCardUpdatedAtKey, String(Date.now()))
           localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
         }
       } catch {}
@@ -142,22 +166,21 @@ export default function HomeSection({
   async function loadHomeCardSettings() {
     try {
       if (typeof window !== 'undefined') {
-        const latestStr = localStorage.getItem('home_card_settings_latest')
-        if (latestStr) {
-          try {
-            const parsed = JSON.parse(latestStr)
-            setHomeCardSettings({
-              labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
-              locationName: parsed?.locationName || 'Downtown Sports Center',
-              mapUrl: parsed?.mapUrl || '',
-              sessionText: parsed?.sessionText || '1:30 hour sessions',
-              descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
-              iconImage: parsed?.iconImage || ''
-            })
-          } catch {}
+        const parsed = readHomeCardSettingsFromStorage()
+        if (parsed) {
+          setHomeCardSettings({
+            labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
+            locationName: parsed?.locationName || 'Downtown Sports Center',
+            mapUrl: parsed?.mapUrl || '',
+            sessionText: parsed?.sessionText || '1:30 hour sessions',
+            descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+            iconImage: parsed?.iconImage || ''
+          })
         }
       }
-      const res = await fetch('/api/system-settings/public/by-key?key=home_card_settings', { cache: 'no-store' as any })
+      const params = new URLSearchParams({ key: 'home_card_settings' })
+      if (tenantSlug) params.set('tenantSlug', tenantSlug)
+      const res = await fetch(`/api/system-settings/public/by-key?${params.toString()}`, { cache: 'no-store' as any })
       const json = await res.json()
       const item = json?.data
       if (item) {
@@ -180,7 +203,8 @@ export default function HomeSection({
     loadHomeCardSettings()
     const handler = () => loadHomeCardSettings()
     const storageHandler = (e: StorageEvent) => {
-      if (e.key === 'home_card_settings_updated_at') loadHomeCardSettings()
+      if (!e.key) return
+      if (e.key === homeCardUpdatedAtKey || e.key === 'home_card_settings_updated_at') loadHomeCardSettings()
     }
     const visHandler = () => {
       if (document.visibilityState === 'visible') loadHomeCardSettings()
@@ -193,7 +217,7 @@ export default function HomeSection({
       window.removeEventListener('storage', storageHandler)
       document.removeEventListener('visibilitychange', visHandler)
     }
-  }, [])
+  }, [homeCardUpdatedAtKey, tenantSlug])
 
   // Fallback seguro para evitar errores mientras aún no cargan las canchas
   const defaultCourt: Court = {

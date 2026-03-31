@@ -186,8 +186,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         try {
           const key = searchParams.get('key')!
           const limit = parseInt(searchParams.get('limit') || '10')
+          const queryTenantId = searchParams.get('tenantId') || undefined
+          const isSuperAdmin = user.role === 'SUPER_ADMIN'
+          const whereClause: any = { key }
+
+          // Scope por tenant para evitar mezclar configuraciones entre clubes.
+          if (isSuperAdmin) {
+            if (queryTenantId) {
+              whereClause.tenantId = queryTenantId
+            }
+          } else if (user.tenantId) {
+            whereClause.tenantId = user.tenantId
+          } else {
+            whereClause.tenantId = null
+          }
+
           const items = await prisma.systemSetting.findMany({
-            where: { key },
+            where: whereClause,
+            orderBy: { updatedAt: 'desc' },
             take: limit
           })
           result = { success: true, data: { items } }

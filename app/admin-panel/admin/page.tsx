@@ -124,6 +124,25 @@ export default function AdminDashboard() {
   const { tenantId: tenantIdCookie, tenantSlug: tenantSlugCookie } = getAdminContextTenant()
   const tenantId = tenantIdFromUrl || tenantIdCookie
   const tenantSlug = tenantSlugFromUrl || tenantSlugCookie
+  const homeCardStorageKey = useMemo(() => {
+    if (tenantId) return `home_card_settings_latest:${tenantId}`
+    if (tenantSlug) return `home_card_settings_latest:${tenantSlug}`
+    return 'home_card_settings_latest'
+  }, [tenantId, tenantSlug])
+  const homeCardUpdatedAtKey = `${homeCardStorageKey}:updated_at`
+  const readHomeCardSettingsFromStorage = (): any => {
+    if (typeof window === 'undefined') return null
+    const fallbackKeys = [homeCardStorageKey, 'home_card_settings_latest']
+    for (const key of fallbackKeys) {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object') return parsed
+      } catch {}
+    }
+    return null
+  }
 
   const { courts, slotsForRender, isUnifiedView, selectedDate, setSelectedDate, refreshMultipleSlots, refreshSlots, isDarkMode } = useAppState()
 
@@ -168,58 +187,28 @@ export default function AdminDashboard() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const [homeSettingsId, setHomeSettingsId] = useState<string | null>(null)
   const [homeLabelCourtName, setHomeLabelCourtName] = useState(() => {
-    if (typeof window === 'undefined') return 'Nombre de la cancha'
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.labelCourtName || 'Nombre de la cancha'
-      }
-    } catch {}
+    const parsed = readHomeCardSettingsFromStorage()
+    if (parsed) return parsed?.labelCourtName || 'Nombre de la cancha'
     return 'Nombre de la cancha'
   })
   const [homeLocationName, setHomeLocationName] = useState(() => {
-    if (typeof window === 'undefined') return 'Downtown Sports Center'
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.locationName || 'Downtown Sports Center'
-      }
-    } catch {}
+    const parsed = readHomeCardSettingsFromStorage()
+    if (parsed) return parsed?.locationName || 'Downtown Sports Center'
     return 'Downtown Sports Center'
   })
   const [homeMapUrl, setHomeMapUrl] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.mapUrl || ''
-      }
-    } catch {}
+    const parsed = readHomeCardSettingsFromStorage()
+    if (parsed) return parsed?.mapUrl || ''
     return ''
   })
   const [homeDescriptionText, setHomeDescriptionText] = useState(() => {
-    if (typeof window === 'undefined') return 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
-      }
-    } catch {}
+    const parsed = readHomeCardSettingsFromStorage()
+    if (parsed) return parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
     return 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.'
   })
   const [homeIconImage, setHomeIconImage] = useState<string>(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      const raw = localStorage.getItem('home_card_settings_latest')
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        return parsed?.iconImage || ''
-      }
-    } catch {}
+    const parsed = readHomeCardSettingsFromStorage()
+    if (parsed) return parsed?.iconImage || ''
     return ''
   })
 
@@ -298,10 +287,12 @@ export default function AdminDashboard() {
         }
       } catch {}
       try {
-        const res2 = await fetch('/api/crud/systemSetting?key=home_card_settings&limit=1')
+        const params = new URLSearchParams({ key: 'home_card_settings' })
+        if (tenantId) params.set('tenantId', tenantId)
+        const res2 = await fetch(`/api/system-settings/by-key?${params.toString()}`, { cache: 'no-store' })
         const json2 = await res2.json()
-        const item2 = Array.isArray(json2?.data?.items) ? json2.data.items[0] : Array.isArray(json2?.data) ? json2.data[0] : null
-        if (item2) {
+        const item2 = json2?.data
+        if (res2.ok && item2) {
           setHomeSettingsId(String(item2.id))
           const valStr2 = String(item2.value || '')
           try {
@@ -312,11 +303,13 @@ export default function AdminDashboard() {
             setHomeDescriptionText(parsed2?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.')
             setHomeIconImage(parsed2?.iconImage || '')
           } catch {}
+        } else if (res2.status === 404) {
+          setHomeSettingsId(null)
         }
       } catch {}
     }
     loadSettings()
-  }, [])
+  }, [tenantId])
 
   const bookingsApi = useBookings({
     initialFilters: { limit: 50 },
@@ -1015,9 +1008,8 @@ export default function AdminDashboard() {
               className="w-full sm:w-auto bg-muted text-muted-foreground hover:bg-muted/80"
               onClick={() => {
                 try {
-                  const raw = localStorage.getItem('home_card_settings_latest')
-                  if (raw) {
-                    const parsed = JSON.parse(raw)
+                  const parsed = readHomeCardSettingsFromStorage()
+                  if (parsed) {
                     setHomeLabelCourtName(parsed?.labelCourtName ?? '')
                     setHomeLocationName(parsed?.locationName ?? '')
                     setHomeMapUrl(parsed?.mapUrl ?? '')
@@ -1042,43 +1034,30 @@ export default function AdminDashboard() {
                   iconImage: homeIconImage.trim()
                 }
                 try {
-                  localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
-                  localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                  localStorage.setItem(homeCardStorageKey, JSON.stringify(homePayload))
+                  localStorage.setItem(homeCardUpdatedAtKey, String(Date.now()))
                   window.dispatchEvent(new Event('home_card_settings_updated'))
                 } catch {}
                 try {
-                  let resHome
-                  if (homeSettingsId) {
-                    resHome = await fetch(`/api/crud/systemSetting/${homeSettingsId}`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        value: JSON.stringify(homePayload),
-                        dataType: 'JSON',
-                        description: 'Configuración de tarjeta principal',
-                        category: 'home_card'
-                      })
+                  const resHome = await fetch('/api/system-settings/upsert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      key: 'home_card_settings',
+                      value: JSON.stringify(homePayload),
+                      dataType: 'JSON',
+                      description: 'Configuración de tarjeta principal',
+                      category: 'home_card',
+                      isPublic: true,
+                      ...(tenantId ? { tenantId } : {})
                     })
-                  } else {
-                    resHome = await fetch('/api/crud/systemSetting', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        key: 'home_card_settings',
-                        value: JSON.stringify(homePayload),
-                        dataType: 'JSON',
-                        description: 'Configuración de tarjeta principal',
-                        category: 'home_card',
-                        isPublic: true
-                      })
-                    })
-                  }
+                  })
                   const jsonHome = await resHome.json()
                   if (resHome.ok && jsonHome?.success) {
-                    if (!homeSettingsId && jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
+                    if (jsonHome?.data?.id) setHomeSettingsId(String(jsonHome.data.id))
                     try {
-                      localStorage.setItem('home_card_settings_latest', JSON.stringify(homePayload))
-                      localStorage.setItem('home_card_settings_updated_at', String(Date.now()))
+                      localStorage.setItem(homeCardStorageKey, JSON.stringify(homePayload))
+                      localStorage.setItem(homeCardUpdatedAtKey, String(Date.now()))
                       window.dispatchEvent(new Event('home_card_settings_updated'))
                       fetch('/api/admin/test-event', {
                         method: 'POST',
