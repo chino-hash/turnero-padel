@@ -367,7 +367,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const body = await request.json();
-    const validationRules = getValidationRules(model);
+    const validationRules = getValidationRules(model).map((rule: any) => ({
+      ...rule,
+      // En updates validamos formato/tipo, pero no obligamos campos faltantes.
+      required: false,
+    }));
 
     // No auto-editarse: si el usuario edita su propio registro (user), no puede bajar su rol ni desactivarse
     if (model === 'user' && id === user?.id) {
