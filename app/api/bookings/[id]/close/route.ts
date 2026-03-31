@@ -113,9 +113,16 @@ export async function POST(
       )
     }
 
-    // Validar saldo pendiente
+    // Validar saldo pendiente.
+    // Compatibilidad: en algunos flujos legacy `hasPaid` se actualiza
+    // antes que `paidAmount`; si los jugadores están todos pagos,
+    // permitir cierre aunque `pendingBalance` quede desfasado.
     const pendingBalance = current.data.pricing?.pendingBalance ?? 0
-    if (pendingBalance > 0) {
+    const players = current.data.players ?? []
+    const hasPlayers = players.length > 0
+    const allPlayersPaid = hasPlayers && players.every((player) => player.hasPaid)
+
+    if (pendingBalance > 0 && !allPlayersPaid) {
       return NextResponse.json(
         { success: false, error: 'No se puede cerrar: existe saldo pendiente' },
         { status: 400 }
