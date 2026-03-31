@@ -523,7 +523,10 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
 
   const fetchAndSetUserBookings = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch('/api/bookings/user', { credentials: 'include', signal: signal ?? undefined })
+      const url = tenantSlug
+        ? `/api/bookings/user?tenantSlug=${encodeURIComponent(tenantSlug)}`
+        : '/api/bookings/user'
+      const res = await fetch(url, { credentials: 'include', signal: signal ?? undefined })
       if (!res.ok) {
         setCurrentBookings([])
         setPastBookings([])
@@ -564,7 +567,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       setCurrentBookings([])
       setPastBookings([])
     }
-  }, [mapToMisTurnosShape])
+  }, [mapToMisTurnosShape, tenantSlug])
 
   const removeBookingFromList = useCallback((bookingId: string) => {
     setCurrentBookings(prev => prev.filter(b => b.id !== bookingId))

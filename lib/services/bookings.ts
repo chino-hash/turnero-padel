@@ -93,10 +93,13 @@ export interface CreateBookingData {
 }
 
 // Obtener reservas del usuario
-export async function getUserBookings(userId: string): Promise<BookingWithDetails[]> {
+export async function getUserBookings(userId: string, tenantId?: string | null): Promise<BookingWithDetails[]> {
   try {
     const bookings = await prisma.booking.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(tenantId ? { tenantId } : {})
+      },
       include: {
         court: true,
         user: true,

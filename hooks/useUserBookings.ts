@@ -50,7 +50,8 @@ export function useUserBookings(): UseUserBookingsReturn {
     setError(null)
     
     try {
-      const userBookings = await getUserBookings(session.user.id)
+      const tenantId = (session.user as any)?.tenantId ?? null
+      const userBookings = await getUserBookings(session.user.id, tenantId)
       setBookings(userBookings)
     } catch (err: any) {
       console.error('Error fetching user bookings:', err)
@@ -119,7 +120,8 @@ export function useUserBookingsStatic(): Omit<UseUserBookingsReturn, 'refetch'> 
       setError(null)
       
       try {
-        const userBookings = await getUserBookings(session.user.id)
+        const tenantId = (session.user as any)?.tenantId ?? null
+        const userBookings = await getUserBookings(session.user.id, tenantId)
         setBookings(userBookings)
       } catch (err: any) {
         console.error('Error fetching user bookings:', err)
