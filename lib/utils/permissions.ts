@@ -5,10 +5,13 @@
 
 import { isSuperAdmin, isAdminForTenant, canAccessTenant as canAccessTenantHelper } from '../admin-system';
 import { getUserTenantId } from '../tenant/context';
+import { ensureUserExists } from '../services/users';
 
 export interface User {
   id?: string;
   email?: string | null;
+  name?: string | null;
+  image?: string | null;
   role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   isAdmin?: boolean;
   isSuperAdmin?: boolean;
@@ -57,8 +60,27 @@ export async function canAccessTenant(
     return true;
   }
 
-  // Verificar si el usuario puede acceder al tenant
-  return await canAccessTenantHelper(user.email, tenantId);
+  // Verificar acceso existente por pertenencia/admin whitelist
+  const hasAccess = await canAccessTenantHelper(user.email, tenantId);
+  if (hasAccess) {
+    return true;
+  }
+
+  // Política de acceso abierto por login Google:
+  // si el usuario está autenticado pero no existe en el tenant,
+  // crearlo/actualizarlo y permitir acceso al tenant solicitado.
+  try {
+    await ensureUserExists(
+      user.email,
+      user.name ?? null,
+      user.image ?? null,
+      tenantId
+    );
+    return true;
+  } catch (error) {
+    console.error('[Permissions] No se pudo aprovisionar usuario en tenant:', error);
+    return false;
+  }
 }
 
 /**
