@@ -541,6 +541,8 @@ export default function TenantDetailPage() {
     })
   }
 
+  const tenantAdmins = admins.filter(a => a.tenantId === tenantIdForSections || !a.tenantId)
+
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -688,15 +690,20 @@ export default function TenantDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Administrador del tenant */}
+        {/* Administración del tenant */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Administrador del tenant</CardTitle>
-            <CardDescription>Email (Gmail) del administrador del tenant. Se usa para bootstrap y acceso al panel.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Administración del tenant
+            </CardTitle>
+            <CardDescription>
+              Defina el admin principal y gestione administradores de este tenant desde un solo lugar.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="ownerEmail">Email del administrador (Gmail)</Label>
+              <Label htmlFor="ownerEmail">Admin principal (email)</Label>
               <Input
                 id="ownerEmail"
                 type="email"
@@ -704,7 +711,49 @@ export default function TenantDetailPage() {
                 onChange={(e) => handleChange('ownerEmail', e.target.value || null)}
                 placeholder="ej: admin@club.com"
               />
+              <p className="text-xs text-muted-foreground mt-2">
+                {newTenant
+                  ? 'Al crear el tenant, este email se usa como admin principal.'
+                  : 'Al guardar, este email queda asociado como admin principal del tenant.'}
+              </p>
             </div>
+
+            {!newTenant && formData.id && (
+              <>
+                {adminsLoading ? (
+                  <p className="text-sm text-gray-500">Cargando administradores...</p>
+                ) : (
+                  <ul className="text-sm space-y-1">
+                    {tenantAdmins.map((a, i) => (
+                      <li key={i}>
+                        {a.email} ({a.role})
+                        {formData.ownerEmail?.toLowerCase() === a.email.toLowerCase() ? ' — principal' : ''}
+                      </li>
+                    ))}
+                    {tenantAdmins.length === 0 && (
+                      <li className="text-gray-500">Ningún admin aún</li>
+                    )}
+                  </ul>
+                )}
+                <form onSubmit={handleAddAdmin} className="flex gap-2 flex-wrap items-end">
+                  <div>
+                    <Label htmlFor="adminEmail">Agregar admin adicional</Label>
+                    <Input
+                      id="adminEmail"
+                      name="adminEmail"
+                      type="email"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      placeholder="admin@ejemplo.com"
+                      className="min-w-[200px]"
+                    />
+                  </div>
+                  <Button type="submit" disabled={adminAdding}>
+                    {adminAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Agregar'}
+                  </Button>
+                </form>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -863,45 +912,6 @@ export default function TenantDetailPage() {
                   {bootstrapLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Ejecutar bootstrap
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Admins
-                </CardTitle>
-                <CardDescription>Administradores de este tenant</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {adminsLoading ? (
-                  <p className="text-sm text-gray-500">Cargando...</p>
-                ) : (
-                  <ul className="text-sm space-y-1">
-                    {admins.filter(a => a.tenantId === tenantIdForSections || !a.tenantId).map((a, i) => (
-                      <li key={i}>{a.email} ({a.role})</li>
-                    ))}
-                    {admins.filter(a => a.tenantId === tenantIdForSections || !a.tenantId).length === 0 && (
-                      <li className="text-gray-500">Ningún admin aún</li>
-                    )}
-                  </ul>
-                )}
-                <form onSubmit={handleAddAdmin} className="flex gap-2 flex-wrap items-end">
-                  <div>
-                    <Label htmlFor="adminEmail">Email</Label>
-                    <Input
-                      id="adminEmail"
-                      name="adminEmail"
-                      type="email"
-                      value={adminEmail}
-                      onChange={(e) => setAdminEmail(e.target.value)}
-                      placeholder="admin@ejemplo.com"
-                      className="min-w-[200px]"
-                    />
-                  </div>
-                  <Button type="submit" disabled={adminAdding}>{adminAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Agregar'}</Button>
-                </form>
               </CardContent>
             </Card>
 

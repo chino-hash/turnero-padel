@@ -19,7 +19,7 @@ const getUserRoleAndTenant = async (email: string): Promise<{ role: 'USER' | 'AD
   try {
     // Solo importar admin-system cuando no estamos en el middleware
     if (typeof window === 'undefined') {
-      const { getUserRole } = await import('./admin-system')
+      const { getUserRole, getTenantIdsWhereUserIsAdmin } = await import('./admin-system')
 
       // Prioridad: SUPER_ADMIN_EMAILS env (más confiable en serverless/cold start)
       if (superAdminEmails.includes(emailLower)) {
@@ -33,8 +33,27 @@ const getUserRoleAndTenant = async (email: string): Promise<{ role: 'USER' | 'AD
         select: { id: true, tenantId: true }
       })
 
-      const tenantId = user?.tenantId || null
-      const role = await getUserRole(email, tenantId)
+      let tenantId = user?.tenantId || null
+      let role = await getUserRole(email, tenantId)
+
+      // Si quedó como USER pero figura como ADMIN en otro tenant, priorizar tenant admin activo.
+      if (role === 'USER') {
+        const adminTenantIds = await getTenantIdsWhereUserIsAdmin(emailLower)
+        if (adminTenantIds.length > 0) {
+          const adminTenant = await prisma.tenant.findFirst({
+            where: {
+              id: { in: adminTenantIds },
+              isActive: true,
+            },
+            select: { id: true },
+            orderBy: { createdAt: 'asc' },
+          })
+          if (adminTenant) {
+            tenantId = adminTenant.id
+            role = 'ADMIN'
+          }
+        }
+      }
 
       return { role, tenantId }
     }
@@ -226,7 +245,11 @@ export const config = {
             if (adminTenantIds.length >= 1) {
               const { prisma } = await import('@/lib/database/neon-config')
               const tenant = await prisma.tenant.findFirst({
-                where: { id: adminTenantIds[0], isActive: true },
+                where: {
+                  id: { in: adminTenantIds },
+                  isActive: true,
+                },
+                orderBy: { createdAt: 'asc' },
               })
               if (tenant) {
                 finalTenantId = tenant.id
