@@ -222,15 +222,20 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-      if (!isSuperAdmin && userTenantId && court.tenantId !== userTenantId) {
-        return NextResponse.json(
-          { success: false, error: 'No tiene permisos para crear reservas en esta cancha' },
-          { status: 403 }
-        )
+      if (!isSuperAdmin) {
+        const hasAccessToCourtTenant = await canAccessTenant(user, court.tenantId)
+        if (!hasAccessToCourtTenant) {
+          return NextResponse.json(
+            { success: false, error: 'No tiene permisos para crear reservas en esta cancha' },
+            { status: 403 }
+          )
+        }
       }
     }
 
-    const tenantIdForBooking = userTenantId ?? court?.tenantId ?? null
+    // Priorizar el tenant de la cancha para evitar inconsistencias cuando la sesión
+    // trae un tenantId viejo o cuando el usuario fue aprovisionado en este request.
+    const tenantIdForBooking = court?.tenantId ?? userTenantId ?? null
     if (!tenantIdForBooking) {
       return NextResponse.json(
         { success: false, error: 'No se pudo determinar el tenant de la reserva' },
