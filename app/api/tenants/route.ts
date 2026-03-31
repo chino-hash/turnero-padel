@@ -186,7 +186,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Crear canchas por defecto según plan (3 / 6 / 9). Rollback si falla alguna.
+    // Crear canchas por defecto según plan (3 / 6 / 9) y home_card_settings inicial.
+    // Rollback completo si falla cualquier parte del bootstrap inicial del tenant.
     const numCourts = getPlanDefaultCourts(plan)
     const operatingHoursJson = getDefaultOperatingHoursJson()
     try {
@@ -204,8 +205,27 @@ export async function POST(request: NextRequest) {
           },
         })
       }
+
+      await prisma.systemSetting.create({
+        data: {
+          tenantId: tenant.id,
+          key: 'home_card_settings',
+          value: JSON.stringify({
+            labelCourtName: 'Canchas',
+            locationName: tenant.name,
+            mapUrl: '',
+            sessionText: '90 min por turno',
+            descriptionText:
+              'Visualiza la disponibilidad del día actual para las canchas. Selecciona una para ver sus horarios y características.',
+            iconImage: '',
+          }),
+          description: 'Configuración de la tarjeta principal del home',
+          category: 'ui',
+          isPublic: true,
+        },
+      })
     } catch (courtError) {
-      console.error('Error creando canchas por defecto, rollback:', courtError)
+      console.error('Error creando datos iniciales del tenant, rollback:', courtError)
       await prisma.court.deleteMany({ where: { tenantId: tenant.id } })
       if (ownerEmailTrimmed) {
         const email = ownerEmailTrimmed.toLowerCase()
@@ -213,7 +233,7 @@ export async function POST(request: NextRequest) {
       }
       await prisma.tenant.delete({ where: { id: tenant.id } })
       return NextResponse.json(
-        { success: false, error: 'Error creando canchas por defecto' },
+        { success: false, error: 'Error creando datos iniciales del tenant' },
         { status: 500 }
       )
     }

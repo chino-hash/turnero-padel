@@ -41,6 +41,13 @@ const MODELS_WITH_TENANT_ID = new Set([
   'AdminWhitelist'
 ]);
 
+/** Modelos Prisma sin soft-delete (no existe columna deletedAt) */
+const MODELS_WITHOUT_DELETED_AT = new Set([
+  'SystemSetting',
+  'Producto',
+  'AdminWhitelist',
+]);
+
 interface CrudOptions {
   include?: any;
   select?: any;
@@ -494,17 +501,24 @@ export class CrudService<T = any> {
         throw new ValidationError('ID es requerido', 'id', 'REQUIRED_ID');
       }
 
-      // Validar formato UUID
+      // IDs: UUID (legado), cuid (Prisma por defecto), o entero (Producto)
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(id)) {
+      const cuidRegex = /^c[a-z0-9]{20,}$/i;
+      const intId = /^\d+$/.test(id) ? parseInt(id, 10) : null;
+      const idOk =
+        uuidRegex.test(id) ||
+        cuidRegex.test(id) ||
+        (this.modelName === 'Producto' && intId !== null && !Number.isNaN(intId));
+      if (!idOk) {
         throw new ValidationError('Formato de ID inválido', 'id', 'INVALID_ID_FORMAT');
       }
 
-      // Incluir filtro de soft delete
-      const baseWhere = {
-        id,
-        deletedAt: null
-      };
+      const idValue = this.modelName === 'Producto' && intId !== null ? intId : id;
+
+      // Incluir filtro de soft delete cuando el modelo lo tiene
+      const baseWhere = MODELS_WITHOUT_DELETED_AT.has(this.modelName)
+        ? { id: idValue }
+        : { id: idValue, deletedAt: null };
 
       // Agregar filtro de tenantId si es necesario
       const where = await this.buildWhereWithTenant(baseWhere, options, 'read');
@@ -563,8 +577,12 @@ export class CrudService<T = any> {
         throw new ValidationError('Los datos son requeridos para actualizar un registro', 'data', 'REQUIRED_DATA');
       }
 
-      // Verificar si el registro existe y no está eliminado
-      const baseWhere = { id, deletedAt: null };
+      // Verificar si el registro existe (y no eliminado por soft-delete si aplica)
+      const idForWhere =
+        this.modelName === 'Producto' && /^\d+$/.test(id) ? parseInt(id, 10) : id;
+      const baseWhere = MODELS_WITHOUT_DELETED_AT.has(this.modelName)
+        ? { id: idForWhere }
+        : { id: idForWhere, deletedAt: null };
       const where = await this.buildWhereWithTenant(baseWhere, options, 'update');
       
       const existingRecord = await (this.model as any).findFirst({
@@ -606,7 +624,7 @@ export class CrudService<T = any> {
       };
 
       const result = await (this.model as any).update({
-        where: { id },
+        where: { id: idForWhere },
         data: updateData,
         include: options.include,
         select: options.select
@@ -634,8 +652,11 @@ export class CrudService<T = any> {
         throw new ValidationError('ID es requerido', 'id', 'REQUIRED_ID');
       }
 
-      // Verificar que el registro existe y no está eliminado
-      const baseWhere = { id, deletedAt: null };
+      const idForWhere =
+        this.modelName === 'Producto' && /^\d+$/.test(id) ? parseInt(id, 10) : id;
+      const baseWhere = MODELS_WITHOUT_DELETED_AT.has(this.modelName)
+        ? { id: idForWhere }
+        : { id: idForWhere, deletedAt: null };
       const where = await this.buildWhereWithTenant(baseWhere, options, 'delete');
       
       const existingRecord = await (this.model as any).findFirst({
@@ -658,13 +679,20 @@ export class CrudService<T = any> {
         }
       }
 
-      const result = await (this.model as any).update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          updatedAt: new Date()
-        }
-      });
+      let result: T;
+      if (MODELS_WITHOUT_DELETED_AT.has(this.modelName)) {
+        result = await (this.model as any).delete({
+          where: { id: idForWhere }
+        });
+      } else {
+        result = await (this.model as any).update({
+          where: { id: idForWhere },
+          data: {
+            deletedAt: new Date(),
+            updatedAt: new Date()
+          }
+        });
+      }
 
       return createSuccessResponse(`${this.modelName} eliminado exitosamente`, result);
     } catch (error: any) {
