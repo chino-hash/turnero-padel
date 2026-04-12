@@ -256,15 +256,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Asegurar que session.user.id sea un id de nuestra tabla User (evitar FK por token con id de Google)
+    // Asegurar que session.user.id pertenezca al tenant de la cancha (evitar cruces entre tenants)
     let sessionUserId: string = session.user.id
     const dbUserById = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { id: true },
+      select: { id: true, tenantId: true },
     })
-    if (!dbUserById && session.user.email) {
-      const dbUserByEmail = await prisma.user.findFirst({
-        where: { email: (session.user.email as string).toLowerCase() },
+
+    const sessionUserMatchesTenant = !!dbUserById && dbUserById.tenantId === tenantIdForBooking
+    if (!sessionUserMatchesTenant && session.user.email) {
+      const dbUserByEmail = await prisma.user.findUnique({
+        where: {
+          email_tenantId: {
+            email: (session.user.email as string).toLowerCase(),
+            tenantId: tenantIdForBooking,
+          },
+        },
         select: { id: true },
       })
       if (dbUserByEmail) sessionUserId = dbUserByEmail.id
@@ -274,7 +281,7 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         )
       }
-    } else if (!dbUserById) {
+    } else if (!sessionUserMatchesTenant) {
       return NextResponse.json(
         { success: false, error: 'No se pudo identificar tu usuario. Cerrá sesión e ingresá de nuevo desde la página del club.' },
         { status: 401 }
