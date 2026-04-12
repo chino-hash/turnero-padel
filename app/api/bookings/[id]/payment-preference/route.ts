@@ -67,9 +67,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Resolver id real del usuario en BD (en algunos providers el id de sesión no coincide con User.id)
+    let actorUserId = session.user.id
+    const dbUserById = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true }
+    })
+    if (!dbUserById && session.user.email) {
+      const dbUserByEmailInTenant = await prisma.user.findUnique({
+        where: {
+          email_tenantId: {
+            email: session.user.email.toLowerCase(),
+            tenantId: booking.tenantId
+          }
+        },
+        select: { id: true }
+      })
+      if (dbUserByEmailInTenant?.id) {
+        actorUserId = dbUserByEmailInTenant.id
+      }
+    }
+
     // Permisos: admin del tenant o propietario de la reserva
-    const isAdmin = user.role === 'ADMIN' || isSuperAdmin
-    if (!isAdmin && booking.userId !== session.user.id) {
+    const normalizedRole = (user.role || '').toUpperCase()
+    const isAdmin = normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN' || user.isAdmin || isSuperAdmin
+    if (!isAdmin && booking.userId !== actorUserId) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para crear preferencia de pago para esta reserva' },
         { status: 403 }
