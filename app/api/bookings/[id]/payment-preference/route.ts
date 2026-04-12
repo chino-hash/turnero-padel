@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
 import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { prisma } from '@/lib/database/neon-config'
-import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
+import { canAccessTenant, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
 
@@ -48,7 +48,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const isSuperAdmin = await isSuperAdminUser(user)
-    const userTenantId = await getUserTenantIdSafe(user)
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -59,8 +58,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'Reserva no encontrada' }, { status: 404 })
     }
 
-    // Cross-tenant: solo super admin puede operar sobre otros tenants
-    if (!isSuperAdmin && userTenantId && booking.tenantId !== userTenantId) {
+    // Validar acceso al tenant de la reserva (el tenant en sesión puede estar desfasado)
+    const hasAccessToBookingTenant = isSuperAdmin ? true : await canAccessTenant(user, booking.tenantId)
+    if (!hasAccessToBookingTenant) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para crear preferencia de pago para esta reserva' },
         { status: 403 }
