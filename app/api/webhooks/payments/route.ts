@@ -37,6 +37,25 @@ function markWebhookAsProcessed(requestId: string): void {
   }
 }
 
+function parseMercadoPagoSignatureHeader(rawSignature: string): { ts?: string; v1?: string } {
+  // MP suele enviar formato "ts=...,v1=..." (puede traer espacios).
+  if (!rawSignature.includes('=')) {
+    return { v1: rawSignature.trim() };
+  }
+
+  const parsed: { ts?: string; v1?: string } = {};
+  rawSignature.split(',').forEach((part) => {
+    const [key, ...valueParts] = part.trim().split('=');
+    const value = valueParts.join('=').trim();
+    if (!key || !value) return;
+    const normalizedKey = key.trim().toLowerCase();
+    if (normalizedKey === 'ts') parsed.ts = value;
+    if (normalizedKey === 'v1') parsed.v1 = value;
+  });
+
+  return parsed;
+}
+
 /**
  * Valida la firma de Mercado Pago.
  * Mercado Pago envía x-signature y x-request-id en los headers.
@@ -61,10 +80,27 @@ function validateMercadoPagoSignature(
     return { valid: false, error: 'Webhook ya procesado recientemente' };
   }
 
-  const payload = `id=${dataId}&request_id=${xRequestId}`;
-  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  const { ts, v1 } = parseMercadoPagoSignatureHeader(xSignature);
+  const receivedSignature = (v1 || '').toLowerCase();
+  if (!receivedSignature) {
+    return { valid: false, error: 'Header x-signature inválido (falta v1)' };
+  }
+  const receivedBuffer = Buffer.from(receivedSignature, 'utf8');
+  const manifestCandidates = [
+    // Compatibilidad con formato legado usado en el proyecto
+    `id=${dataId}&request_id=${xRequestId}`,
+    // Formato recomendado por Mercado Pago (incluye timestamp)
+    ts ? `id:${dataId};request-id:${xRequestId};ts:${ts};` : null,
+  ].filter((candidate): candidate is string => !!candidate);
 
-  const signatureValid = expectedSignature === xSignature;
+  const signatureValid = manifestCandidates.some((manifest) => {
+    const expectedSignature = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    return (
+      expectedBuffer.length === receivedBuffer.length &&
+      crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    );
+  });
 
   if (signatureValid) {
     markWebhookAsProcessed(xRequestId);

@@ -9,6 +9,7 @@ import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
 import { prisma } from '@/lib/database/neon-config'
 import { getTenantMercadoPagoCredentials } from '@/lib/services/payments/tenant-credentials'
+import { BookingWebhookHandler } from '@/lib/services/payments/BookingWebhookHandler'
 import { getUserTenantIdSafe, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    if (booking.status !== 'PENDING') {
+    if (booking.status !== 'PENDING' && booking.status !== 'CANCELLED') {
       const result = await bookingService.getBookingById(bookingId)
       return NextResponse.json(result.success ? { success: true, data: result.data } : result, { status: result.success ? 200 : 404 })
     }
@@ -134,67 +135,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(result.success ? { success: true, data: result.data, updated: false } : result, { status: result.success ? 200 : 404 })
     }
 
-    const amount = approvedPayment.transaction_amount != null
-      ? Math.round(Number(approvedPayment.transaction_amount))
-      : Math.round((booking.depositAmount || 0) / 100)
-
-    const paidAmountCents =
-      (booking.depositAmount ?? 0) > 0
-        ? booking.depositAmount!
-        : Math.round((booking.totalPrice ?? 0) / 4)
-    const titularName = booking.user?.name ?? 'Titular'
-
-    await prisma.$transaction(async (tx) => {
-      await tx.booking.update({
-        where: { id: bookingId },
-        data: {
-          status: 'CONFIRMED',
-          paymentStatus: 'DEPOSIT_PAID',
-          expiresAt: null,
-          updatedAt: new Date(),
-        },
-      })
-      await tx.payment.create({
-        data: {
-          tenantId: booking.tenantId!,
-          bookingId,
-          amount,
-          paymentMethod: 'CARD',
-          paymentType: 'PAYMENT',
-          referenceNumber: String(approvedPayment.id),
-          status: 'completed',
-          notes: `Pago sincronizado desde MP - Payment ID: ${approvedPayment.id}`,
-        },
-      })
-
-      // Marcar jugador posición 1 (titular) como pagado; si no existe, crearlo (idempotente)
-      try {
-        const player1 = await tx.bookingPlayer.findFirst({
-          where: { bookingId, position: 1 },
-        })
-        if (player1) {
-          await tx.bookingPlayer.update({
-            where: { id: player1.id },
-            data: { hasPaid: true, paidAmount: paidAmountCents, updatedAt: new Date() },
-          })
-        } else {
-          await tx.bookingPlayer.create({
-            data: {
-              bookingId,
-              position: 1,
-              playerName: titularName,
-              hasPaid: true,
-              paidAmount: paidAmountCents,
-            },
-          })
-        }
-      } catch (playerErr) {
-        console.warn('[sync-payment-status] Error actualizando/creando jugador posición 1:', playerErr)
-      }
+    // Reusar la misma lógica del webhook para mantener el comportamiento consistente
+    // (incluye casos de pago tardío con reserva CANCELLED y validación de conflictos).
+    const webhookHandler = new BookingWebhookHandler()
+    const webhookResult = await webhookHandler.handle({
+      type: 'payment',
+      data: {
+        id: approvedPayment.id,
+        status: 'approved',
+        external_reference: bookingId,
+        transaction_amount: approvedPayment.transaction_amount,
+      },
     })
 
+    if (!webhookResult.processed) {
+      return NextResponse.json(
+        { success: false, error: webhookResult.error || 'No se pudo sincronizar el pago' },
+        { status: 400 }
+      )
+    }
+
     const result = await bookingService.getBookingById(bookingId)
-    return NextResponse.json(result.success ? { success: true, data: result.data, updated: true } : result, { status: result.success ? 200 : 404 })
+    return NextResponse.json(
+      result.success
+        ? { success: true, data: result.data, updated: !!webhookResult.bookingUpdated, message: webhookResult.error }
+        : result,
+      { status: result.success ? 200 : 404 }
+    )
   } catch (error) {
     console.error('Error in POST /api/bookings/[id]/sync-payment-status:', error)
     return NextResponse.json(

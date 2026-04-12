@@ -52,7 +52,8 @@ function transformToBookingWithDetails(booking: any): BookingWithDetails {
       playerName: player.playerName,
       playerPhone: player.playerPhone,
       playerEmail: player.playerEmail,
-      hasPaid: !!player.paidAt,
+      // La fuente de verdad es el booleano hasPaid; paidAt puede estar nulo en pagos manuales/webhook.
+      hasPaid: !!player.hasPaid,
       paidAmount: player.paidAmount || 0,
       position: player.position || 1,
       notes: player.notes
