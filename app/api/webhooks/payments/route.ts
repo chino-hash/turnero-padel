@@ -9,6 +9,8 @@ import { BookingWebhookHandler } from '@/lib/services/payments/BookingWebhookHan
 import { prisma } from '@/lib/database/neon-config';
 import { getTenantMercadoPagoCredentials } from '@/lib/services/payments/tenant-credentials';
 
+export const runtime = 'nodejs';
+
 /**
  * Cache simple en memoria para evitar procesamiento duplicado de webhooks
  * Almacena request_id procesados en los últimos 5 minutos
