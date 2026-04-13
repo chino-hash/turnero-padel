@@ -551,13 +551,15 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       })
       const currentMapped = current.map((b: any) => mapToMisTurnosShape(b, 'current'))
       const pastMapped = past.map((b: any) => mapToMisTurnosShape(b, 'past'))
-      // Pendientes solo en la grilla: no mostrar PENDING en Mis Turnos (solo CONFIRMED, ACTIVE, COMPLETED)
-      const currentFiltered = currentMapped.filter((b: any) => (b.status || '').toUpperCase() !== 'PENDING')
-      // Historial: no mostrar canceladas sin pago (turnos viejos que no se pagaron/cancelaron — datos innecesarios)
+      // Mis Turnos solo muestra reservas vigentes/realizadas; las canceladas desaparecen de esta sección.
+      const currentFiltered = currentMapped.filter((b: any) => {
+        const status = (b.status || '').toUpperCase()
+        return status !== 'PENDING' && status !== 'CANCELLED'
+      })
+      // Historial: ocultar canceladas.
       const pastFiltered = pastMapped.filter((b: any) => {
         const isCancelled = (b.status || '').toUpperCase() === 'CANCELLED'
-        const noPayment = b.paymentStatus === 'Pending'
-        if (isCancelled && noPayment) return false
+        if (isCancelled) return false
         return true
       })
       setCurrentBookings(currentFiltered)

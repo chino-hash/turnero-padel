@@ -42,6 +42,8 @@ import {
   Activity,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
+  XCircle,
   BanknoteIcon as BankIcon,
   RefreshCw,
 } from "lucide-react"
@@ -147,6 +149,7 @@ function PadelBookingPage() {
   const [selectedBookingForCancel, setSelectedBookingForCancel] = useState<any>(null)
   const [refundAmount, setRefundAmount] = useState(0)
   const [canRefund, setCanRefund] = useState(false)
+  const [cancelProcessing, setCancelProcessing] = useState(false)
 
   // Modal para confirmar salir del tenant hacia la landing
   const [showExitToLandingModal, setShowExitToLandingModal] = useState(false)
@@ -487,40 +490,6 @@ function PadelBookingPage() {
     },
   ]
 
-  const handleCancelBooking = (bookingId: string) => {
-    // In a real app, this would send a request to the backend to cancel the booking
-    console.log(`Cancelling booking: ${bookingId}`)
-    // TODO: Implement admin booking cancellation through API
-    // Optionally, show a toast notification for success
-  }
-
-  const handleCancelUserBooking = (bookingId: string) => {
-    // Cancel user booking from bookings
-    try {
-      // Actualizar el estado local de las reservas
-      const updatedCurrentBookings = currentBookings.filter(booking => booking.id !== bookingId)
-      const cancelledBooking = currentBookings.find(booking => booking.id === bookingId)
-      
-      if (cancelledBooking) {
-        // Marcar como cancelada y mover al historial
-        const cancelledBookingForHistory = {
-          ...cancelledBooking,
-          status: "Cancelled",
-          type: "past"
-        }
-        
-        // En una aplicación real, esto se haría a través de una API
-        console.log(`Reserva ${bookingId} cancelada exitosamente`)
-        
-        // Mostrar notificación de éxito
-        alert('Reserva cancelada exitosamente')
-      }
-    } catch (error) {
-      console.error('Error al cancelar la reserva:', error)
-      alert('Error al cancelar la reserva. Por favor, inténtalo de nuevo.')
-    }
-  }
-
   // Función para calcular si aplica reembolso (2 horas de antelación)
   const calculateRefundInfo = (booking: any) => {
     const now = new Date()
@@ -550,27 +519,46 @@ function PadelBookingPage() {
   }
 
   // Función para confirmar la cancelación
-  const handleConfirmCancellation = () => {
-    if (selectedBookingForCancel) {
-      // Aquí iría la lógica para cancelar la reserva en el backend
-      console.log(`Cancelando reserva ${selectedBookingForCancel.id}`, {
-        refundAmount,
-        canRefund
+  const handleConfirmCancellation = async () => {
+    if (!selectedBookingForCancel?.id || cancelProcessing) return
+
+    const bookingId = selectedBookingForCancel.id as string
+    setCancelProcessing(true)
+
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'DELETE',
+        credentials: 'include',
       })
-      
-      // Simular actualización del estado local
-      handleCancelUserBooking(selectedBookingForCancel.id)
-      
-      // Cerrar modal
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const message = result?.error || result?.message || 'No se pudo cancelar la reserva'
+        throw new Error(message)
+      }
+
+      removeBookingFromList(bookingId)
+      await refetchUserBookings()
+      retrySlots()
+      retryMultipleSlots()
+
+      toast.success('Turno cancelado. El horario quedó disponible.')
+
       setShowCancelModal(false)
       setSelectedBookingForCancel(null)
       setCanRefund(false)
       setRefundAmount(0)
+    } catch (error) {
+      console.error('Error al cancelar la reserva:', error)
+      toast.error(error instanceof Error ? error.message : 'Error al cancelar la reserva')
+    } finally {
+      setCancelProcessing(false)
     }
   }
 
   // Función para cerrar el modal de cancelación
   const handleCloseCancelModal = () => {
+    if (cancelProcessing) return
     setShowCancelModal(false)
     setSelectedBookingForCancel(null)
     setCanRefund(false)
@@ -1232,82 +1220,132 @@ function PadelBookingPage() {
 
       {/* Modal de Cancelación Mejorado */}
       <AlertDialog open={showCancelModal} onOpenChange={handleCloseCancelModal}>
-        <AlertDialogContent className={`max-w-md ${isDarkMode ? "bg-gray-800 text-white" : "bg-white"}`}>
+        <AlertDialogContent
+          className={`max-w-3xl border transition-colors ${
+            isDarkMode
+              ? "border-slate-700 bg-[#0E1424] text-white"
+              : "border-slate-200 bg-white text-slate-900"
+          }`}
+        >
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
-              <X className="w-5 h-5" />
-              Cancelar Turno
+            <AlertDialogTitle className="flex items-center gap-3 text-3xl font-bold">
+              <div className="rounded-full bg-amber-400/20 p-2 text-amber-300">
+                <AlertTriangle className="h-7 w-7" />
+              </div>
+              <span>Cancelar reserva</span>
             </AlertDialogTitle>
-            <AlertDialogDescription className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-              ¿Estás seguro de que deseas cancelar este turno?
+            <AlertDialogDescription
+              className={`pl-[58px] text-lg ${
+                isDarkMode ? "text-slate-300" : "text-slate-600"
+              }`}
+            >
+              Esta acción no se puede deshacer
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           {selectedBookingForCancel && (
-            <div className="py-4 space-y-4">
+            <div className="space-y-5 py-3">
               {/* Detalles de la reserva */}
-              <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
-                <h4 className="font-semibold mb-2">Detalles de la reserva:</h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Cancha:</span>
-                    <span>{selectedBookingForCancel.courtName}</span>
+              <div
+                className={`rounded-2xl border p-6 ${
+                  isDarkMode
+                    ? "border-slate-700 bg-gradient-to-br from-slate-900/90 to-slate-800/80"
+                    : "border-slate-200 bg-slate-50"
+                }`}
+              >
+                <h4 className="mb-4 text-2xl font-semibold">Detalles de la reserva</h4>
+                <div className="space-y-2 text-lg">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={isDarkMode ? "text-slate-300" : "text-slate-500"}>Cancha</span>
+                    <span className="font-semibold">{selectedBookingForCancel.courtName}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Fecha:</span>
-                    <span>{formatDate(selectedBookingForCancel.date)}</span>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={isDarkMode ? "text-slate-300" : "text-slate-500"}>Fecha</span>
+                    <span className="font-semibold">{formatDate(selectedBookingForCancel.date)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Horario:</span>
-                    <span>{selectedBookingForCancel.timeRange}</span>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={isDarkMode ? "text-slate-300" : "text-slate-500"}>Horario</span>
+                    <span className="font-semibold">{selectedBookingForCancel.timeRange}</span>
                   </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Seña pagada:</span>
-                    <span>${formatPesosFromCents(selectedBookingForCancel.deposit ?? 0)}</span>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className={isDarkMode ? "text-slate-300" : "text-slate-500"}>Seña</span>
+                    <span className="text-2xl font-bold">${formatPesosFromCents(selectedBookingForCancel.deposit ?? 0)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Política de reembolso */}
-              <div className={`p-3 rounded-lg border-l-4 ${
-                canRefund 
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                  : 'border-red-500 bg-red-50 dark:bg-red-900/20'
-              }`}>
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  {canRefund ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <X className="w-4 h-4 text-red-600" />
-                  )}
-                  Política de Reembolso
-                </h4>
-                <p className="text-sm mb-2">
-                  Si cancelas al menos 2 horas antes del horario del turno, se te devolverá la seña realizada. 
-                  Si cancelas con menos de 2 horas de antelación, no se devolverá nada.
-                </p>
-                <div className={`font-semibold ${
-                  canRefund ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'
-                }`}>
-                  {canRefund ? (
-                    `✅ Reembolso: $${formatPesosFromCents(refundAmount)}`
-                  ) : (
-                    '❌ Sin reembolso disponible'
-                  )}
+              <div
+                className={`rounded-2xl border p-6 ${
+                  isDarkMode
+                    ? "border-slate-700 bg-gradient-to-br from-slate-900/90 to-slate-800/80"
+                    : "border-slate-200 bg-slate-50"
+                }`}
+              >
+                <h4 className="mb-4 text-2xl font-semibold">Política de reembolso</h4>
+
+                <div
+                  className={`flex items-start gap-3 rounded-xl p-3 ${
+                    canRefund
+                      ? "bg-emerald-500/10 ring-1 ring-emerald-400/30"
+                      : isDarkMode
+                        ? "bg-slate-800/60"
+                        : "bg-slate-100"
+                  }`}
+                >
+                  <CheckCircle className="mt-1 h-6 w-6 text-emerald-400" />
+                  <div>
+                    <p className={`text-xl font-semibold ${isDarkMode ? "text-emerald-300" : "text-emerald-700"}`}>Reembolso disponible</p>
+                    <p className={isDarkMode ? "text-slate-300" : "text-slate-600"}>
+                      Cancelando con +2h de anticipación
+                    </p>
+                  </div>
                 </div>
+
+                <div
+                  className={`mt-3 flex items-start gap-3 rounded-xl p-3 ${
+                    !canRefund
+                      ? "bg-red-500/10 ring-1 ring-red-400/30"
+                      : isDarkMode
+                        ? "bg-slate-800/60"
+                        : "bg-slate-100"
+                  }`}
+                >
+                  <XCircle className="mt-1 h-6 w-6 text-red-400" />
+                  <div>
+                    <p className={`text-xl font-semibold ${isDarkMode ? "text-red-300" : "text-red-700"}`}>Sin reembolso</p>
+                    <p className={isDarkMode ? "text-slate-300" : "text-slate-600"}>
+                      Si cancelás con menos de 2h
+                    </p>
+                  </div>
+                </div>
+
+                <p className={`mt-4 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                  {canRefund
+                    ? `Si confirmás ahora, se devolverán $${formatPesosFromCents(refundAmount)} de la seña pagada.`
+                    : "Si confirmás ahora, no se devolverá la seña pagada."}
+                </p>
               </div>
             </div>
           )}
 
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCloseCancelModal}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmCancellation}
-              className="bg-red-600 hover:bg-red-700"
+          <AlertDialogFooter className="mt-2 flex-row gap-3 sm:justify-end">
+            <AlertDialogCancel
+              onClick={handleCloseCancelModal}
+              className={`h-12 min-w-[170px] rounded-xl border text-xl font-semibold ${
+                isDarkMode
+                  ? "border-slate-600 bg-slate-800/80 text-slate-100 hover:bg-slate-700"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+              }`}
             >
-              Confirmar Cancelación
+              Volver
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancellation}
+              disabled={cancelProcessing}
+              className="h-12 min-w-[240px] rounded-xl bg-red-600 text-xl font-bold text-white hover:bg-red-700"
+            >
+              {cancelProcessing ? "Cancelando..." : "Cancelar reserva"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
