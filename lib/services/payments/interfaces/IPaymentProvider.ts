@@ -8,6 +8,7 @@
 
 export interface CreatePaymentPreferenceParams {
   bookingId: string;
+  tenantId?: string;
   title: string;
   description: string;
   amount: number; // ARS (pesos) como entero

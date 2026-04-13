@@ -619,6 +619,7 @@ export class BookingService {
 
       const preference = await paymentProvider.createPreference({
         bookingId: booking.id,
+        tenantId: booking.tenantId,
         title: `Reserva Cancha ${booking.court.name}`,
         description: `Reserva para ${booking.bookingDate.toISOString().split('T')[0]} ${booking.startTime}-${booking.endTime}`,
         amount,

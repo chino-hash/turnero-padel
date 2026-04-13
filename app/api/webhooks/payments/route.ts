@@ -112,6 +112,7 @@ function validateMercadoPagoSignature(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const tenantIdFromQuery = request.nextUrl.searchParams.get('tenantId');
 
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
@@ -131,7 +132,28 @@ export async function POST(request: NextRequest) {
       let usedGlobalSecret = true;
       let tenantId: string | null = null;
 
-      // Si falla, intentar secret por tenant (si podemos inferir bookingId)
+      // Si falla con global, intentar primero con tenantId en query param
+      if (!validation.valid && tenantIdFromQuery) {
+        try {
+          const credentials = await getTenantMercadoPagoCredentials(tenantIdFromQuery);
+          if (credentials.webhookSecret) {
+            validation = validateMercadoPagoSignature(
+              signature,
+              requestId,
+              String(dataId),
+              credentials.webhookSecret
+            );
+            if (validation.valid) {
+              tenantId = tenantIdFromQuery;
+              usedGlobalSecret = false;
+            }
+          }
+        } catch (error) {
+          console.warn('[Webhook] Error obteniendo secret del tenant por query param:', error);
+        }
+      }
+
+      // Si todavía falla, intentar secret por tenant si podemos inferir bookingId
       if (!validation.valid) {
         const bookingId: string | undefined = body.data?.external_reference;
         if (bookingId) {
@@ -174,7 +196,8 @@ export async function POST(request: NextRequest) {
     }
 
     const handler = new BookingWebhookHandler();
-    const result = await handler.handle(body);
+    const payload = tenantIdFromQuery ? { ...body, tenantId: tenantIdFromQuery } : body;
+    const result = await handler.handle(payload);
 
     if (!result.processed) {
       return NextResponse.json(

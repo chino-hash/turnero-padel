@@ -52,6 +52,10 @@ export class BookingWebhookHandler implements IWebhookHandler {
       let paymentStatus: string = '';
       let paymentId: string | number | undefined;
       let bookingId: string | undefined;
+      const hintedTenantId =
+        typeof payload.tenantId === 'string' && payload.tenantId.trim().length > 0
+          ? payload.tenantId
+          : undefined;
 
       // Intentar obtener bookingId si viene (modo mock u otros proveedores)
       if (paymentData?.external_reference) {
@@ -76,6 +80,18 @@ export class BookingWebhookHandler implements IWebhookHandler {
           } catch (error) {
             console.warn(
               `[BookingWebhookHandler] Error obteniendo credenciales del tenant para booking ${bookingId}, usando fallback global:`,
+              error
+            );
+          }
+        }
+        // Si no tenemos bookingId pero sí tenantId en el webhook URL, usar ese tenant para consultar MP
+        else if (hintedTenantId) {
+          try {
+            const credentials = await getTenantMercadoPagoCredentials(hintedTenantId);
+            tenantAccessToken = credentials.accessToken;
+          } catch (error) {
+            console.warn(
+              `[BookingWebhookHandler] Error obteniendo credenciales del tenant ${hintedTenantId} desde webhook URL, usando fallback global:`,
               error
             );
           }

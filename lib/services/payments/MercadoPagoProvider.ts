@@ -51,7 +51,9 @@ export class MercadoPagoProvider implements IPaymentProvider {
       process.env.NEXT_PUBLIC_APP_URL ||
       process.env.NEXTAUTH_URL ||
       'http://localhost:3000';
-    const webhookUrl = `${baseUrl}/api/webhooks/payments`;
+    const webhookUrl = params.tenantId
+      ? `${baseUrl}/api/webhooks/payments?tenantId=${encodeURIComponent(params.tenantId)}`
+      : `${baseUrl}/api/webhooks/payments`;
 
     // Mercado Pago espera unit_price en ARS (pesos). El caller debe pasar amount ya en pesos.
     const unitPrice = params.amount;
