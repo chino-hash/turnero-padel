@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { bookingService } from '@/lib/services/BookingService'
 import { withRateLimit, bookingUpdateRateLimit } from '@/lib/rate-limit'
 import { prisma } from '@/lib/database/neon-config'
+import { isAdminForTenant } from '@/lib/admin-system'
 import { canAccessTenant, isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 
 export const runtime = 'nodejs'
@@ -90,11 +91,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Permisos: admin del tenant o propietario de la reserva
     const normalizedRole = (user.role || '').toUpperCase()
-    const isAdmin = normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN' || user.isAdmin || isSuperAdmin
+    const isTenantAdmin = user.email ? await isAdminForTenant(user.email, booking.tenantId) : false
+    const isAdmin = normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN' || user.isAdmin || isSuperAdmin || isTenantAdmin
+
     const bookingEmail = booking.user?.email?.toLowerCase() || null
     const sessionEmail = session.user.email?.toLowerCase() || null
     const isOwnerById = booking.userId === actorUserId
     const isOwnerByEmail = !!bookingEmail && !!sessionEmail && bookingEmail === sessionEmail
+
     if (!isAdmin && !isOwnerById && !isOwnerByEmail) {
       return NextResponse.json(
         { success: false, error: 'No tienes permisos para crear preferencia de pago para esta reserva' },
@@ -108,8 +112,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!result.success) {
       const statusCode =
         result.code === 'MERCADOPAGO_NOT_CONNECTED' ? 503 :
-        result.error?.includes('no encontrada') ? 404 :
-        (result.error?.includes('fecha de expiración') || result.error === 'Reserva expirada') ? 400 : 400
+          result.error?.includes('no encontrada') ? 404 :
+            (result.error?.includes('fecha de expiración') || result.error === 'Reserva expirada') ? 400 : 400
       return NextResponse.json(result, { status: statusCode })
     }
 
