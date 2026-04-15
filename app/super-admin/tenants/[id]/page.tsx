@@ -13,7 +13,7 @@ import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Switch } from '../../../../components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../components/ui/select'
-import { Building2, Save, ArrowLeft, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff, Users, MapPin, Settings, Package } from 'lucide-react'
+import { Building2, Save, ArrowLeft, Loader2, Users, MapPin, Settings, Package } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { SUBSCRIPTION_PLANS, getPlanDefaultCourts } from '../../../../lib/subscription-plans'
 import { useAuth } from '../../../../hooks/useAuth'
@@ -31,9 +31,6 @@ interface TenantData {
   ownerEmail: string | null
   mercadoPagoEnabled: boolean
   mercadoPagoEnvironment: 'sandbox' | 'production' | null
-  mercadoPagoAccessToken: string | null
-  mercadoPagoPublicKey: string | null
-  mercadoPagoWebhookSecret: string | null
 }
 
 const isNewTenant = (id: string | string[] | undefined): boolean => {
@@ -56,15 +53,6 @@ export default function TenantDetailPage() {
     ownerEmail: null,
     mercadoPagoEnabled: false,
     mercadoPagoEnvironment: 'sandbox',
-    mercadoPagoAccessToken: null,
-    mercadoPagoPublicKey: null,
-    mercadoPagoWebhookSecret: null,
-  })
-
-  const [showCredentials, setShowCredentials] = useState({
-    accessToken: false,
-    publicKey: false,
-    webhookSecret: false,
   })
 
   const lastDerivedSlugRef = useRef<string>('')
@@ -84,7 +72,6 @@ export default function TenantDetailPage() {
   const [depositPercentage, setDepositPercentage] = useState('50')
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string; precio: number; categoria: string }>>([])
   const [productosLoading, setProductosLoading] = useState(false)
-  const [hasMercadoPagoCredentials, setHasMercadoPagoCredentials] = useState(false)
 
   useEffect(() => {
     if (!newTenant && tenantId) {
@@ -185,12 +172,7 @@ export default function TenantDetailPage() {
           ownerEmail: tenant.ownerEmail ?? null,
           mercadoPagoEnabled: Boolean(tenant.mercadoPagoEnabled),
           mercadoPagoEnvironment: (tenant.mercadoPagoEnvironment === 'production' ? 'production' : 'sandbox') as 'sandbox' | 'production',
-          // Las credenciales vienen encriptadas, no las mostramos
-          mercadoPagoAccessToken: null,
-          mercadoPagoPublicKey: null,
-          mercadoPagoWebhookSecret: null,
         })
-        setHasMercadoPagoCredentials(Boolean((tenant as { hasMercadoPagoCredentials?: boolean }).hasMercadoPagoCredentials))
       } else {
         throw new Error(data.error || 'Error al cargar tenant')
       }
@@ -226,22 +208,6 @@ export default function TenantDetailPage() {
         return
       }
 
-      // Validar credenciales de MP si está habilitado (en production son obligatorias si aún no hay ninguna guardada; en sandbox se permite modo demo sin credenciales)
-      const isSandbox = (formData.mercadoPagoEnvironment || 'sandbox') === 'sandbox'
-      if (formData.mercadoPagoEnabled && !isSandbox) {
-        const missingToken = !formData.mercadoPagoAccessToken?.trim()
-        const missingPk = !formData.mercadoPagoPublicKey?.trim()
-        // Si ya hay credenciales en BD, los campos vacíos conservan los valores (mismo criterio que el texto del formulario)
-        if (missingToken && !hasMercadoPagoCredentials) {
-          toast.error('El Access Token de Mercado Pago es requerido en ambiente production')
-          return
-        }
-        if (missingPk && !hasMercadoPagoCredentials) {
-          toast.error('La Public Key de Mercado Pago es requerida en ambiente production')
-          return
-        }
-      }
-
       const payload: any = {
         name: formData.name.trim(),
         slug: formData.slug.trim(),
@@ -255,17 +221,6 @@ export default function TenantDetailPage() {
         payload.ownerEmail = formData.ownerEmail?.trim() || undefined
       } else {
         payload.ownerEmail = formData.ownerEmail?.trim() || null
-      }
-
-      // Solo incluir credenciales si se están proporcionando (para no sobrescribir las existentes si están vacías)
-      if (formData.mercadoPagoAccessToken?.trim()) {
-        payload.mercadoPagoAccessToken = formData.mercadoPagoAccessToken.trim()
-      }
-      if (formData.mercadoPagoPublicKey?.trim()) {
-        payload.mercadoPagoPublicKey = formData.mercadoPagoPublicKey.trim()
-      }
-      if (formData.mercadoPagoWebhookSecret?.trim()) {
-        payload.mercadoPagoWebhookSecret = formData.mercadoPagoWebhookSecret.trim()
       }
 
       let res: Response
@@ -757,11 +712,11 @@ export default function TenantDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Credenciales de Mercado Pago */}
+        {/* Mercado Pago */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Credenciales de Mercado Pago</CardTitle>
-            <CardDescription>Configure las credenciales para procesar pagos</CardDescription>
+            <CardTitle>Mercado Pago</CardTitle>
+            <CardDescription>Active o desactive Mercado Pago para este tenant</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -774,121 +729,9 @@ export default function TenantDetailPage() {
                 Habilitar Mercado Pago
               </Label>
             </div>
-
-            {formData.mercadoPagoEnabled && (
-              <>
-                {hasMercadoPagoCredentials && (
-                  <p className="text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-                    Ya hay credenciales guardadas (no se muestran por seguridad). Deje los campos en blanco para conservarlas, o complete para actualizarlas.
-                  </p>
-                )}
-                <div>
-                  <Label htmlFor="mercadoPagoEnvironment">Ambiente</Label>
-                  <Select
-                    value={formData.mercadoPagoEnvironment || 'sandbox'}
-                    onValueChange={(value: 'sandbox' | 'production') => handleChange('mercadoPagoEnvironment', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sandbox">Sandbox (Pruebas)</SelectItem>
-                      <SelectItem value="production">Production (Producción)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="mercadoPagoAccessToken">Access Token *</Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowCredentials(prev => ({ ...prev, accessToken: !prev.accessToken }))}
-                    >
-                      {showCredentials.accessToken ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <Input
-                    id="mercadoPagoAccessToken"
-                    type={showCredentials.accessToken ? 'text' : 'password'}
-                    value={formData.mercadoPagoAccessToken || ''}
-                    onChange={(e) => handleChange('mercadoPagoAccessToken', e.target.value)}
-                    placeholder={newTenant ? 'Ingrese el access token' : 'Dejar vacío para mantener el actual'}
-                  />
-                  {!newTenant && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Solo complete si desea actualizar el token. Se guardará encriptado.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="mercadoPagoPublicKey">Public Key *</Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowCredentials(prev => ({ ...prev, publicKey: !prev.publicKey }))}
-                    >
-                      {showCredentials.publicKey ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <Input
-                    id="mercadoPagoPublicKey"
-                    type={showCredentials.publicKey ? 'text' : 'password'}
-                    value={formData.mercadoPagoPublicKey || ''}
-                    onChange={(e) => handleChange('mercadoPagoPublicKey', e.target.value)}
-                    placeholder={newTenant ? 'Ingrese la public key' : 'Dejar vacío para mantener la actual'}
-                  />
-                  {!newTenant && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Solo complete si desea actualizar la clave pública. Se guardará encriptado.
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label htmlFor="mercadoPagoWebhookSecret">Webhook Secret</Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowCredentials(prev => ({ ...prev, webhookSecret: !prev.webhookSecret }))}
-                    >
-                      {showCredentials.webhookSecret ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <Input
-                    id="mercadoPagoWebhookSecret"
-                    type={showCredentials.webhookSecret ? 'text' : 'password'}
-                    value={formData.mercadoPagoWebhookSecret || ''}
-                    onChange={(e) => handleChange('mercadoPagoWebhookSecret', e.target.value)}
-                    placeholder={newTenant ? 'Ingrese el webhook secret' : 'Dejar vacío para mantener el actual'}
-                  />
-                  {!newTenant && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Solo complete si desea actualizar el secret. Se guardará encriptado.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Las credenciales se gestionan dentro de cada tenant.
+            </p>
           </CardContent>
         </Card>
 
