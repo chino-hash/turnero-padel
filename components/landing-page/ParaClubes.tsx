@@ -114,7 +114,7 @@ export default function ParaClubes() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full border-zinc-700 text-white hover:bg-zinc-800"
+                  className="w-full border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
                 >
                   Conocer Más
                 </Button>

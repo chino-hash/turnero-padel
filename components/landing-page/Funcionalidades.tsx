@@ -1,4 +1,4 @@
-import { Zap, Users, CreditCard, Bell, Shield, TrendingUp } from 'lucide-react';
+import { Zap, CreditCard, Bell, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const features = [
@@ -7,12 +7,6 @@ const features = [
     title: 'Reservas en Tiempo Real',
     description: 'Ve la disponibilidad de tus clubes favoritos y reserva tu cancha al instante. Sin llamadas ni esperas.',
     highlight: true,
-  },
-  {
-    icon: Users,
-    title: 'Arma Partidos',
-    description: '¿Te faltan jugadores? Publica partidos abiertos y encuentra gente de tu nivel para jugar.',
-    highlight: false,
   },
   {
     icon: CreditCard,
@@ -32,17 +26,11 @@ const features = [
     description: 'Todos los clubes en nuestra plataforma pasan por un proceso de verificación de calidad.',
     highlight: false,
   },
-  {
-    icon: TrendingUp,
-    title: 'Seguimiento de Progreso',
-    description: 'Lleva registro de tus partidos, estadísticas y mejora tu nivel de juego con el tiempo.',
-    highlight: false,
-  },
 ];
 
 export default function Funcionalidades() {
   return (
-    <section id="funcionalidades" className="py-10 lg:py-16 bg-[#0a0a0a]">
+    <section id="funcionalidades" className="py-10 lg:py-14 bg-[#0a0a0a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
@@ -107,22 +95,6 @@ export default function Funcionalidades() {
           ))}
         </div>
 
-        {/* Bottom Stats */}
-        <div className="mt-16 grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {[
-            { value: '2min', label: 'Tiempo promedio de reserva' },
-            { value: '98%', label: 'Satisfacción de usuarios' },
-            { value: '24/7', label: 'Disponibilidad de soporte' },
-            { value: '0$', label: 'Costo de descarga' },
-          ].map((stat, index) => (
-            <div key={index} className="text-center">
-              <p className="text-3xl lg:text-4xl font-bold gradient-text mb-1">
-                {stat.value}
-              </p>
-              <p className="text-sm text-zinc-500">{stat.label}</p>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );

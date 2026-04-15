@@ -28,20 +28,29 @@ interface NavbarProps {
 }
 
 const navLinks = [
-  { name: 'Clubes', href: '#clubes' },
-  { name: 'Cómo Funciona', href: '#como-funciona' },
-  { name: 'Funcionalidades', href: '#funcionalidades' },
-  { name: 'Para Clubes', href: '#para-clubes' },
+  { name: 'Clubes', targetId: 'clubes' },
+  { name: 'Cómo Funciona', targetId: 'como-funciona' },
+  { name: 'Funcionalidades', targetId: 'funcionalidades' },
+  { name: 'Para Clubes', targetId: 'para-clubes' },
 ]
 
 export default function Navbar({ scrollY, session, tenantSlug, tenantName }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const isScrolled = scrollY > 50
+  const shouldShowBackground = isScrolled || isOpen
+  
+  const handleSectionNavigation = (targetId: string) => {
+    const section = document.getElementById(targetId)
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    setIsOpen(false)
+  }
 
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+        shouldShowBackground
           ? 'bg-[#0a0a0a]/90 backdrop-blur-lg border-b border-zinc-800'
           : 'bg-transparent'
       }`}
@@ -49,21 +58,27 @@ export default function Navbar({ scrollY, session, tenantSlug, tenantName }: Nav
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1">
-            <span className="text-xl lg:text-2xl font-bold text-white">padel</span>
-            <span className="text-xl lg:text-2xl font-bold text-[#BEF264]">book</span>
+          <Link href="/" className="flex items-center gap-2">
+            <img
+              src="/logo/padel1.svg"
+              alt="Logo de PadelBook"
+              className="w-7 h-7 lg:w-8 lg:h-8 object-contain"
+            />
+            <span className="text-xl lg:text-2xl font-bold text-white">Padel</span>
+            <span className="text-xl lg:text-2xl font-bold text-[#BEF264]">Book</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
+              <button
                 key={link.name}
-                href={link.href}
+                type="button"
                 className="text-sm text-zinc-400 hover:text-[#BEF264] transition-colors duration-200"
+                onClick={() => handleSectionNavigation(link.targetId)}
               >
                 {link.name}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -71,12 +86,13 @@ export default function Navbar({ scrollY, session, tenantSlug, tenantName }: Nav
           <div className="hidden lg:flex items-center gap-4">
             {!session?.user ? (
               <>
-                <a
-                  href="#para-clubes"
+                <button
+                  type="button"
                   className="bg-[#BEF264] text-[#0D0D0D] px-4 py-2 rounded-md hover:bg-[#a1d94f] font-semibold transition-colors"
+                  onClick={() => handleSectionNavigation('para-clubes')}
                 >
                   Soy un Club
-                </a>
+                </button>
                 <Link
                   href="/login?callbackUrl=/"
                   className="bg-[#BEF264] text-[#0D0D0D] px-4 py-2 rounded-md hover:bg-[#a1d94f] font-semibold transition-colors"
@@ -143,25 +159,25 @@ export default function Navbar({ scrollY, session, tenantSlug, tenantName }: Nav
           <div className="lg:hidden py-4 border-t border-zinc-800 animate-fade-in">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
-                <a
+                <button
                   key={link.name}
-                  href={link.href}
+                  type="button"
                   className="text-zinc-400 hover:text-[#BEF264] transition-colors py-2"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => handleSectionNavigation(link.targetId)}
                 >
                   {link.name}
-                </a>
+                </button>
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t border-zinc-800">
                 {!session?.user ? (
                   <>
-                    <a
-                      href="#para-clubes"
+                    <button
+                      type="button"
                       className="bg-[#BEF264] text-[#0D0D0D] px-4 py-2 hover:bg-[#a1d94f] font-semibold text-center rounded-md"
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => handleSectionNavigation('para-clubes')}
                     >
                       Soy un Club
-                    </a>
+                    </button>
                     <Link
                       href="/login?callbackUrl=/"
                       className="bg-[#BEF264] text-[#0D0D0D] px-4 py-2 hover:bg-[#a1d94f] font-semibold text-center rounded-md"

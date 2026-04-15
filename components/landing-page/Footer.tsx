@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { Instagram, Twitter, Facebook, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 const footerLinks = {
   producto: [
@@ -126,30 +124,6 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
-
-        {/* Newsletter */}
-        <div className="mt-12 pt-8 border-t border-zinc-800">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <h4 className="font-semibold text-white mb-1">
-                Suscribite a nuestro newsletter
-              </h4>
-              <p className="text-sm text-zinc-400">
-                Recibí tips de pádel, promociones exclusivas y novedades.
-              </p>
-            </div>
-            <div className="flex gap-3 max-w-md w-full lg:w-auto">
-              <Input
-                type="email"
-                placeholder="Tu email"
-                className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
-              />
-              <Button className="bg-[#BEF264] text-black hover:bg-[#a1d94f] font-semibold whitespace-nowrap">
-                Suscribirme
-              </Button>
-            </div>
           </div>
         </div>
 

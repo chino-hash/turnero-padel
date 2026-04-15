@@ -61,13 +61,6 @@ export default function ComoFunciona() {
               )}
 
               <div className="relative bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-2xl p-8 text-center card-hover">
-                {/* Step number */}
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="text-5xl font-bold text-zinc-800/50">
-                    {step.number}
-                  </span>
-                </div>
-
                 {/* Icon */}
                 <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                   <step.icon className="w-10 h-10 text-black" />

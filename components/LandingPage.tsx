@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { Session } from 'next-auth'
 
@@ -27,6 +27,7 @@ interface LandingPageProps {
 
 export default function LandingPage({ session, tenantSlug, tenantName }: LandingPageProps) {
   const searchParams = useSearchParams()
+  const clubsFetchedRef = useRef(false)
   const [clubs, setClubs] = useState<Club[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loadingClubs, setLoadingClubs] = useState(true)
@@ -68,6 +69,9 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
   }, [searchParams])
 
   useEffect(() => {
+    if (clubsFetchedRef.current) return
+    clubsFetchedRef.current = true
+
     const fetchClubs = async () => {
       try {
         setLoadingClubs(true)

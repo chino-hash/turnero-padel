@@ -33,7 +33,7 @@ export default function Hero({ searchQuery, setSearchQuery, filteredClubs }: Her
       {/* Animated gradient orb */}
       <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-[#BEF264]/10 rounded-full blur-[120px] animate-pulse" />
       
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 w-full">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 w-full bg-black">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left Content */}
           <div className="space-y-8 animate-slide-up">
