@@ -26,13 +26,7 @@ interface HeroProps {
 
 export default function Hero({ searchQuery, setSearchQuery, filteredClubs }: HeroProps) {
   return (
-    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#0a0a0a] to-zinc-900" />
-      
-      {/* Animated gradient orb */}
-      <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-[#BEF264]/10 rounded-full blur-[120px] animate-pulse" />
-      
+    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-black">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20 w-full bg-black">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left Content */}
@@ -115,9 +109,6 @@ export default function Hero({ searchQuery, setSearchQuery, filteredClubs }: Her
 
           {/* Right Content - App Mockup */}
           <div className="relative flex justify-center lg:justify-end animate-float">
-            {/* Glow effect behind phone */}
-            <div className="absolute inset-0 bg-[#BEF264]/20 rounded-full blur-[80px] scale-75" />
-            
             {/* Phone mockup */}
             <div className="relative">
               <img

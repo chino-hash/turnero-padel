@@ -30,7 +30,7 @@ const features = [
 
 export default function Funcionalidades() {
   return (
-    <section id="funcionalidades" className="py-10 lg:py-14 bg-[#0a0a0a]">
+    <section id="funcionalidades" className="py-10 lg:py-14 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
@@ -50,7 +50,7 @@ export default function Funcionalidades() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {features.map((feature, index) => (
             <div
               key={index}

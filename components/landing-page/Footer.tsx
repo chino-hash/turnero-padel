@@ -2,12 +2,6 @@ import Link from 'next/link'
 import { Instagram, Twitter, Facebook, Linkedin, Mail, Phone, MapPin } from 'lucide-react'
 
 const footerLinks = {
-  producto: [
-    { name: 'Descargar App', href: '#' },
-    { name: 'Funcionalidades', href: '#funcionalidades' },
-    { name: 'Clubes Asociados', href: '#clubes' },
-    { name: 'Precios', href: '#' },
-  ],
   empresa: [
     { name: 'Sobre Nosotros', href: '#' },
     { name: 'Blog', href: '#' },
@@ -33,7 +27,7 @@ export default function Footer() {
   return (
     <footer className="bg-zinc-950 border-t border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid lg:grid-cols-5 gap-12 lg:gap-8">
+        <div className="grid lg:grid-cols-4 gap-12 lg:gap-8">
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Logo */}
@@ -78,22 +72,6 @@ export default function Footer() {
           </div>
 
           {/* Links Columns */}
-          <div>
-            <h4 className="font-semibold text-white mb-4">Producto</h4>
-            <ul className="space-y-3">
-              {footerLinks.producto.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-zinc-400 hover:text-[#BEF264] transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           <div>
             <h4 className="font-semibold text-white mb-4">Empresa</h4>
             <ul className="space-y-3">

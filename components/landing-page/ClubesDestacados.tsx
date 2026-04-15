@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import { MapPin, Star, ChevronLeft, ChevronRight, Clock, ArrowRight } from 'lucide-react'
+import { MapPin, Star, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -52,7 +52,7 @@ export default function ClubesDestacados({
   }
 
   return (
-    <section id="clubes" className="py-10 lg:py-16 bg-[#0a0a0a]">
+    <section id="clubes" className="py-10 lg:py-16 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {urlError && (
@@ -88,7 +88,7 @@ export default function ClubesDestacados({
             <Button
               variant="outline"
               size="icon"
-              className="border-zinc-700 text-zinc-400 hover:text-white hover:border-[#BEF264]"
+              className="border-white bg-black text-white transition-all duration-300 hover:bg-black hover:text-white hover:border-white hover:shadow-[0_0_18px_rgba(190,242,100,0.75)]"
               onClick={() => scroll('left')}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -96,7 +96,7 @@ export default function ClubesDestacados({
             <Button
               variant="outline"
               size="icon"
-              className="border-zinc-700 text-zinc-400 hover:text-white hover:border-[#BEF264]"
+              className="border-white bg-black text-white transition-all duration-300 hover:bg-black hover:text-white hover:border-white hover:shadow-[0_0_18px_rgba(190,242,100,0.75)]"
               onClick={() => scroll('right')}
             >
               <ChevronRight className="w-5 h-5" />
@@ -148,9 +148,10 @@ export default function ClubesDestacados({
               const visuals = mockExtraData[index % mockExtraData.length]
               
               return (
-                <div
+                <Link
                   key={club.id}
-                  className="flex-shrink-0 w-[320px] sm:w-[380px] snap-start group"
+                  href={`/club/${club.slug}`}
+                  className="flex-shrink-0 w-[320px] sm:w-[380px] snap-start group block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#BEF264] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0a] rounded-2xl"
                 >
                   <div className="relative bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 card-hover h-full flex flex-col">
                     {/* Image */}
@@ -200,15 +201,12 @@ export default function ClubesDestacados({
                         </div>
                       </div>
 
-                      <Button asChild className="w-full bg-zinc-800 text-white hover:bg-[#BEF264] hover:text-black transition-all duration-300 group/btn mt-2">
-                        <Link href={`/club/${club.slug}`}>
-                          Reservar Ahora
-                          <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover/btn:translate-x-1" />
-                        </Link>
-                      </Button>
+                      <div className="w-full bg-zinc-800 text-white group-hover:bg-[#BEF264] group-hover:text-black transition-all duration-300 mt-2 rounded-md py-2.5 text-center font-medium">
+                        Reservar Ahora
+                      </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
