@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Session } from 'next-auth'
 import { ZodError } from 'zod'
 
 import { auth } from '@/lib/auth'
@@ -32,8 +33,7 @@ const TRANSFER_SETTING_KEYS = {
   notes: 'payment_transfer_notes',
 } as const
 
-type AuthSession = Awaited<ReturnType<typeof auth>>
-type SessionUser = NonNullable<NonNullable<AuthSession>['user']>
+type SessionUser = NonNullable<Session['user']>
 
 function buildPermissionsUser(user: SessionUser): PermissionsUser {
   return {
