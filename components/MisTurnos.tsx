@@ -244,7 +244,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
   return (
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
       isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-    } ${isDarkMode ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-blue-50 to-emerald-50"}`} data-testid="mis-turnos">
+    } ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-emerald-50"}`} data-testid="mis-turnos">
       <div className="min-h-fit pb-2.5 px-4 pt-16 sm:pt-20">
         {/* Header */}
         <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 relative z-20">

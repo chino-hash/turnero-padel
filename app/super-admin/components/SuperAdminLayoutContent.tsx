@@ -23,7 +23,7 @@ export default function SuperAdminLayoutContent({ children }: SuperAdminLayoutCo
     `${baseClasses} ${isDarkMode ? darkClasses : lightClasses}${pathname.startsWith(href) ? (isDarkMode ? activeDark : activeLight) : ""}`
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-[#090E1A]' : 'bg-gray-50'}`}>
+    <div className={`min-h-screen ${isDarkMode ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
       {/* Header principal con navegación integrada */}
       <header
         className={`shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}

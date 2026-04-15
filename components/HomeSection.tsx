@@ -305,7 +305,7 @@ export default function HomeSection({
     <div
       id="courts-section"
       data-testid="home-section"
-      className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${isDarkMode ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-blue-50 to-emerald-50"
+      className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-emerald-50"
         }`}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
@@ -494,14 +494,14 @@ export default function HomeSection({
                 data-testid="court-card"
                 className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${selectedCourt === court.id
                     ? isDarkMode
-                      ? 'bg-gray-700 border-border shadow-xl'
+                      ? 'bg-zinc-800 border-zinc-800 shadow-xl'
                       : `border-border shadow-xl`
-                    : `${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'} shadow-md`
+                    : `${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'} shadow-md`
                   }`}
                 style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
                 {/* Availability Badge */}
-                <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+                <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
                   }`}>
                   {(() => {
                     const showLoadingRate = loading || isRefreshing
@@ -581,11 +581,11 @@ export default function HomeSection({
                           setIsUnifiedView(false)
                         }}
                         data-testid="court-card"
-                        className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'
+                        className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'
                           } shadow-md`}
                         style={!isDarkMode ? { backgroundColor: selectedBg } : undefined}
                       >
-                        <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-gray-800/90' : 'bg-white/90'
+                        <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
                           }`}>
                           <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
                             }`}>{`${rate}%`}</div>
@@ -605,7 +605,7 @@ export default function HomeSection({
                     const num = getCourtNumber(court.name || '', court.id)
                     const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
                     return (
-                      <div key={court.id} className={`relative p-4 rounded-2xl border ${isDarkMode ? 'bg-gray-800 border-border' : 'bg-white border-border'} opacity-70`}>
+                      <div key={court.id} className={`relative p-4 rounded-2xl border ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'} opacity-70`}>
                         <div className="text-xs">{court.name}</div>
                         <div className={"mx-auto mt-2 w-20 h-8 rounded-lg border relative"} style={{ backgroundColor: courtHex }}></div>
                       </div>
@@ -622,7 +622,7 @@ export default function HomeSection({
           {/* Mobile: Stacked Layout */}
           <div className="flex flex-col gap-3 md:hidden">
             {/* View Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -633,7 +633,7 @@ export default function HomeSection({
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${!isUnifiedView
                     ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
               >
                 Por cancha
               </button>
@@ -648,14 +648,14 @@ export default function HomeSection({
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
                     ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
               >
                 Vista unificada
               </button>
             </div>
 
             {/* Filter Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -666,7 +666,7 @@ export default function HomeSection({
                 className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${!showOnlyOpen
                     ? 'text-[color:var(--electric-teal)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'}`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
                 aria-pressed={!showOnlyOpen}
               >
                 Todos los horarios
@@ -686,7 +686,7 @@ export default function HomeSection({
                     : showOnlyOpen
                       ? 'text-[color:var(--electric-teal)] font-bold'
                       : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white')}`}
+                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white')}`}
               >
                 Solo disponibles
               </button>
@@ -697,7 +697,7 @@ export default function HomeSection({
           {/* Desktop: Horizontal Layout */}
           <div className="hidden md:flex flex-col sm:flex-row justify-center items-center gap-8">
             {/* View Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} data-testid="view-toggle">
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`} data-testid="view-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -708,7 +708,7 @@ export default function HomeSection({
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${!isUnifiedView
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={!isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-by-court"
               >
@@ -725,7 +725,7 @@ export default function HomeSection({
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
                 data-testid="toggle-view-unified"
               >
@@ -734,7 +734,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`} data-testid="filter-toggle">
+            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`} data-testid="filter-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -745,7 +745,7 @@ export default function HomeSection({
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${!showOnlyOpen
                     ? 'text-white shadow-md'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-emerald-500/30`}
                 style={!showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-all"
                 aria-pressed={!showOnlyOpen}
@@ -767,7 +767,7 @@ export default function HomeSection({
                     : showOnlyOpen
                       ? 'text-white shadow-md'
                       : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-white')} hover:ring-1 hover:ring-emerald-500/30`}
+                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white')} hover:ring-1 hover:ring-emerald-500/30`}
                 style={showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
                 data-testid="toggle-filter-open"
               >
@@ -812,7 +812,7 @@ export default function HomeSection({
                         className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center snap-center ${isSelected
                             ? "text-white shadow-lg"
                             : isDarkMode
-                              ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
+                              ? "bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-800"
                               : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                           } ${index === 0 ? 'ml-4' : ''}`}
                         style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -864,7 +864,7 @@ export default function HomeSection({
                       className={`w-full p-4 rounded-lg transition-all duration-200 text-left ${isSelected
                           ? "text-white shadow-lg"
                           : isDarkMode
-                            ? "bg-gray-800 text-white hover:bg-gray-700 border border-gray-600"
+                            ? "bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-800"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                         }`}
                       style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -921,7 +921,7 @@ export default function HomeSection({
                   variant="outline"
                   size="sm"
                   disabled={isRefreshing}
-                  className={`flex items-center gap-2 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                  className={`flex items-center gap-2 ${isDarkMode ? 'border-zinc-800 text-gray-300 hover:bg-zinc-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
                   data-testid="refresh-slots-btn"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -947,7 +947,7 @@ export default function HomeSection({
             </div>
 
             {/* Badge Demo Section */}
-            <div className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
+            <div className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-gray-100 border-gray-300'}`}>
               <div className="flex items-center gap-3">
                 <span className={`text-sm ${isDarkMode ? "text-white" : "text-gray-600"}`}>Estados:</span>
                 <span className="badge-disponible">Disponible</span>
@@ -957,7 +957,7 @@ export default function HomeSection({
 
             {/* Loading State */}
             {loading && (
-              <div className={`flex flex-col items-center justify-center py-12 border rounded-lg ${isDarkMode ? "text-gray-400 bg-gray-800 border-gray-600" : "text-gray-600 bg-gray-100 border-gray-300"}`}>
+              <div className={`flex flex-col items-center justify-center py-12 border rounded-lg ${isDarkMode ? "text-gray-400 bg-zinc-900 border-zinc-800" : "text-gray-600 bg-gray-100 border-gray-300"}`}>
                 <Loader2 className="w-8 h-8 animate-spin mb-3" />
                 <p className="text-sm">Cargando horarios disponibles...</p>
               </div>
@@ -965,7 +965,7 @@ export default function HomeSection({
 
             {/* Error State */}
             {error && !loading && (
-              <div className={`flex flex-col items-center justify-center py-12 border rounded-lg ${isDarkMode ? "text-gray-400 bg-gray-800 border-gray-600" : "text-gray-600 bg-gray-100 border-gray-300"}`}>
+              <div className={`flex flex-col items-center justify-center py-12 border rounded-lg ${isDarkMode ? "text-gray-400 bg-zinc-900 border-zinc-800" : "text-gray-600 bg-gray-100 border-gray-300"}`}>
                 <AlertCircle className="w-8 h-8 mb-3 text-red-500" />
                 <p className="text-sm mb-4 text-center">Error al cargar los horarios: {error}</p>
                 {onRetry && (
