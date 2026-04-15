@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { setAdminContextTenant } from "@/lib/utils/admin-context-tenant"
-import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home, Building2, Menu } from "lucide-react"
+import { Settings, Users, Calendar, BarChart3, Package, Sun, Moon, Trophy, Home, Building2, Menu, CreditCard } from "lucide-react"
 import AdminTitleButton from "./AdminTitleButton"
 import { useAppState } from "../../../components/providers/AppStateProvider"
 import { useRouter, usePathname } from "next/navigation"
@@ -27,6 +27,7 @@ const NAV_LINKS = [
   { href: "/admin-panel/estadisticas", label: "Estadísticas", icon: BarChart3, testId: "admin-stats-link" },
   { href: "/admin-panel/admin/productos", label: "Productos", icon: Package, testId: "admin-products-link" },
   { href: "/admin-panel/admin/torneos", label: "Torneo", icon: Trophy, testId: "admin-tournaments-link" },
+  { href: "/admin-panel/admin/metodos-pago", label: "Métodos de pago", icon: CreditCard, testId: "admin-payment-methods-link" },
 ] as const
 
 /** Añade tenantId/tenantSlug de la URL actual a un href para mantener contexto de tenant (super admin) */
