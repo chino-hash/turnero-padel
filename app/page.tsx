@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 import { getTenantFromId } from '@/lib/tenant/context'
 import LandingPage from '@/components/LandingPage'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   let session: Session | null = null
   try {
