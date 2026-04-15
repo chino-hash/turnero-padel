@@ -292,6 +292,10 @@ function PadelBookingPage() {
       try {
         const data = JSON.parse(text)
         message = data?.message ?? data?.error ?? message
+        const firstDetail = Array.isArray(data?.details) ? data.details[0] : null
+        if (firstDetail?.message) {
+          message = `${message}: ${String(firstDetail.message)}`
+        }
       } catch {
         if (text) message = text
       }

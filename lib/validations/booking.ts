@@ -21,12 +21,28 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
   message: 'La fecha no puede ser anterior a hoy'
 });
 
+// Tolerante a desfase horario entre cliente y servidor (ej. cliente UTC-3, servidor UTC)
+// Permite "hoy local" aunque en UTC ya haya cambiado de día.
+const bookingCreateDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((date) => {
+  const now = new Date()
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const yesterdayUtc = new Date(todayUtc)
+  yesterdayUtc.setUTCDate(yesterdayUtc.getUTCDate() - 1)
+
+  const [y, m, d] = date.split('-').map(Number)
+  const parsedDateUtc = new Date(Date.UTC(y as number, (m as number) - 1, d as number))
+
+  return parsedDateUtc >= yesterdayUtc
+}, {
+  message: 'La fecha no puede ser anterior al día actual'
+});
+
 // Schema para crear una reserva
 export const createBookingSchema = z.object({
   courtId: z.string().cuid({
     message: 'ID de cancha inválido'
   }),
-  bookingDate: dateSchema,
+  bookingDate: bookingCreateDateSchema,
   startTime: timeSchema,
   endTime: timeSchema,
   /** ID de usuario existente (solo admins). Si no se envía, se usa sesión o guest. */
