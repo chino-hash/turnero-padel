@@ -613,8 +613,6 @@ export default function HomeSection({
                     <div className="absolute top-1/2 left-0 right-0 h-px bg-white/50 transform -translate-y-1/2"></div>
                     <div className="absolute top-1/2 left-1/2 w-px h-full bg-white/50 transform -translate-x-1/2 -translate-y-1/2"></div>
                   </div>
-                  {/* Net */}
-                  <div className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 w-8 sm:w-14 h-0.5 sm:h-1 bg-white/70 rounded"></div>
                 </div>
 
                 {/* Court Name */}
