@@ -12,6 +12,9 @@ const nextConfig = {
   },
   experimental: {
     forceSwcTransforms: true,
+    // Workaround para un bug de Next.js 15 + Webpack en dev
+    // que rompe el React Client Manifest (SegmentViewNode).
+    devtoolSegmentExplorer: false,
   },
   // Reducir el tamaño del middleware excluyendo dependencias pesadas
   outputFileTracingExcludes: {

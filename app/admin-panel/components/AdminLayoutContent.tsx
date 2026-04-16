@@ -58,9 +58,9 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
   }, [searchParams])
 
   const baseClasses = "flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200"
-  const darkClasses = "text-gray-300 hover:text-blue-400 hover:bg-gray-700"
+  const darkClasses = "text-gray-300 hover:text-blue-400 hover:bg-zinc-800"
   const lightClasses = "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-  const activeDark = " text-blue-400 bg-gray-700"
+  const activeDark = " text-blue-400 bg-zinc-800"
   const activeLight = " text-blue-600 bg-blue-50"
   const linkClass = (href: string) =>
     `${baseClasses} ${isDarkMode ? darkClasses : lightClasses}${pathname.startsWith(href) ? (isDarkMode ? activeDark : activeLight) : ""}`
@@ -68,11 +68,11 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-[#0a0a0a]' : 'bg-gray-50'}`}>
       <header
-        className={`relative z-40 shadow-lg border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+        className={`relative z-40 shadow-lg border-b ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200'}`}
         role="banner"
         aria-label="Navegación del panel de administración"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isDarkMode ? 'bg-[#171717]' : ''}`}>
           <div className="flex items-center justify-between gap-3 lg:gap-4 h-14 lg:h-20">
             {/* Logo y título: shrink-0 para que no invada el nav */}
             <div className="flex items-center gap-2 lg:gap-4 shrink-0 min-w-0">
@@ -152,7 +152,7 @@ export default function AdminLayoutContent({ children }: AdminLayoutContentProps
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className={`flex items-center justify-center min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 sm:min-h-0 sm:min-w-0 rounded-md border transition-all duration-200 hover:scale-105 ${isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
+                  ? 'bg-zinc-900 border-zinc-800 text-gray-200 hover:bg-zinc-800'
                   : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
                 }`}
                 aria-label={isDarkMode ? "Activar modo claro" : "Activar modo oscuro"}

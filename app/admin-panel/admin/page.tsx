@@ -797,7 +797,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <Card>
+      <Card className="dark:bg-zinc-900 dark:border-zinc-800">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <BarChart3 className="w-5 h-5" />
@@ -830,10 +830,10 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      <Card className="mt-4 shadow-sm border rounded-xl flex flex-col gap-3 py-3 bg-card text-card-foreground">
+      <Card className="mt-4 shadow-sm border rounded-xl flex flex-col gap-3 py-3 bg-card text-card-foreground dark:bg-zinc-900 dark:border-zinc-800">
         <CardContent className="px-3 pb-3 pt-0 space-y-3">
           {/* Sección 1: Detalles Generales */}
-          <Card className="rounded-lg border shadow-sm bg-card">
+          <Card className="rounded-lg border shadow-sm bg-card dark:bg-zinc-900 dark:border-zinc-800">
             <CardHeader className="py-2 px-3 pb-1.5">
               <CardTitle className="text-base font-medium">Detalles Generales</CardTitle>
             </CardHeader>
@@ -876,7 +876,7 @@ export default function AdminDashboard() {
 
           {/* Sección 2: Dos columnas - Ubicación | Configuración y Multimedia */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <Card className="rounded-lg border shadow-sm bg-card">
+            <Card className="rounded-lg border shadow-sm bg-card dark:bg-zinc-900 dark:border-zinc-800">
               <CardHeader className="py-2 px-3 pb-1.5">
                 <CardTitle className="text-base font-medium">Ubicación</CardTitle>
               </CardHeader>
@@ -913,7 +913,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="rounded-lg border shadow-sm bg-card">
+            <Card className="rounded-lg border shadow-sm bg-card dark:bg-zinc-900 dark:border-zinc-800">
               <CardHeader className="py-2 px-3 pb-1.5">
                 <CardTitle className="text-base font-medium">Configuración y Multimedia</CardTitle>
               </CardHeader>
@@ -1086,7 +1086,7 @@ export default function AdminDashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {prefs.mostrarCanchas && (
-          <Card>
+          <Card className="dark:bg-zinc-900 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Settings className="w-5 h-5" />Canchas</CardTitle>
             </CardHeader>
@@ -1107,7 +1107,7 @@ export default function AdminDashboard() {
           </Card>
         )}
         {prefs.mostrarTurnos && (
-          <Card>
+          <Card className="dark:bg-zinc-900 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Calendar className="w-5 h-5" />Turnos</CardTitle>
             </CardHeader>
@@ -1123,7 +1123,7 @@ export default function AdminDashboard() {
           </Card>
         )}
         {prefs.mostrarUsuarios && (
-          <Card>
+          <Card className="dark:bg-zinc-900 dark:border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />Usuarios</CardTitle>
             </CardHeader>
@@ -1143,7 +1143,7 @@ export default function AdminDashboard() {
           </Card>
         )}
         {prefs.mostrarFinanzas && (
-          <Card>
+          <Card className="dark:bg-zinc-900 dark:border-zinc-800">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5" />Ingresos</CardTitle>
           </CardHeader>
@@ -1179,7 +1179,7 @@ export default function AdminDashboard() {
         {(() => {
           const groups = groupByCategory(filteredBookings)
           const renderGroup = (title: string, key: keyof typeof groups) => (
-            <Card>
+            <Card className="dark:bg-zinc-900 dark:border-zinc-800">
               <CardHeader className="py-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <span className="text-muted-foreground">{title}</span>
