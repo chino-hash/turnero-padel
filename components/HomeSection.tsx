@@ -4,7 +4,8 @@ import React, { useRef, useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
-import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Skeleton } from './ui/skeleton'
+import { Sun, Moon, Users, MapPin, Clock, Calendar, Filter, AlertCircle, RefreshCw } from 'lucide-react'
 import SlotModal from './SlotModal'
 
 import { TimeSlot, Court } from '../types/types'
@@ -13,6 +14,24 @@ import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
 import { getCourtHexForDisplay } from '../lib/court-colors'
 import { useTenantSlugFromPath } from '@/lib/tenant/TenantSlugFromPathContext'
 
+const EMPTY_HOME_CARD = {
+  labelCourtName: '',
+  locationName: '',
+  mapUrl: '',
+  sessionText: '',
+  descriptionText: '',
+  iconImage: '',
+}
+
+const DEFAULT_HOME_CARD_COPY = {
+  labelCourtName: 'Nombre de la cancha',
+  locationName: 'Downtown Sports Center',
+  mapUrl: '',
+  sessionText: '1:30 hour sessions',
+  descriptionText:
+    'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
+  iconImage: '',
+}
 
 interface HomeSectionProps {
   isVisible: boolean
@@ -90,8 +109,10 @@ export default function HomeSection({
   const homeCardUpdatedAtKey = `${homeCardStorageKey}:updated_at`
   const readHomeCardSettingsFromStorage = (): any => {
     if (typeof window === 'undefined') return null
-    const fallbackKeys = [homeCardStorageKey, 'home_card_settings_latest']
-    for (const key of fallbackKeys) {
+    const keys = tenantSlug
+      ? [homeCardStorageKey]
+      : [homeCardStorageKey, 'home_card_settings_latest']
+    for (const key of keys) {
       try {
         const raw = localStorage.getItem(key)
         if (!raw) continue
@@ -113,14 +134,8 @@ export default function HomeSection({
     sessionText: string
     descriptionText: string
     iconImage: string
-  }>({
-    labelCourtName: 'Nombre de la cancha',
-    locationName: 'Downtown Sports Center',
-    mapUrl: '',
-    sessionText: '1:30 hour sessions',
-    descriptionText: 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
-    iconImage: ''
-  })
+  }>(() => (tenantSlug ? { ...EMPTY_HOME_CARD } : { ...DEFAULT_HOME_CARD_COPY }))
+  const [homeCardHeaderReady, setHomeCardHeaderReady] = useState(() => !tenantSlug)
 
   // Obtener funciones y datos del contexto
   const { refreshSlots, refreshMultipleSlots, allSlotsForDate } = useAppState()
@@ -169,36 +184,71 @@ export default function HomeSection({
         const parsed = readHomeCardSettingsFromStorage()
         if (parsed) {
           setHomeCardSettings({
-            labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
-            locationName: parsed?.locationName || 'Downtown Sports Center',
+            labelCourtName:
+              parsed?.labelCourtName || (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.labelCourtName),
+            locationName:
+              parsed?.locationName || (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.locationName),
             mapUrl: parsed?.mapUrl || '',
-            sessionText: parsed?.sessionText || '1:30 hour sessions',
-            descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
-            iconImage: parsed?.iconImage || ''
+            sessionText:
+              parsed?.sessionText || (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.sessionText),
+            descriptionText:
+              parsed?.descriptionText ||
+              (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.descriptionText),
+            iconImage: parsed?.iconImage || '',
           })
         }
       }
       const params = new URLSearchParams({ key: 'home_card_settings' })
       if (tenantSlug) params.set('tenantSlug', tenantSlug)
-      const res = await fetch(`/api/system-settings/public/by-key?${params.toString()}`, { cache: 'no-store' as any })
+      const res = await fetch(`/api/system-settings/public/by-key?${params.toString()}`, {
+        cache: 'no-store' as RequestCache,
+      })
       const json = await res.json()
       const item = json?.data
       if (item) {
         const valStr = String(item.value || '')
         try {
           const parsed = JSON.parse(valStr)
-          setHomeCardSettings({
-            labelCourtName: parsed?.labelCourtName || 'Nombre de la cancha',
-            locationName: parsed?.locationName || 'Downtown Sports Center',
+          const next = {
+            labelCourtName:
+              parsed?.labelCourtName || (tenantSlug ? 'Cancha' : DEFAULT_HOME_CARD_COPY.labelCourtName),
+            locationName:
+              parsed?.locationName ||
+              (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.locationName),
             mapUrl: parsed?.mapUrl || '',
-            sessionText: parsed?.sessionText || '1:30 hour sessions',
-            descriptionText: parsed?.descriptionText || 'Visualiza la disponibilidad del día actual para las tres canchas. Selecciona una para ver sus horarios y características.',
-            iconImage: parsed?.iconImage || ''
-          })
+            sessionText:
+              parsed?.sessionText ||
+              (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.sessionText),
+            descriptionText:
+              parsed?.descriptionText ||
+              (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.descriptionText),
+            iconImage: parsed?.iconImage || '',
+          }
+          setHomeCardSettings(next)
+          if (tenantSlug && typeof window !== 'undefined') {
+            try {
+              localStorage.setItem(homeCardStorageKey, JSON.stringify(parsed))
+            } catch {}
+          }
         } catch {}
       }
-    } catch {}
+    } catch {
+    } finally {
+      if (tenantSlug) {
+        setHomeCardHeaderReady(true)
+      }
+    }
   }
+
+  useEffect(() => {
+    if (!tenantSlug) {
+      setHomeCardHeaderReady(true)
+      return
+    }
+    setHomeCardHeaderReady(false)
+    setHomeCardSettings({ ...EMPTY_HOME_CARD })
+  }, [tenantSlug])
+
   useEffect(() => {
     loadHomeCardSettings()
     const handler = () => loadHomeCardSettings()
@@ -301,6 +351,17 @@ export default function HomeSection({
     setSelectedSlot(null)
   }
 
+  const showHomeCardSkeleton = Boolean(tenantSlug && !homeCardHeaderReady)
+  const displayLabelCourt =
+    homeCardSettings.labelCourtName || (tenantSlug ? 'Cancha' : DEFAULT_HOME_CARD_COPY.labelCourtName)
+  const displayLocation =
+    homeCardSettings.locationName || (tenantSlug ? 'Ubicación' : DEFAULT_HOME_CARD_COPY.locationName)
+  const displaySession =
+    homeCardSettings.sessionText || (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.sessionText)
+  const displayDescription =
+    homeCardSettings.descriptionText ||
+    (tenantSlug ? '' : DEFAULT_HOME_CARD_COPY.descriptionText)
+
   return isVisible ? (
     <div
       id="courts-section"
@@ -327,6 +388,25 @@ export default function HomeSection({
           className={`mb-6 rounded-2xl shadow-lg border border-border bg-card text-card-foreground transition-colors duration-300 backdrop-blur-sm`}
         >
           <CardContent className="p-6">
+            {showHomeCardSkeleton ? (
+              <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-6">
+                <div className="flex flex-1 gap-4">
+                  <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 space-y-3 min-w-0">
+                    <Skeleton className="h-7 w-full max-w-md" />
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-full max-w-lg" />
+                    <Skeleton className="h-4 w-full max-w-lg" />
+                    <Skeleton className="h-16 w-full max-w-xl" />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-2 lg:border-l lg:border-border lg:pl-6 min-w-[140px]">
+                  <Skeleton className="h-10 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-28" />
+                </div>
+              </div>
+            ) : (
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               {/* Sección Izquierda - Información general de disponibilidad */}
               <div className="flex items-start gap-4 flex-1">
@@ -341,7 +421,7 @@ export default function HomeSection({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xl text-muted-foreground mb-0.5 font-bold">{homeCardSettings.labelCourtName}</div>
+                  <div className="text-xl text-muted-foreground mb-0.5 font-bold">{displayLabelCourt}</div>
                   <h2 className={`text-lg mt-2 mb-1`}>
                     <span className="font-semibold">Disponibilidad de</span>{" "}
                     <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
@@ -405,20 +485,20 @@ export default function HomeSection({
                       <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
                       {homeCardSettings.mapUrl ? (
                         <a href={homeCardSettings.mapUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                          {homeCardSettings.locationName}
+                          {displayLocation}
                         </a>
                       ) : (
-                        <span>{homeCardSettings.locationName}</span>
+                        <span>{displayLocation}</span>
                       )}
                     </div>
                     <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
                       <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                      <span>{homeCardSettings.sessionText}</span>
+                      <span>{displaySession}</span>
                     </div>
                   </div>
 
                   <p className={`text-sm mt-3 leading-relaxed text-muted-foreground`}>
-                    {homeCardSettings.descriptionText}
+                    {displayDescription}
                   </p>
                 </div>
               </div>
@@ -438,11 +518,12 @@ export default function HomeSection({
                 </div>
               </div>
             </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Court Selection Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 mb-3 p-1 -m-1">
+        {/* Court Selection Cards — 2 columnas en móvil para tarjetas más compactas */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 mb-3 p-1 -m-1">
           {creationModeActive && (() => {
             const items = [1, 2, 3, 4, 5, 6, 7]
             return (
@@ -492,7 +573,7 @@ export default function HomeSection({
                   setIsUnifiedView(false)
                 }}
                 data-testid="court-card"
-                className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${selectedCourt === court.id
+                className={`relative rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 p-2.5 sm:p-3 lg:p-4 ${selectedCourt === court.id
                     ? isDarkMode
                       ? 'bg-zinc-800 border-zinc-800 shadow-xl'
                       : `border-border shadow-xl`
@@ -500,50 +581,58 @@ export default function HomeSection({
                   }`}
                 style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
-                {/* Availability Badge */}
-                <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
-                  }`}>
+                {/* Availability Badge — compacto en móvil */}
+                <div
+                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
+                    }`}
+                >
                   {(() => {
                     const showLoadingRate = loading || isRefreshing
                     const rateText = showLoadingRate ? '—%' : `${rate}%`
                     return (
-                      <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                        }`}>{rateText}</div>
+                      <div
+                        className={`tabular-nums text-[9px] sm:text-[11px] md:text-xs font-normal sm:font-medium leading-none ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                          }`}
+                      >
+                        {rateText}
+                      </div>
                     )
                   })()}
-                  <div className="text-xs text-gray-600">Disponible</div>
+                  <div className="text-[8px] sm:text-[9px] md:text-xs text-gray-500 sm:text-gray-600 leading-none mt-px sm:mt-0.5">
+                    Disponible
+                  </div>
                 </div>
 
                 {/* Court Illustration */}
                 <div
-                  className={"mx-auto mb-3 w-20 h-28 rounded-lg border-2 border-white/30 relative"}
+                  className={"mx-auto mb-2 sm:mb-3 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"}
                   style={{ backgroundColor: courtHex }}
                 >
                   {/* Court lines */}
-                  <div className="absolute inset-2 border border-white/50 rounded">
+                  <div className="absolute inset-1 sm:inset-2 border border-white/50 rounded">
                     <div className="absolute top-1/2 left-0 right-0 h-px bg-white/50 transform -translate-y-1/2"></div>
                     <div className="absolute top-1/2 left-1/2 w-px h-full bg-white/50 transform -translate-x-1/2 -translate-y-1/2"></div>
                   </div>
                   {/* Net */}
-                  <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-14 h-1 bg-white/70 rounded"></div>
+                  <div className="absolute bottom-0.5 sm:bottom-1 left-1/2 transform -translate-x-1/2 w-8 sm:w-14 h-0.5 sm:h-1 bg-white/70 rounded"></div>
                 </div>
 
                 {/* Court Name */}
                 <div
                   data-testid="court-name"
-                  className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 line-clamp-2 min-h-[2rem] sm:min-h-0 ${isDarkMode ? 'text-white' : 'text-black'
                     }`}
                 >
                   {court.name}
                 </div>
 
-                {/* Price */}
-                <div className={"text-xl font-bold transition-colors duration-300 ease-in-out"} style={{ color: isDarkMode ? courtHex : '#000000' }}>
-                  ${pricePerPerson.toLocaleString()} por persona
-                </div>
-                <div className={`text-xs transition-colors duration-300 ease-in-out ${isDarkMode ? (selectedCourt === court.id ? 'text-gray-200 opacity-90' : 'text-gray-300') : 'text-black opacity-80'
-                  }`}>
-                  por persona
+                {/* Price (una sola línea; en móvil el texto se parte en dos líneas si hace falta) */}
+                <div
+                  className={`text-sm sm:text-base lg:text-xl font-bold transition-colors duration-300 ease-in-out leading-snug ${isDarkMode ? '' : 'text-black'}`}
+                  style={isDarkMode ? { color: courtHex } : undefined}
+                >
+                  ${pricePerPerson.toLocaleString()}{' '}
+                  <span className="text-[10px] sm:text-sm lg:text-base font-semibold sm:font-bold">por persona</span>
                 </div>
               </button>
             )
@@ -551,7 +640,7 @@ export default function HomeSection({
           {creationModeActive && (
             <>
               <div id="courts-available" className="col-span-1 sm:col-span-2 lg:col-span-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) > 0).map((court) => {
                     const rate = ratesByCourt[court.id] ?? 0
                     const finalCourtPrice = Math.round((((court as any)?.basePrice ?? (court as any)?.base_price ?? 24000) * (court?.priceMultiplier ?? 1)))
@@ -581,18 +670,24 @@ export default function HomeSection({
                           setIsUnifiedView(false)
                         }}
                         data-testid="court-card"
-                        className={`relative p-4 rounded-2xl border transition-all duration-300 transform hover:scale-105 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'
+                        className={`relative p-2.5 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'
                           } shadow-md`}
                         style={!isDarkMode ? { backgroundColor: selectedBg } : undefined}
                       >
-                        <div className={`absolute top-3 left-3 backdrop-blur-sm rounded-lg px-2 py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
-                          }`}>
-                          <div className={`text-xs font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                            }`}>{`${rate}%`}</div>
-                          <div className="text-xs text-gray-600">Disponible</div>
+                        <div
+                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
+                            }`}
+                        >
+                          <div
+                            className={`tabular-nums text-[9px] sm:text-[11px] md:text-xs font-normal sm:font-medium leading-none ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                              }`}
+                          >{`${rate}%`}</div>
+                          <div className="text-[8px] sm:text-[9px] md:text-xs text-gray-500 sm:text-gray-600 leading-none mt-px sm:mt-0.5">
+                            Disponible
+                          </div>
                         </div>
-                        <div className={"mx-auto mb-3 w-20 h-28 rounded-lg border-2 border-white/30 relative"} style={{ backgroundColor: courtHex }}></div>
-                        <div className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{court.name}</div>
+                        <div className={"mx-auto mb-2 sm:mb-3 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"} style={{ backgroundColor: courtHex }}></div>
+                        <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{court.name}</div>
                         <div className={"text-xs text-muted-foreground"}>{`Nueva cancha creada`}</div>
                       </button>
                     )
@@ -600,7 +695,7 @@ export default function HomeSection({
                 </div>
               </div>
               <div id="courts-other" className="col-span-1 sm:col-span-2 lg:col-span-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) <= 0).map((court) => {
                     const num = getCourtNumber(court.name || '', court.id)
                     const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
@@ -957,9 +1052,15 @@ export default function HomeSection({
 
             {/* Loading State */}
             {loading && (
-              <div className={`flex flex-col items-center justify-center py-12 border rounded-lg ${isDarkMode ? "text-gray-400 bg-zinc-900 border-zinc-800" : "text-gray-600 bg-gray-100 border-gray-300"}`}>
-                <Loader2 className="w-8 h-8 animate-spin mb-3" />
-                <p className="text-sm">Cargando horarios disponibles...</p>
+              <div
+                className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4 p-4 border rounded-lg bg-card border-border`}
+                role="status"
+                aria-busy="true"
+                aria-label="Cargando horarios"
+              >
+                {Array.from({ length: 15 }).map((_, i) => (
+                  <Skeleton key={i} className="h-[80px] w-full rounded-lg" />
+                ))}
               </div>
             )}
 
