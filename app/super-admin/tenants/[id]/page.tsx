@@ -9,11 +9,22 @@ import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../../../components/ui/alert-dialog'
 import { Input } from '../../../../components/ui/input'
 import { Label } from '../../../../components/ui/label'
 import { Switch } from '../../../../components/ui/switch'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../../../components/ui/select'
-import { Building2, Save, ArrowLeft, Loader2, Users, MapPin, Settings, Package } from 'lucide-react'
+import { Building2, Save, ArrowLeft, Loader2, Users, MapPin, Settings, Package, Trash2 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { SUBSCRIPTION_PLANS, getPlanDefaultCourts } from '../../../../lib/subscription-plans'
 import { useAuth } from '../../../../hooks/useAuth'
@@ -72,6 +83,8 @@ export default function TenantDetailPage() {
   const [depositPercentage, setDepositPercentage] = useState('50')
   const [productos, setProductos] = useState<Array<{ id: number; nombre: string; precio: number; categoria: string }>>([])
   const [productosLoading, setProductosLoading] = useState(false)
+  const [deleteTenantDialogOpen, setDeleteTenantDialogOpen] = useState(false)
+  const [deletingTenant, setDeletingTenant] = useState(false)
 
   useEffect(() => {
     if (!newTenant && tenantId) {
@@ -475,6 +488,31 @@ export default function TenantDetailPage() {
       toast.error('Error al crear producto')
     } finally {
       setProductosLoading(false)
+    }
+  }
+
+  const handleConfirmDeleteTenant = async () => {
+    if (!formData.id || !formData.slug) return
+    setDeletingTenant(true)
+    try {
+      const res = await fetch(`/api/tenants/${formData.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ confirmSlug: formData.slug }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(typeof data?.error === 'string' ? data.error : 'Error al eliminar el tenant')
+        return
+      }
+      toast.success('Tenant eliminado')
+      setDeleteTenantDialogOpen(false)
+      router.push('/super-admin')
+    } catch {
+      toast.error('Error de conexión')
+    } finally {
+      setDeletingTenant(false)
     }
   }
 
@@ -904,19 +942,62 @@ export default function TenantDetailPage() {
         )}
 
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/super-admin')}
-            disabled={saving}
-          >
-            Cancelar
-          </Button>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            {!newTenant && formData.id ? (
+              <AlertDialog open={deleteTenantDialogOpen} onOpenChange={setDeleteTenantDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={saving || deletingTenant}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar tenant
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar este tenant?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se borrarán de forma permanente el club <strong>{formData.name}</strong> (slug:{' '}
+                      <strong>{formData.slug}</strong>), usuarios, reservas, canchas y el resto de datos
+                      asociados. Esta acción no se puede deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={deletingTenant}>Volver</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deletingTenant}
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        await handleConfirmDeleteTenant()
+                      }}
+                    >
+                      {deletingTenant ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Eliminar definitivamente'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/super-admin')}
+              disabled={saving || deletingTenant}
+            >
+              Cancelar
+            </Button>
+          </div>
           <Button
             type="submit"
-            disabled={saving}
-            className="min-w-[120px]"
+            disabled={saving || deletingTenant}
+            className="min-w-[120px] sm:ml-auto"
           >
             {saving ? (
               <>

@@ -62,8 +62,15 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const exception = await tx.recurringBookingException.create({
-        data: { recurringId, date: dateObj, type, reason, newPrice }
+      const exception = await tx.recurringBookingException.upsert({
+        where: {
+          recurringId_date: {
+            recurringId,
+            date: dateObj,
+          },
+        },
+        create: { recurringId, date: dateObj, type, reason, newPrice },
+        update: { type, reason, newPrice },
       })
       const booking = await tx.booking.findFirst({ where: { recurringId, bookingDate: dateObj } })
       if (booking) {

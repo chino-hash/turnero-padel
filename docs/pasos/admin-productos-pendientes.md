@@ -1,5 +1,7 @@
 # Pendientes - Pestaña Productos
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/admin-panel/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Ruta:** `/admin-panel/admin/productos`  
 **Archivo principal:** `app/admin-panel/admin/productos/page.tsx`  
 **APIs:** `app/api/productos/route.ts`, `app/api/ventas/route.ts`

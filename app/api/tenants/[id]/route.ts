@@ -4,6 +4,7 @@ import { prisma } from '@/lib/database/neon-config'
 import { tryEncrypt } from '@/lib/encryption/credential-encryption'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { invalidateTenantProviderCache } from '@/lib/services/payments/PaymentProviderFactory'
+import { clearTenantCache } from '@/lib/tenant/context'
 import { ensureCourtsForPlan } from '@/lib/services/tenants/bootstrap'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
@@ -11,6 +12,10 @@ import { z } from 'zod'
 export const runtime = 'nodejs'
 
 // Schema de validación para actualizar tenant
+const deleteTenantBodySchema = z.object({
+  confirmSlug: z.string().min(1),
+})
+
 const updateTenantSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
@@ -282,13 +287,89 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/tenants/[id] - Eliminar tenant (solo super admin) - NO IMPLEMENTADO por seguridad
-// En su lugar, se desactiva el tenant
+// DELETE /api/tenants/[id] - Eliminar tenant (solo super admin). Requiere confirmSlug igual al slug actual.
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  return NextResponse.json(
-    { error: 'Eliminación de tenants no permitida. Use PUT para desactivar el tenant.' },
-    { status: 405 }
-  )
+  try {
+    const session = await auth()
+    if (!session?.user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    if (!isSuperAdmin) {
+      return NextResponse.json({ error: 'Se requieren permisos de Super Administrador' }, { status: 403 })
+    }
+
+    const { id } = await params
+    let body: z.infer<typeof deleteTenantBodySchema>
+    try {
+      const json = await request.json()
+      body = deleteTenantBodySchema.parse(json)
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { success: false, error: 'Envía confirmSlug con el slug exacto del club para confirmar la eliminación.' },
+          { status: 400 }
+        )
+      }
+      return NextResponse.json(
+        { success: false, error: 'Cuerpo JSON inválido o vacío' },
+        { status: 400 }
+      )
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id },
+      select: { id: true, slug: true, name: true },
+    })
+
+    if (!tenant) {
+      return NextResponse.json({ success: false, error: 'Tenant no encontrado' }, { status: 404 })
+    }
+
+    if (body.confirmSlug.trim() !== tenant.slug) {
+      return NextResponse.json(
+        { success: false, error: 'El slug de confirmación no coincide con el tenant.' },
+        { status: 400 }
+      )
+    }
+
+    const actor = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { tenantId: true },
+    })
+    if (actor?.tenantId === id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'No puedes eliminar el club al que está vinculada tu cuenta de usuario. Cambia de club o usa otra cuenta de super administrador.',
+        },
+        { status: 409 }
+      )
+    }
+
+    invalidateTenantProviderCache(id)
+    clearTenantCache(tenant.slug)
+    await prisma.tenant.delete({ where: { id } })
+
+    return NextResponse.json({ success: true, data: { id: tenant.id, slug: tenant.slug } })
+  } catch (error) {
+    console.error('Error in DELETE /api/tenants/[id]:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
 }
 
 

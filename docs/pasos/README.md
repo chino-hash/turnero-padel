@@ -1,30 +1,32 @@
-# Pasos pendientes por pestaña - Panel Admin
+# Panel admin — seguimiento por pestaña (`docs/pasos/`)
 
-Documentación de lo que falta implementar en cada pestaña del panel de administración para darla por terminada.
+> **Abril 2026:** esta carpeta conserva **checklists, planes por iteración y notas de contexto**. No es el estado oficial del producto: pueden quedar **desfasados** respecto a `app/admin-panel/` y a las rutas bajo `app/api/`. Para cambios recientes, revisar primero [`docs/actualizaciones/`](../actualizaciones/) y el [índice general](../00-indice-documentacion.md).
 
-| Pestaña      | Documento                          | Ruta principal                    | Estado   |
-|-------------|-------------------------------------|-----------------------------------|----------|
-| Canchas     | [admin-canchas-pendientes.md](./admin-canchas-pendientes.md) | `/admin-panel/admin/canchas`      | Completada |
-| Turnos      | [admin-turnos-pendientes.md](./admin-turnos-pendientes.md)   | `/admin-panel/admin/turnos`       | Pendiente |
-| Usuarios    | [admin-usuarios-pendientes.md](./admin-usuarios-pendientes.md) | `/admin-panel/admin/usuarios`  | Pendiente |
-| Estadísticas| [admin-estadisticas-pendientes.md](./admin-estadisticas-pendientes.md) | `/admin-panel/estadisticas` | Pendiente |
-| Productos   | [admin-productos-pendientes.md](./admin-productos-pendientes.md) | `/admin-panel/admin/productos`  | Pendiente |
-| Torneo      | [admin-torneos-pendientes.md](./admin-torneos-pendientes.md) | `/admin-panel/admin/torneos`    | Pendiente |
+## Cómo usar estos archivos
 
-## Otras funcionalidades pendientes
+1. Leer el propio documento: muchos marcan **completado** o enlazan a la actualización que cerró el trabajo.
+2. Si hay contradicción entre una tabla antigua y el código, **manda el repositorio**.
+3. Al terminar una feature, es preferible **añadir** una entrada breve en `docs/actualizaciones/` que mantener largas matrices “pendiente / OK” solo aquí.
 
-| Funcionalidad | Documento |
-|---------------|-----------|
-| Planes de suscripción por canchas | [planes-suscripcion-canchas-pendientes.md](./planes-suscripcion-canchas-pendientes.md) |
+## Índice de documentos
 
-## Planes ejecutados
+| Documento | Tema |
+|-----------|------|
+| [admin-canchas-pendientes.md](./admin-canchas-pendientes.md) | Pestaña Canchas (incluye estado completado en el archivo) |
+| [admin-turnos-pendientes.md](./admin-turnos-pendientes.md) | Pestaña Turnos + enlace a completado marzo 2026 |
+| [admin-usuarios-pendientes.md](./admin-usuarios-pendientes.md) | Pestaña Usuarios |
+| [admin-estadisticas-pendientes.md](./admin-estadisticas-pendientes.md) | Estadísticas (`/admin-panel/estadisticas`) |
+| [admin-productos-pendientes.md](./admin-productos-pendientes.md) | Productos / ventas relacionadas |
+| [admin-torneos-pendientes.md](./admin-torneos-pendientes.md) | Torneos en admin |
+| [dashboard-pestana-torneos.md](./dashboard-pestana-torneos.md) | Torneos en dashboard de usuario |
+| [6-parte-de-seccion-de-torneos.md](./6-parte-de-seccion-de-torneos.md) | Plan tipo Cursor (frontmatter) — torneos |
+| [planes-suscripcion-canchas-pendientes.md](./planes-suscripcion-canchas-pendientes.md) | Planes comerciales por cantidad de canchas |
+| [refactor-auth-middleware-reducir-bundle.md](./refactor-auth-middleware-reducir-bundle.md) | Middleware Edge / tamaño de bundle |
 
-| Tarea | Plan |
-|-------|------|
-| Canchas completada (Feb 2026) | [admin-canchas-completado-2026-02.md](../plans/admin-canchas-completado-2026-02.md) |
+## Planes archivados en `docs/plans/`
 
-## Infraestructura y deployment
+- [admin-canchas-completado-2026-02.md](../plans/admin-canchas-completado-2026-02.md)
 
-| Tarea | Documento |
-|-------|-----------|
-| Refactorizar auth del middleware para bajar de 1 MB en Vercel | [refactor-auth-middleware-reducir-bundle.md](./refactor-auth-middleware-reducir-bundle.md) |
+---
+
+*README de la carpeta `pasos/` revisado: abril 2026.*

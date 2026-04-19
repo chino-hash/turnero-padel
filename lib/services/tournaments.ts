@@ -6,6 +6,8 @@ import type {
   TournamentMatchUpdateInput,
 } from '../validations/tournament'
 import type { TournamentStatus } from '@prisma/client'
+import { queueAndSendTournamentCancellationNotification } from './notifications/TournamentCancellationNotificationService'
+import { toUtcDayStart } from '@/lib/utils/tenant-timezone'
 
 /**
  * Cancela reservas que solapan con las franjas del torneo y crea CourtBlocks
@@ -17,6 +19,11 @@ export async function applyTournamentCourtBlocks(
   title: string,
   schedule: Array<{ date: Date; startTime: string; endTime: string }>,
 ): Promise<void> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { name: true },
+  })
+
   const courts = await prisma.court.findMany({
     where: { tenantId, deletedAt: null },
     select: { id: true },
@@ -27,42 +34,179 @@ export async function applyTournamentCourtBlocks(
   const cancellationReason = `Cancelado por torneo: ${title}. Contacte al club si tiene dudas.`
 
   for (const row of schedule) {
+    let emailsScheduled = 0
+    let emailsAttempted = 0
     const dateOnly = row.date instanceof Date ? row.date : new Date(row.date)
-    const dayStart = new Date(dateOnly)
-    dayStart.setUTCHours(0, 0, 0, 0)
+    const dayStart = toUtcDayStart(dateOnly)
+    const weekday = dayStart.getUTCDay()
+    const pendingNotifications: Array<{
+      date: Date
+      startTime: string
+      endTime: string
+      recipientEmail: string
+      bookingId?: string
+      recurringId?: string
+    }> = []
 
-    const overlapping = await prisma.booking.findMany({
-      where: {
-        tenantId,
-        courtId: { in: courtIds },
-        bookingDate: dayStart,
-        status: { not: 'CANCELLED' },
-        startTime: { lt: row.endTime },
-        endTime: { gt: row.startTime },
-      },
-      select: { id: true },
-    })
-
-    if (overlapping.length > 0) {
-      await prisma.booking.updateMany({
-        where: { id: { in: overlapping.map((b) => b.id) } },
-        data: {
-          status: 'CANCELLED',
-          cancelledAt: new Date(),
-          cancellationReason,
+    await prisma.$transaction(async (tx) => {
+      const overlapping = await tx.booking.findMany({
+        where: {
+          tenantId,
+          courtId: { in: courtIds },
+          bookingDate: dayStart,
+          status: { not: 'CANCELLED' },
+          startTime: { lt: row.endTime },
+          endTime: { gt: row.startTime },
+        },
+        select: {
+          id: true,
+          recurringId: true,
+          bookingDate: true,
+          startTime: true,
+          endTime: true,
+          user: { select: { email: true } },
         },
       })
+
+      const recurringRules = await tx.recurringBooking.findMany({
+        where: {
+          tenantId,
+          courtId: { in: courtIds },
+          status: 'ACTIVE',
+          weekday,
+          startsAt: { lte: dayStart },
+          OR: [{ endsAt: null }, { endsAt: { gte: dayStart } }],
+          startTime: { lt: row.endTime },
+          endTime: { gt: row.startTime },
+        },
+        select: {
+          id: true,
+          startTime: true,
+          endTime: true,
+          user: { select: { email: true } },
+        },
+      })
+
+      for (const booking of overlapping) {
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: {
+            status: 'CANCELLED',
+            cancelledAt: new Date(),
+            cancellationReason,
+          },
+        })
+
+        if (booking.recurringId) {
+          await tx.recurringBookingException.upsert({
+            where: {
+              recurringId_date: {
+                recurringId: booking.recurringId,
+                date: dayStart,
+              },
+            },
+            create: {
+              recurringId: booking.recurringId,
+              date: dayStart,
+              type: 'SKIP',
+              reason: cancellationReason,
+            },
+            update: {
+              type: 'SKIP',
+              reason: cancellationReason,
+            },
+          })
+        }
+
+        const recipientEmail = booking.user?.email?.trim().toLowerCase()
+        if (recipientEmail) {
+          pendingNotifications.push({
+            date: booking.bookingDate,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+            recipientEmail,
+            bookingId: booking.id,
+            recurringId: booking.recurringId || undefined,
+          })
+        }
+      }
+
+      const recurringIdsWithBooking = new Set(
+        overlapping
+          .map((booking) => booking.recurringId)
+          .filter((recurringId): recurringId is string => Boolean(recurringId))
+      )
+
+      for (const recurring of recurringRules) {
+        if (recurringIdsWithBooking.has(recurring.id)) continue
+
+        await tx.recurringBookingException.upsert({
+          where: {
+            recurringId_date: {
+              recurringId: recurring.id,
+              date: dayStart,
+            },
+          },
+          create: {
+            recurringId: recurring.id,
+            date: dayStart,
+            type: 'SKIP',
+            reason: cancellationReason,
+          },
+          update: {
+            type: 'SKIP',
+            reason: cancellationReason,
+          },
+        })
+
+        const recipientEmail = recurring.user?.email?.trim().toLowerCase()
+        if (recipientEmail) {
+          pendingNotifications.push({
+            date: dayStart,
+            startTime: recurring.startTime,
+            endTime: recurring.endTime,
+            recipientEmail,
+            recurringId: recurring.id,
+          })
+        }
+      }
+
+      await tx.courtBlock.createMany({
+        data: courtIds.map((courtId) => ({
+          tenantId,
+          courtId,
+          tournamentId,
+          date: dayStart,
+          startTime: row.startTime,
+          endTime: row.endTime,
+        })),
+        skipDuplicates: true,
+      })
+    })
+
+    for (const payload of pendingNotifications) {
+      emailsScheduled += 1
+      await queueAndSendTournamentCancellationNotification({
+        tenantId,
+        tournamentId,
+        tournamentTitle: title,
+        clubName: tenant?.name || 'Club',
+        date: payload.date,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        recipientEmail: payload.recipientEmail,
+        bookingId: payload.bookingId,
+        recurringId: payload.recurringId,
+      })
+      emailsAttempted += 1
     }
 
-    await prisma.courtBlock.createMany({
-      data: courtIds.map((courtId) => ({
-        tenantId,
-        courtId,
-        tournamentId,
-        date: dayStart,
-        startTime: row.startTime,
-        endTime: row.endTime,
-      })),
+    console.info('[TournamentNotifications] processed schedule row', {
+      tournamentId,
+      tenantId,
+      date: dayStart.toISOString().slice(0, 10),
+      emailsScheduled,
+      emailsAttempted,
     })
   }
 }

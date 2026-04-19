@@ -10,7 +10,6 @@ export interface UsuarioListItem {
   phone: string | null
   role: string
   isActive: boolean
-  discountPercent: number | null
   createdAt: string
   reservas: number
   ultimaReserva: string | null

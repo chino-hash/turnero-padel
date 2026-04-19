@@ -173,14 +173,14 @@ docs/
 
 ## 🏗️ Arquitectura del Sistema
 
-### Stack Tecnológico
+### Stack tecnológico
 
-- **Frontend**: Next.js 14, React 18, TypeScript
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Base de Datos**: PostgreSQL (migración desde SQLite)
-- **Autenticación**: NextAuth.js con Google OAuth
-- **Estilos**: Tailwind CSS
-- **Testing**: Jest, React Testing Library
+- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
+- **Backend**: Route Handlers (`app/api`), capa de servicios en `lib/`, Prisma ORM 6.x
+- **Base de datos**: PostgreSQL (Neon u otro; `DIRECT_URL` recomendado para migraciones)
+- **Autenticación**: Auth.js / NextAuth.js v5 (Google OAuth)
+- **Estilos**: Tailwind CSS 4, componentes tipo shadcn/ui
+- **Testing**: Jest, Testing Library, Playwright (E2E); Cypress disponible para flujos componente
 
 ### Patrones Arquitectónicos
 
@@ -299,5 +299,5 @@ Si tienes preguntas sobre la documentación o necesitas ayuda:
 
 ---
 
-**Última actualización**: Febrero 2026  
-**Mantenido por**: Equipo de Desarrollo Turnero de Padel
+**Última actualización**: abril 2026  
+**Mantenido por**: equipo del proyecto (actualizar en PRs cuando cambie el stack o la estructura de carpetas)

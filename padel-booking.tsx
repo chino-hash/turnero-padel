@@ -162,6 +162,11 @@ function PadelBookingPage() {
         new Date(b.expiresAt) > new Date()
     )
   }, [currentBookings])
+
+  const homeSlotsLoading = useMemo(
+    () => (isUnifiedView ? multipleSlotsLoading : Boolean(selectedCourt) && slotsLoading),
+    [isUnifiedView, multipleSlotsLoading, selectedCourt, slotsLoading]
+  )
   
   // Los useEffect de persistencia ahora están en el contexto global
 
@@ -805,11 +810,7 @@ function PadelBookingPage() {
     )
   }
 
-  return slotsLoading ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-500"></div>
-    </div>
-  ) : (
+  return (
     <div className="dashboard-theme font-sans">
       {/* Navbar con diseño de notch invertido */}
       <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
@@ -976,7 +977,7 @@ function PadelBookingPage() {
           setSelectedSlot={setSelectedSlot}
           scrollToNextAvailable={scrollToNextAvailable}
           currentCourtName={currentCourtName}
-          loading={slotsLoading}
+          loading={homeSlotsLoading}
           error={slotsError}
           onRetry={retrySlots}
           onConfirmSlot={confirmReservationWithSlot}

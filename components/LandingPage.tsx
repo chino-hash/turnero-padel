@@ -35,6 +35,12 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
   const [urlError, setUrlError] = useState<string | null>(null)
   const [scrollY, setScrollY] = useState(0)
 
+  // El dashboard (AppStateProvider) aplica `dark` en <html>; al volver a la landing hay que quitarlo
+  // o los componentes shadcn (Input, DropdownMenu, etc.) heredan tokens oscuros y se rompe el diseño.
+  useEffect(() => {
+    document.documentElement.classList.remove('dark')
+  }, [])
+
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY)
@@ -96,9 +102,10 @@ export default function LandingPage({ session, tenantSlug, tenantName }: Landing
     fetchClubs()
   }, [])
 
-  const filteredClubs = clubs.filter(club =>
-    club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (club.description ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredClubs = clubs.filter(
+    (club) =>
+      (club.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (club.description ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (

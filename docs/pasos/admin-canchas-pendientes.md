@@ -1,5 +1,7 @@
 # Pendientes - Pestaña Canchas
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/admin-panel/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Ruta:** `/admin-panel/admin/canchas`  
 **Archivo principal:** `app/admin-panel/admin/canchas/page.tsx`  
 **Estado:** COMPLETADA (Feb 2026)

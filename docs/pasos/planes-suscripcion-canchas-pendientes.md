@@ -1,5 +1,7 @@
 # Pendientes - Planes de suscripción por canchas
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Contexto:** Definir planes comerciales para vender el sistema, limitando la cantidad de canchas según el plan contratado.
 
 **Restricción de negocio:** Solo el Super Admin puede crear o eliminar canchas. Los admins del tenant solo editan las existentes (nombre, precio, activar/desactivar).

@@ -22,13 +22,14 @@
 | [guides/](./guides/) | Guías de desarrollo, instalación, despliegue, contribución |
 | [hooks/](./hooks/) | Documentación de hooks personalizados |
 | [migraciones/](./migraciones/) | Migraciones de base de datos y cuenta |
-| [pasos/](./pasos/) | Pendientes por pestaña del panel admin |
+| [pasos/](./pasos/) | Seguimiento histórico por pestaña del admin (puede quedar desactualizado frente al código) |
 | [plans/](./plans/) | Planes completados (ej. admin canchas) |
 | [plan de mejoras admin/](./plan%20de%20mejoras%20admin/) | Plan de mejoras del área de turnos |
 | [seguridad/](./seguridad/) | Auditoría y mejores prácticas de seguridad |
 | [services/](./services/) | Documentación de servicios |
 | [templates/](./templates/) | Plantillas para documentar componentes, APIs, hooks, servicios |
 | [maintenance/](./maintenance/) | Mantenimiento, checklist, automatizaciones |
+| [`.cursor/skills/`](../.cursor/skills/) | Convenciones para el agente (API, UI, dominio pádel, multitenant, servicios) |
 
 ---
 
@@ -108,3 +109,7 @@
 2. Añadir nuevos documentos en la carpeta que corresponda.
 3. Mantener este índice actualizado.
 4. Seguir los [Estándares de Documentación](./standards/DOCUMENTATION-STANDARDS.md).
+
+---
+
+*Índice revisado: abril 2026.*

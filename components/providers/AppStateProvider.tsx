@@ -349,6 +349,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const tenantSlug = searchParams?.get('tenantSlug')?.trim() || tenantSlugFromPath || null
   const [courts, setCourts] = useState<Court[]>([])
   useEffect(() => {
+    setCourts([])
     const loadCourts = async () => {
       try {
         const cacheKey = tenantSlug ? `courts_cache_${tenantSlug}` : 'courts_cache'

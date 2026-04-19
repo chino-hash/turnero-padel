@@ -6,6 +6,18 @@ const createJestConfig = nextJest({
   dir: './',
 });
 
+const projectTransform = {
+  '^.+\\.(ts|tsx)$': ['ts-jest', {
+    tsconfig: {
+      jsx: 'react-jsx',
+      paths: {
+        '@/*': ['./*']
+      }
+    }
+  }],
+  '^.+\\.(js|jsx)$': ['babel-jest', { presets: ['next/babel', '@babel/preset-typescript'] }],
+}
+
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.ts'],
@@ -27,16 +39,6 @@ const customJestConfig = {
   moduleDirectories: ['node_modules', '<rootDir>/'],
   modulePaths: ['<rootDir>'],
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
-  transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {
-      tsconfig: {
-        jsx: 'react-jsx',
-        paths: {
-          '@/*': ['./*']
-        }
-      }
-    }]
-  },
   resolver: undefined,
   collectCoverageFrom: [
     '**/*.{js,jsx,ts,tsx}',
@@ -71,7 +73,15 @@ const customJestConfig = {
     '!**/cypress/**/*'
   ],
   transform: {
-    '^.+\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        jsx: 'react-jsx',
+        paths: {
+          '@/*': ['./*']
+        }
+      }
+    }],
+    '^.+\\.(js|jsx)$': ['babel-jest', { presets: ['next/babel', '@babel/preset-typescript'] }],
   },
   
   // Configuración específica para tests
@@ -94,7 +104,11 @@ const customJestConfig = {
         '<rootDir>/__tests__/components/**/*.(test|spec).(ts|tsx)'
       ],
       testEnvironment: 'jsdom',
-      setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.ts'],
+      transform: projectTransform,
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+      },
     },
     {
       displayName: 'integration',
@@ -103,7 +117,11 @@ const customJestConfig = {
         '<rootDir>/__tests__/app/api/**/*.(test|spec).(ts|tsx)'
       ],
       testEnvironment: 'node',
-      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
+      transform: projectTransform,
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+      },
     },
     {
       displayName: 'performance',
@@ -112,7 +130,11 @@ const customJestConfig = {
       ],
       testEnvironment: 'node',
       testTimeout: 30000,
-      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts']
+      setupFilesAfterEnv: ['<rootDir>/__tests__/setup.ts'],
+      transform: projectTransform,
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+      },
     }
   ],
   

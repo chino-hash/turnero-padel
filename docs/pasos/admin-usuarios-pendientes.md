@@ -1,5 +1,67 @@
 # Pendientes - Pestaña Usuarios
 
+> **Nota (abril 2026):** esta pestaña se define como módulo de analítica de clientes.  
+> No incluye gestión de cuentas ni configuración de descuentos en esta etapa.
+
+**Ruta:** `/admin-panel/admin/usuarios`  
+**Archivo principal:** `app/admin-panel/admin/usuarios/page.tsx`  
+**APIs activas:** `/api/usuarios/analisis`, `/api/usuarios`
+
+---
+
+## Alcance oficial vigente
+
+La pestaña Usuarios está orientada a seguimiento comercial y comportamiento de clientes:
+
+- Registro de clientes que reservan
+- Ranking de clientes frecuentes
+- KPIs de actividad y retención
+- Nuevos vs recurrentes
+- Valor promedio por cliente
+- Listado paginado con búsqueda/filtros
+
+---
+
+## Implementado
+
+- [x] Header unificado del panel admin (título, barra naranja, acción Actualizar)
+- [x] KPIs: Total Clientes, Clientes Activos, Nuevos Este Mes, Retención
+- [x] Bloque de Nuevos vs Recurrentes
+- [x] Bloque de Valor Promedio por Cliente
+- [x] Listado de clientes con búsqueda, filtro por actividad y paginación
+- [x] Ranking de Clientes Frecuentes (mobile cards + tabla desktop)
+- [x] Soporte de contexto tenant para super admin (`tenantId` / `tenantSlug`)
+
+---
+
+## Fuera de alcance (fase posterior)
+
+- Programa de descuentos en la pantalla de Usuarios
+- Gestión de consumibles desde esta pestaña
+- Configuración de umbrales/descuentos por categoría en esta pantalla
+- ABM operativo de usuarios (editar/activar/desactivar/cambiar rol) desde Usuarios
+
+Estos puntos se tratarán en una fase específica de descuentos y/o administración de cuentas.
+
+---
+
+## Pendiente para dar por terminada
+
+- [ ] Ejecutar y dejar estables los tests agregados para APIs y UI de Usuarios
+- [ ] Validar en QA manual el flujo completo en tenant admin y super admin
+- [ ] Mantener este documento sincronizado con cambios de alcance futuros
+
+---
+
+## Referencias
+
+- Actualización de alcance: `docs/actualizaciones/usuarios-sin-descuentos-2026-04.md`
+- APIs: `app/api/usuarios/analisis/route.ts`, `app/api/usuarios/route.ts`
+- Hooks: `hooks/useAnalisisUsuarios.ts`, `hooks/useUsuariosList.ts`
+# Pendientes - Pestaña Usuarios
+
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/admin-panel/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Ruta:** `/admin-panel/admin/usuarios`  
 **Archivo principal:** `app/admin-panel/admin/usuarios/page.tsx`  
 **APIs:** `/api/usuarios/analisis`, `/api/usuarios`, `/api/consumibles`, `/api/crud/user/*`, `/api/admin/config/categorias-usuario`, `/api/productos`

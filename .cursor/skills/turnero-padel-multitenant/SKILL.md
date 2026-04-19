@@ -45,4 +45,4 @@ Definido en `middleware.ts`:
 
 ## Documentación completa
 
-Ver `docs/MULTITENANT_COMPLETE.md` para arquitectura, modelo de datos y troubleshooting.
+Ver `docs/multitenant/MULTITENANT_COMPLETE.md` para arquitectura, modelo de datos y troubleshooting.

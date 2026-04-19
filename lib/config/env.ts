@@ -108,10 +108,24 @@ const envSchema = z.object({
     .describe('URL del webhook de Slack para notificaciones'),
   EMAIL_NOTIFICATIONS: z.string().optional()
     .describe('Habilitar notificaciones por email (true/false)'),
+  EMAIL_SERVER_HOST: z.string().optional()
+    .describe('Host SMTP para envío de emails'),
+  EMAIL_SERVER_PORT: z.coerce.number().int().positive().optional()
+    .describe('Puerto SMTP para envío de emails'),
+  EMAIL_SERVER_USER: z.string().optional()
+    .describe('Usuario SMTP para envío de emails'),
+  EMAIL_SERVER_PASSWORD: z.string().optional()
+    .describe('Password SMTP para envío de emails'),
+  EMAIL_FROM: z.string().optional()
+    .describe('Remitente para emails transaccionales'),
+  TOURNAMENT_EMAIL_NOTIFICATIONS: z.string().optional()
+    .describe('Habilitar notificaciones por torneo (true/false)'),
   GITHUB_NOTIFICATIONS: z.string().optional()
     .describe('Habilitar notificaciones de GitHub (true/false)'),
   SENTRY_DSN: urlSchema.optional()
     .describe('DSN de Sentry para monitoreo de errores'),
+  TENANT_DEFAULT_TIMEZONE: z.string().optional()
+    .describe('Timezone por defecto para notificaciones y render de fechas'),
   
   // Analytics
   NEXT_PUBLIC_GA_ID: z.string().optional()
@@ -171,8 +185,15 @@ function validateEnv() {
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
       SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
       EMAIL_NOTIFICATIONS: process.env.EMAIL_NOTIFICATIONS,
+      EMAIL_SERVER_HOST: process.env.EMAIL_SERVER_HOST,
+      EMAIL_SERVER_PORT: process.env.EMAIL_SERVER_PORT,
+      EMAIL_SERVER_USER: process.env.EMAIL_SERVER_USER,
+      EMAIL_SERVER_PASSWORD: process.env.EMAIL_SERVER_PASSWORD,
+      EMAIL_FROM: process.env.EMAIL_FROM,
+      TOURNAMENT_EMAIL_NOTIFICATIONS: process.env.TOURNAMENT_EMAIL_NOTIFICATIONS,
       GITHUB_NOTIFICATIONS: process.env.GITHUB_NOTIFICATIONS,
       SENTRY_DSN: process.env.SENTRY_DSN,
+      TENANT_DEFAULT_TIMEZONE: process.env.TENANT_DEFAULT_TIMEZONE,
       NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
       ANALYZE: process.env.ANALYZE,
       CREDENTIAL_ENCRYPTION_KEY: process.env.CREDENTIAL_ENCRYPTION_KEY,
@@ -293,6 +314,14 @@ export const getNotificationConfig = () => ({
   },
   email: {
     enabled: env.EMAIL_NOTIFICATIONS === 'true',
+    tournamentEnabled: env.TOURNAMENT_EMAIL_NOTIFICATIONS !== 'false',
+    smtp: {
+      host: env.EMAIL_SERVER_HOST,
+      port: env.EMAIL_SERVER_PORT,
+      user: env.EMAIL_SERVER_USER,
+      password: env.EMAIL_SERVER_PASSWORD,
+      from: env.EMAIL_FROM,
+    },
   },
   github: {
     enabled: env.GITHUB_NOTIFICATIONS === 'true',
@@ -301,6 +330,10 @@ export const getNotificationConfig = () => ({
     enabled: Boolean(env.SENTRY_DSN),
     dsn: env.SENTRY_DSN,
   }
+})
+
+export const getTenantTimezoneConfig = () => ({
+  timezone: env.TENANT_DEFAULT_TIMEZONE || 'America/Argentina/Buenos_Aires',
 })
 
 /**

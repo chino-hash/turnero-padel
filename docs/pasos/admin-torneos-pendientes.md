@@ -1,5 +1,7 @@
 # Pendientes - Pestaña Torneo
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/admin-panel/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Ruta:** `/admin-panel/admin/torneos`  
 **Archivo principal:** `app/admin-panel/admin/torneos/page.tsx`
 

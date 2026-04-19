@@ -1,5 +1,7 @@
 # Pendientes - Pestaña Estadísticas
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/admin-panel/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Ruta principal:** `/admin-panel/estadisticas`  
 **Archivo principal:** `app/admin-panel/estadisticas/page.tsx`  
 **Hook:** `hooks/useEstadisticas.ts`  

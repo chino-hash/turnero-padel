@@ -3,6 +3,8 @@ name: 6ª parte de sección de torneos
 overview: "Actualizar el plan \"Completar sección Admin Torneos\": alinear con lo ya implementado (formulario, super admin, landing/menú) y expandir Fase 4 con formato de torneo (Eliminatoria directa / Fase de grupos + Doble Eliminatoria), premios monetario o no y por liga (Oro/Plata), sorteo, cuadros y opción de sorteo con mínimo de parejas."
 ---
 
+> **Nota (abril 2026):** plan / export histórico (metadatos tipo Cursor). Estado vigente: código y [`docs/actualizaciones/`](../actualizaciones/).
+
 # 6ª parte – Sección de torneos
 
 Actualizar el archivo del plan principal (completar_sección_admin_torneos_6e0880ec.plan.md) tomando como referencia los tres documentos de actualizaciones y las iteraciones de Fase 4 (formato, premios, partidos, sorteo, cuadros). No modificar código del proyecto; solo el documento del plan.

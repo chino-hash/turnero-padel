@@ -4,11 +4,11 @@
 
 ## 🚀 Estado del Proyecto
 
-✅ **COMPLETADO Y VALIDADO** - Listo para producción  
-📅 **Última actualización**: Enero 2025  
-🧪 **Pruebas**: Todas las funcionalidades validadas  
-🔒 **Seguridad**: Autenticación OAuth implementada  
-📱 **Responsive**: Compatible con todos los dispositivos  
+✅ **En producción / activo** — multitenant, reservas, pagos y panel admin en uso continuo  
+📅 **Última revisión de documentación**: abril 2026  
+🧪 **Pruebas**: Jest (unitario/integración) y Playwright (E2E); Cypress opcional para componentes  
+🔒 **Seguridad**: NextAuth.js v5 (Google OAuth), aislamiento por tenant, rate limiting con Vercel KV cuando está configurado  
+📱 **Responsive**: Compatible con escritorio y móvil  
 
 ## 🏗️ Stack Tecnológico
 
@@ -51,7 +51,7 @@ Base de datos PostgreSQL (Neon recomendado)
 ```bash
 # 1. Clonar el repositorio
 git clone <repository-url>
-cd turnero-padel
+cd "turnero de padel"
 
 # 2. Instalar dependencias
 npm install
@@ -60,14 +60,12 @@ npm install
 cp .env.example .env.local
 # Editar .env.local con tus credenciales (ver sección Configuración)
 
-# 4. Configurar base de datos
-npx prisma db push
+# 4. Base de datos (PostgreSQL)
 npx prisma generate
+npx prisma migrate dev   # recomendado en desarrollo con historial de migraciones
+# alternativa rápida sin historial: npx prisma db push
 
-# 5. Inicializar datos (opcional)
-npm run seed
-
-# 6. Iniciar servidor de desarrollo
+# 5. Iniciar servidor de desarrollo
 npm run dev
 ```
 
@@ -99,6 +97,13 @@ SUPER_ADMIN_EMAILS=superadmin@email.com
 
 # Encriptación de credenciales (Multitenant)
 CREDENTIAL_ENCRYPTION_KEY=tu-clave-secreta-de-32-caracteres-minimo
+
+# Rate limiting distribuido (opcional; sin esto el límite no aplica KV)
+# KV_REST_API_URL=
+# KV_REST_API_TOKEN=
+
+# Mercado Pago (por tenant también en BD; vars globales según tu despliegue)
+# MERCADOPAGO_ACCESS_TOKEN=
 
 # Configuración opcional
 NODE_ENV=development
@@ -170,22 +175,22 @@ DATABASE_URL=postgresql://usuario:password@localhost:5432/turnero_padel
 - **Componentes reutilizables** - Arquitectura escalable
 - **Accesibilidad** - Cumple estándares WCAG
 
-### 🔄 Funcionalidades Avanzadas
-- **Actualizaciones en tiempo real** - Server-Sent Events (SSE)
-- **Validación robusta** - Frontend y backend con Zod
-- **Manejo de errores** - Sistema completo de error handling
-- **Optimización de rendimiento** - Lazy loading y caching
+### 🔄 Funcionalidades avanzadas
+- **Pagos** — Mercado Pago (por tenant, webhooks, seña / estados de pago)
+- **Torneos y ventas** — módulos en el panel según evolución del repo
+- **Tiempo real** — Server-Sent Events (SSE) para canchas / reservas / slots
+- **Validación** — Zod en API y formularios
+- **Rate limiting** — Upstash Ratelimit + Vercel KV cuando `KV_REST_API_URL` / `KV_REST_API_TOKEN` están definidos
 
 ## 📁 Estructura del Proyecto
 
 ```
-turnero-padel/
-├── 📁 app/                     # App Router de Next.js 15
-│   ├── 📁 (protected)/         # Rutas protegidas
-│   ├── 📁 admin-panel/         # Panel de administración
-│   ├── 📁 api/                 # API Routes
-│   ├── 📁 auth/                # Páginas de autenticación
-│   └── 📁 login/               # Página de login
+turnero de padel/
+├── 📁 app/                     # App Router (Next.js 15)
+│   ├── 📁 (protected)/         # Rutas de usuario autenticado (ej. dashboard)
+│   ├── 📁 admin-panel/         # Panel de administración por tenant
+│   ├── 📁 api/                 # Route Handlers (REST)
+│   └── 📁 auth/                # Flujo de autenticación
 ├── 📁 components/              # Componentes React
 │   ├── 📁 admin/               # Componentes del admin
 │   ├── 📁 auth/                # Componentes de autenticación
@@ -280,7 +285,7 @@ npm start
 - **[Troubleshooting](docs/guides/troubleshooting.md)** - Solución de problemas
 
 ### 🏗️ Arquitectura
-- **[Arquitectura Multitenant](docs/MULTITENANT_COMPLETE.md)** - ⭐ Documentación completa multitenant
+- **[Arquitectura Multitenant](docs/multitenant/MULTITENANT_COMPLETE.md)** — guía completa multitenant
 - **[Arquitectura del Sistema](docs/architecture/system-architecture.md)** - Visión general
 - **[Arquitectura de Componentes](docs/architecture/component-architecture.md)** - Estructura frontend
 - **[Flujos de API](docs/architecture/api-flows.md)** - Endpoints y datos
@@ -297,27 +302,6 @@ npm start
 - **[Hooks Personalizados](docs/hooks/)** - Custom React hooks
 - **[Servicios](docs/services/)** - Lógica de negocio
 
-## 📊 Métricas del Proyecto
-
-### Estadísticas de Código
-- **Líneas de código**: ~4,000+
-- **Componentes React**: 25+
-- **API Routes**: 12+
-- **Custom Hooks**: 8+
-- **Tests**: 50+ casos de prueba
-
-### Rendimiento
-- **Tiempo de carga inicial**: < 2 segundos
-- **Tiempo de respuesta API**: < 500ms
-- **Lighthouse Score**: 95+
-- **Core Web Vitals**: Excelente
-
-### Compatibilidad
-- **Navegadores**: Chrome, Firefox, Safari, Edge
-- **Dispositivos**: Desktop, Tablet, Móvil
-- **Resoluciones**: 320px - 4K
-- **Accesibilidad**: WCAG 2.1 AA
-
 ## 🛠️ Scripts Disponibles
 
 ```bash
@@ -331,7 +315,7 @@ npm run lint            # Linting de código
 npx prisma studio       # Interfaz visual de BD
 npx prisma db push      # Aplicar cambios al esquema
 npx prisma generate     # Generar cliente Prisma
-npx prisma db seed      # Poblar base de datos
+# Si configuraste prisma.seed en package.json: npx prisma db seed
 
 # Testing
 npm run test:all        # Todos los tests
@@ -390,9 +374,9 @@ Este proyecto está bajo la **Licencia MIT**. Ver [LICENSE](LICENSE) para más d
 
 ### Información del Proyecto
 - **Nombre**: Turnero de Pádel
-- **Versión**: 2.1.0
-- **Estado**: ✅ Producción
-- **Última actualización**: Enero 2025
+- **Versión**: ver `version` en `package.json`
+- **Estado**: activo (despliegue típico: Vercel + Neon)
+- **Documentación**: `docs/README.md` e [índice](docs/00-indice-documentacion.md)
 
 ### Recursos Adicionales
 - **[Documentación Completa](docs/README.md)** - Toda la documentación

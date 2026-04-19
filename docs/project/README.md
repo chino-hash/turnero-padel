@@ -1,6 +1,6 @@
 # Documentación del proyecto
 
-Visión general, resúmenes ejecutivos y estructura del Turnero de Pádel.
+Visión general, resúmenes ejecutivos y estructura del Turnero de Pádel. Para navegar todo el árbol de docs, usar primero el **[índice general](../00-indice-documentacion.md)**.
 
 - [Resumen Ejecutivo del Proyecto](./RESUMEN_EJECUTIVO_PROYECTO.md)
 - [Resumen Proyecto Turnero Padel](./RESUMEN_PROYECTO_TURNERO_PADEL.md)

@@ -1,5 +1,7 @@
 # Pestaña "Torneos" en el Dashboard
 
+> **Nota (abril 2026):** checklist histórico; la fuente de verdad es el código en `app/` y las notas en [`docs/actualizaciones/`](../actualizaciones/).
+
 **Objetivo:** Añadir al dashboard una pestaña nueva llamada **Torneos**, donde se publique el torneo creado en la sección de torneos del admin, con fecha del torneo y dos estados: torneos que vienen y torneos terminados (registro limitado a 1 mes).
 
 ---

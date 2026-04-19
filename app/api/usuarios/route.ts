@@ -78,7 +78,6 @@ export async function GET(request: NextRequest) {
         phone: true,
         role: true,
         isActive: true,
-        discountPercent: true,
         createdAt: true,
         _count: {
           select: {
@@ -102,7 +101,6 @@ export async function GET(request: NextRequest) {
       phone: string | null
       role: string
       isActive: boolean
-      discountPercent: number | null
       createdAt: Date
       reservas: number
       ultimaReserva: string | null
@@ -123,7 +121,6 @@ export async function GET(request: NextRequest) {
         phone: u.phone,
         role: u.role,
         isActive: u.isActive,
-        discountPercent: u.discountPercent ?? null,
         createdAt: u.createdAt,
         reservas,
         ultimaReserva,

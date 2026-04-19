@@ -156,30 +156,30 @@ Filtros → SlotAPI → Cache Check → PricingService → Respuesta JSON
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 15 (App Router)
 - **Lenguaje**: TypeScript
-- **Estilos**: Tailwind CSS
+- **Estilos**: Tailwind CSS 4
 - **Componentes**: Shadcn/ui
 - **Iconos**: Lucide React
-- **Estado**: React Context + Custom Hooks
+- **Estado**: React Context + hooks propios
 - **Formularios**: React Hook Form + Zod
 
 ### Backend
 - **Runtime**: Node.js
-- **API**: Next.js API Routes
-- **ORM**: Prisma
-- **Base de Datos**: PostgreSQL (Neon)
-- **Autenticación**: NextAuth.js
+- **API**: Route Handlers en `app/api`
+- **ORM**: Prisma 6.x
+- **Base de datos**: PostgreSQL (Neon u otro proveedor)
+- **Autenticación**: Auth.js / NextAuth.js v5
 - **Validación**: Zod
-- **Tiempo Real**: Server-Sent Events
+- **Tiempo real**: Server-Sent Events (SSE)
 
-### DevOps & Tools
-- **Despliegue**: Vercel
-- **Control de Versiones**: Git
-- **Testing**: Playwright (E2E)
-- **Linting**: ESLint + Prettier
-- **Tipado**: TypeScript estricto
-- **Monitoreo**: Vercel Analytics
+### DevOps y herramientas
+- **Despliegue**: Vercel (típico)
+- **Control de versiones**: Git
+- **Testing**: Jest, Playwright (E2E), Cypress opcional
+- **Linting**: ESLint (config Next)
+- **Tipado**: TypeScript
+- **Rate limiting**: Upstash + Vercel KV si variables KV están configuradas
 
 ### Servicios Externos
 - **OAuth**: Google OAuth 2.0
@@ -189,326 +189,42 @@ Filtros → SlotAPI → Cache Check → PricingService → Respuesta JSON
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del proyecto
 
-```
-turnero-padel/
-├── 📱 app/                    # Next.js App Router
-│   ├── (admin)/              # Rutas de administración
-│   │   └── admin/
-│   │       ├── page.tsx      # Panel principal de admin
-│   │       └── layout.tsx    # Layout específico de admin
-│   ├── (protected)/          # Rutas protegidas
-│   │   └── dashboard/
-│   │       └── page.tsx      # Dashboard de usuario
-│   ├── api/                  # API Routes
-│   │   ├── auth/             # Endpoints de autenticación
-│   │   ├── bookings/         # Endpoints de reservas
-│   │   ├── courts/           # Endpoints de canchas
-│   │   ├── slots/            # Endpoints de horarios
-│   │   └── admin/            # Endpoints de administración
-│   ├── auth/                 # Páginas de autenticación
-│   │   ├── signin/           # Página de login
-│   │   └── error/            # Página de errores de auth
-│   ├── globals.css           # Estilos globales
-│   ├── layout.tsx            # Layout raíz
-│   ├── page.tsx              # Página de inicio
-│   └── middleware.ts         # Middleware de autenticación
-├── 🧩 components/            # Componentes React
-│   ├── admin/               # Componentes de administración
-│   │   ├── AdminTurnos.tsx  # Gestión de turnos
-│   │   ├── AdminStats.tsx   # Estadísticas
-│   │   └── AdminSettings.tsx # Configuración
-│   ├── auth/                # Componentes de autenticación
-│   │   ├── ProtectedRoute.tsx
-│   │   ├── LoginForm.tsx
-│   │   └── AuthProvider.tsx
-│   ├── providers/           # Context Providers
-│   │   ├── AppStateProvider.tsx
-│   │   ├── ThemeProvider.tsx
-│   │   └── ToastProvider.tsx
-│   ├── ui/                  # Componentes base (Shadcn/ui)
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── input.tsx
-│   │   └── ...
-│   ├── TurneroApp.tsx       # Componente principal
-│   ├── MisTurnos.tsx        # Gestión de turnos del usuario
-│   ├── HomeSection.tsx      # Sección de reservas
-│   └── CalendarModal.tsx    # Modal de calendario
-├── 🎣 hooks/                 # Custom React Hooks
-│   ├── useAuth.ts           # Hook de autenticación
-│   ├── useBookings.ts       # Hook de reservas
-│   ├── useSlots.ts          # Hook de horarios
-│   ├── useCourtPrices.ts    # Hook de precios
-│   ├── useRealTimeUpdates.ts # Hook de tiempo real
-│   └── useUserBookings.ts   # Hook de reservas de usuario
-├── 📚 lib/                   # Utilidades y servicios
-│   ├── services/            # Lógica de negocio
-│   │   ├── BookingService.ts
-│   │   ├── UserService.ts
-│   │   ├── CourtService.ts
-│   │   └── crud-service.ts
-│   ├── repositories/        # Acceso a datos
-│   │   ├── BookingRepository.ts
-│   │   ├── UserRepository.ts
-│   │   └── CourtRepository.ts
-│   ├── validations/         # Esquemas de validación
-│   │   ├── booking.ts
-│   │   ├── user.ts
-│   │   ├── common.ts
-│   │   └── schemas.ts
-│   ├── utils/               # Utilidades generales
-│   │   ├── array-utils.ts
-│   │   ├── date-utils.ts
-│   │   ├── error-handler.ts
-│   │   └── format-utils.ts
-│   ├── database/            # Configuración de BD
-│   │   └── neon-config.ts
-│   ├── auth.ts              # Configuración de NextAuth
-│   └── utils.ts             # Utilidades de Tailwind
-├── 🗄️ prisma/               # Esquema de BD y migraciones
-│   ├── schema.prisma        # Esquema de la base de datos
-│   ├── migrations/          # Migraciones de BD
-│   └── seed.ts              # Datos de prueba
-├── 🧪 tests/                # Testing E2E e integración
-│   ├── e2e/                # Tests end-to-end
-│   │   ├── auth.spec.ts
-│   │   ├── booking.spec.ts
-│   │   ├── admin.spec.ts
-│   │   └── components.spec.ts
-│   └── __tests__/           # Tests unitarios
-│       └── app/api/         # Tests de APIs
-├── 📋 types/                # Definiciones TypeScript
-│   ├── types.ts             # Tipos principales
-│   ├── auth.ts              # Tipos de autenticación
-│   └── api.ts               # Tipos de API
-├── 📖 docs/                 # Documentación
-│   ├── architecture/        # Documentación de arquitectura
-│   ├── apis/               # Documentación de APIs
-│   ├── hooks/              # Documentación de hooks
-│   └── services/           # Documentación de servicios
-├── 🔧 scripts/              # Scripts de utilidad
-│   ├── add-admin.js        # Script para agregar administradores
-│   ├── test-migration.js   # Script de verificación
-│   └── setup-db.js         # Script de configuración de BD
-├── .env                     # Variables de entorno
-├── .env.example             # Ejemplo de variables de entorno
-├── package.json             # Dependencias del proyecto
-├── tsconfig.json            # Configuración de TypeScript
-├── tailwind.config.js       # Configuración de Tailwind
-├── next.config.js           # Configuración de Next.js
-├── playwright.config.ts     # Configuración de Playwright
-└── README.md                # Documentación básica
-```
+El árbol de carpetas cambia con el tiempo (multitenant, admin, torneos, etc.). La referencia mantenida para desarrolladores está en **[Estructura de carpetas](../architecture/folder-structure.md)** y en el README del repositorio.
+
+Resumen de alto nivel:
+
+- **`app/`**: rutas públicas, `(protected)`, `admin-panel`, `api/`, auth.
+- **`components/`**, **`hooks/`**, **`lib/`**: UI, hooks y lógica compartida (servicios, validaciones, utilidades).
+- **`prisma/`**: esquema y migraciones PostgreSQL.
+- **`docs/`**: documentación funcional y técnica; **`.cursor/skills/`**: convenciones para asistentes de código.
 
 ---
 
-## 🗄️ Base de Datos
+## Base de datos
 
-### Esquema de Base de Datos
+La **fuente de verdad** del modelo relacional es el archivo [`prisma/schema.prisma`](../../prisma/schema.prisma) en la raíz del repositorio. Aquí no se copia el esquema completo para evitar que esta página quede desactualizada frente a migraciones reales.
 
-El sistema utiliza **PostgreSQL** como base de datos principal con **Prisma** como ORM. El esquema está diseñado para soportar:
+### Ámbitos principales (conceptual)
 
-#### Modelos Principales
+| Ámbito | Modelos representativos (ver Prisma) |
+|--------|--------------------------------------|
+| Autenticación (Auth.js) | `Account`, `Session`, `User`, `VerificationToken` |
+| Multitenant | `Tenant` y relaciones con `tenantId` en recursos del club |
+| Reservas y canchas | `Court`, `Booking`, `BookingPlayer`, `BookingExtra`, `CourtBlock`, horarios recurrentes |
+| Pagos e inventario | `Payment`, `Producto`, `Consumible`, `Venta` |
+| Torneos | `Tournament`, `TournamentSchedule`, `TournamentRegistration`, `TournamentMatch`, … |
+| Configuración y acceso | `SystemSetting`, `AdminWhitelist`, `RecurringBooking`, `RecurringBookingException` |
 
-##### 👤 User (Usuarios)
-```prisma
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  phone         String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relaciones
-  accounts      Account[]
-  sessions      Session[]
-  bookings      Booking[]
-  processedPayments Payment[] @relation("ProcessedBy")
-}
-```
+### Documentación relacionada
 
-##### 🏟️ Court (Canchas)
-```prisma
-model Court {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  basePrice       Int      // Precio en centavos
-  priceMultiplier Float    @default(1.0)
-  features        String   // JSON array de características
-  operatingHours  String   // JSON con horarios de operación
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relaciones
-  bookings        Booking[]
-}
-```
+- [Diagrama / notas de BD](../architecture/database-diagram.md) — contrastar siempre con `schema.prisma`.
+- Historial de cambios: `prisma/migrations/`.
 
-##### 📅 Booking (Reservas)
-```prisma
-model Booking {
-  id                String        @id @default(cuid())
-  courtId           String
-  userId            String
-  bookingDate       DateTime
-  startTime         String        // Formato HH:MM
-  endTime           String        // Formato HH:MM
-  durationMinutes   Int
-  totalPrice        Int           // Precio en centavos
-  depositAmount     Int           @default(0)
-  status            BookingStatus @default(PENDING)
-  paymentStatus     PaymentStatus @default(PENDING)
-  paymentMethod     PaymentMethod?
-  notes             String?
-  cancellationReason String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  cancelledAt       DateTime?
-  
-  // Relaciones
-  court             Court         @relation(fields: [courtId], references: [id])
-  user              User          @relation(fields: [userId], references: [id])
-  players           BookingPlayer[]
-  payments          Payment[]
-}
-```
+### Scripts de administración
 
-##### 👥 BookingPlayer (Jugadores por Reserva)
-```prisma
-model BookingPlayer {
-  id           String    @id @default(cuid())
-  bookingId    String
-  playerName   String
-  playerPhone  String?
-  playerEmail  String?
-  hasPaid      Boolean   @default(false)
-  paidAmount   Int       @default(0)
-  position     Int?
-  notes        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
-  
-  // Relaciones
-  booking      Booking   @relation(fields: [bookingId], references: [id])
-  payments     Payment[]
-}
-```
-
-##### 💰 Payment (Pagos)
-```prisma
-model Payment {
-  id              String         @id @default(cuid())
-  bookingId       String
-  playerId        String?
-  processedById   String?
-  amount          Int            // Monto en centavos
-  paymentMethod   PaymentMethod
-  paymentType     PaymentType    @default(PAYMENT)
-  referenceNumber String?
-  notes           String?
-  status          String         @default("completed")
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  deletedAt       DateTime?
-  
-  // Relaciones
-  booking         Booking        @relation(fields: [bookingId], references: [id])
-  player          BookingPlayer? @relation(fields: [playerId], references: [id])
-  processedBy     User?          @relation("ProcessedBy", fields: [processedById], references: [id])
-}
-```
-
-##### ⚙️ SystemSetting (Configuración del Sistema)
-```prisma
-model SystemSetting {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
-  isPublic    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-```
-
-##### 👑 AdminWhitelist (Lista de Administradores)
-```prisma
-model AdminWhitelist {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  addedBy   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-```
-
-**Administradores Activos:**
-- `agustinagus05@gmail.com` - Administrador principal con permisos completos
-  - Acceso al panel de administración
-  - Gestión de reservas y canchas
-  - Agregar/remover administradores
-  - Configuración del sistema
-
-**Scripts de Gestión de Administradores:**
-- `scripts/quick-add-admin.js` - Agregar administrador específico
-- `scripts/add-admin.js` - Agregar administrador con validaciones
-- `scripts/verify-admin.js` - Verificar permisos de administrador
-- `scripts/add-admin-direct.js` - Agregar administrador directamente a la BD
-
-#### Enums
-
-```prisma
-enum Role {
-  USER
-  ADMIN
-}
-
-enum BookingStatus {
-  PENDING      // Pendiente de confirmación
-  CONFIRMED    // Confirmada
-  ACTIVE       // En curso
-  COMPLETED    // Completada
-  CANCELLED    // Cancelada
-}
-
-enum PaymentStatus {
-  PENDING      // Sin pagar
-  DEPOSIT_PAID // Seña pagada
-  FULLY_PAID   // Totalmente pagado
-}
-
-enum PaymentMethod {
-  CASH         // Efectivo
-  BANK_TRANSFER // Transferencia bancaria
-  CARD         // Tarjeta
-}
-
-enum PaymentType {
-  PAYMENT      // Pago
-  REFUND       // Reembolso
-  ADJUSTMENT   // Ajuste
-}
-```
-
-### Relaciones y Índices
-
-El esquema incluye índices optimizados para:
-- Consultas por usuario y fecha
-- Búsquedas por estado de reserva
-- Filtros por método de pago
-- Consultas de disponibilidad de canchas
-- Reportes administrativos
+En `scripts/` existen utilidades como `add-admin.js`, `quick-add-admin.js`, `verify-admin.js`, `add-superadmin.js`, etc. **Revisar** el contenido y los comentarios de cada script antes de usarlos en un entorno compartido. Los administradores del sistema se gobiernan por variables de entorno (`ADMIN_EMAILS`, `SUPER_ADMIN_EMAILS`), no por listas fijas en documentación.
 
 ---
 
@@ -2314,85 +2030,35 @@ node scripts/test-migration.js
 
 ---
 
-## 🚀 Roadmap
+## Roadmap (alineado con el repo, abril 2026)
 
-### Versión Actual (v1.0)
-- ✅ Autenticación con Google OAuth
-- ✅ Sistema básico de reservas
-- ✅ Panel de administración
-- ✅ Gestión de pagos manual
-- ✅ Interfaz responsive
-- ✅ Tests E2E básicos
+### Ya en el producto (alto nivel)
 
-### Próximas Funcionalidades (v1.1)
+- Autenticación Google + roles (admin tenant / super admin por email).
+- Multitenant (slug, aislamiento de datos, panel super admin).
+- Reservas, canchas, horarios, SSE para refrescos en UI.
+- Mercado Pago (credenciales por tenant, webhooks, estados de pago y seña).
+- Módulos de administración ampliados: estadísticas, torneos, ventas, etc. (según ramas desplegadas).
+- Rate limiting con **Vercel KV + Upstash** cuando las variables KV existen.
 
-#### Mejoras de UX
-- 🔄 **Notificaciones push** para recordatorios
-- 🔄 **Modo offline** con sincronización
-- 🔄 **Tema personalizable** (colores del club)
-- 🔄 **Búsqueda avanzada** de horarios
+### Ideas / deuda técnica (priorizar según negocio)
 
-#### Funcionalidades de Negocio
-- 🔄 **Sistema de membresías** con descuentos
-- 🔄 **Reservas recurrentes** (torneos, clases)
-- 🔄 **Lista de espera** para horarios completos
-- 🔄 **Sistema de puntuación** y rankings
+- Notificaciones (email / push), lista de espera, membresías.
+- Observabilidad (Sentry, trazas), alertas sobre webhooks y errores.
+- Endurecer endpoints de debug (`/api/debug-env` con token solo por env).
+- MFA, facturación electrónica, API pública documentada: evaluar caso por caso.
 
-### Funcionalidades Futuras (v2.0)
-
-#### Integración de Pagos
-- 📋 **Mercado Pago** integración completa
-- 📋 **Pagos automáticos** con tarjeta
-- 📋 **Facturación electrónica**
-- 📋 **Reembolsos automáticos**
-
-#### Analytics y Reportes
-- 📋 **Dashboard de métricas** en tiempo real
-- 📋 **Reportes financieros** avanzados
-- 📋 **Análisis de ocupación** por horarios
-- 📋 **Predicción de demanda** con ML
-
-#### Funcionalidades Sociales
-- 📋 **Perfiles de jugadores** públicos
-- 📋 **Sistema de amigos** y invitaciones
-- 📋 **Chat integrado** para coordinación
-- 📋 **Compartir en redes sociales**
-
-#### Integraciones
-- 📋 **API pública** para terceros
-- 📋 **Integración con calendarios** (Google, Outlook)
-- 📋 **Webhooks** para eventos
-- 📋 **Integración con sistemas de acceso**
-
-### Mejoras Técnicas
-
-#### Performance
-- 📋 **Caché inteligente** con Redis
-- 📋 **Optimización de imágenes** automática
-- 📋 **Lazy loading** avanzado
-- 📋 **Service Workers** para PWA
-
-#### Seguridad
-- 📋 **Autenticación multifactor** (2FA)
-- 📋 **Auditoría de seguridad** automática
-- 📋 **Encriptación de datos** sensibles
-- 📋 **Rate limiting** avanzado
-
-#### DevOps
-- 📋 **CI/CD pipeline** completo
-- 📋 **Tests automatizados** en múltiples entornos
-- 📋 **Monitoreo avanzado** con alertas
-- 📋 **Backup automático** de base de datos
+*Las secciones antiguas de este roadmap listaban Mercado Pago y rate limiting como futuro; quedaron obsoletas y se sustituyeron por este bloque.*
 
 ---
 
 ## 📞 Soporte y Contacto
 
-### Documentación Adicional
-- 📖 [Guía de APIs](./docs/apis/)
-- 🏗️ [Documentación de Arquitectura](./docs/architecture/)
-- 🎣 [Documentación de Hooks](./docs/hooks/)
-- 🔧 [Guía de Servicios](./docs/services/)
+### Documentación adicional
+- [APIs](../apis/)
+- [Arquitectura](../architecture/)
+- [Hooks](../hooks/)
+- [Servicios](../services/)
 
 ### Recursos de Desarrollo
 - 🔗 [Next.js Documentation](https://nextjs.org/docs)
@@ -2410,6 +2076,6 @@ Para contribuir al proyecto:
 
 ---
 
-**© 2024 Sistema de Turnero de Pádel - Documentación Completa**
+**Turnero de Pádel — documentación completa (repositorio)**
 
-*Esta documentación está en constante actualización. Para la versión más reciente, consultar el repositorio del proyecto.*
+*Actualizar este archivo cuando cambien modelos de datos o flujos críticos; el índice maestro está en [../00-indice-documentacion.md](../00-indice-documentacion.md).*

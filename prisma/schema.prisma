@@ -430,6 +430,17 @@ enum ExceptionType {
   OVERRIDE
 }
 
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
 model RecurringBookingException {
   id          Int           @id @default(autoincrement())
   createdAt   DateTime      @default(now())
@@ -441,6 +452,34 @@ model RecurringBookingException {
 
   recurring RecurringBooking @relation(fields: [recurringId], references: [id], onDelete: Cascade)
 
+  @@index([recurringId, date])
+  @@unique([recurringId, date])
+}
+
+model NotificationLog {
+  id             String              @id @default(cuid())
+  tenantId       String
+  bookingId      String?
+  recurringId    String?
+  tournamentId   String?
+  date           DateTime?
+  type           String
+  channel        NotificationChannel @default(EMAIL)
+  status         NotificationStatus  @default(PENDING)
+  recipientEmail String?
+  subject        String?
+  payload        String?
+  error          String?
+  attempts       Int                 @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  notificationKey String             @unique
+
+  @@index([tenantId])
+  @@index([status, createdAt])
+  @@index([tournamentId])
+  @@index([bookingId])
   @@index([recurringId, date])
 }
 
@@ -570,6 +609,7 @@ model CourtBlock {
   @@index([courtId, date])
   @@index([tournamentId])
   @@index([tenantId])
+  @@unique([tenantId, courtId, tournamentId, date, startTime, endTime], map: "CourtBlock_unique_window")
 }
 
 model Consumible {

@@ -1,5 +1,7 @@
 # Refactorización: Auth ligero para Middleware (reducir bundle Edge < 1 MB)
 
+> **Nota (abril 2026):** documento de diseño / procedimiento; contrastar con `middleware.ts` y `lib/auth.ts` actuales y con [`docs/actualizaciones/`](../actualizaciones/).
+
 Guía paso a paso para refactorizar el middleware y bajar el tamaño del Edge Function por debajo del límite de 1 MB del plan Hobby de Vercel.
 
 ## Contexto

@@ -50,8 +50,6 @@ export async function GET(request: NextRequest) {
     const umbrales = await getUmbralesCategoria(tenantId)
     const hoy = new Date()
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-    const finMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0, 23, 59, 59)
-
     const hace30Dias = new Date()
     hace30Dias.setDate(hace30Dias.getDate() - 30)
 
@@ -186,9 +184,6 @@ export async function GET(request: NextRequest) {
 
         const totalReservas = todasLasReservas.length
         const categoria = getCategoriaFromReservas(totalReservas, umbrales)
-        let descuento = 5
-        if (categoria === 'VIP') descuento = 15
-        else if (categoria === 'Premium') descuento = 10
 
         const reservasMes = todasLasReservas.filter(
           (b) => new Date(b.bookingDate) >= inicioMes
@@ -208,7 +203,6 @@ export async function GET(request: NextRequest) {
           canchaPreferida,
           ultimaReserva: ultimaReservaFecha,
           categoria,
-          descuento,
         }
       })
     )

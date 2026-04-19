@@ -12,7 +12,6 @@ interface ClienteFrecuente {
   canchaPreferida: string
   ultimaReserva: string | null
   categoria: string
-  descuento: number
 }
 
 interface AnalisisUsuariosData {
@@ -79,26 +78,7 @@ export function useAnalisisUsuarios(options?: { tenantId?: string | null; tenant
     } catch (err) {
       console.error('Error al cargar análisis de usuarios:', err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
-
-      setAnalisis({
-        metricas: {
-          totalUsuarios: 0,
-          usuariosActivos: 0,
-          nuevosEsteMes: 0,
-          retencion: 0,
-        },
-        clientesMasFrecuentes: [],
-        clientesNuevosVsRecurrentes: {
-          nuevos: 0,
-          recurrentes: 0,
-        },
-        valorPromedioPorCliente: 0,
-        distribucionCategorias: {
-          VIP: 0,
-          Premium: 0,
-          Regular: 0,
-        },
-      })
+      setAnalisis(null)
     } finally {
       setLoading(false)
     }

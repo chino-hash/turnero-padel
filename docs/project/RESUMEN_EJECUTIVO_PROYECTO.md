@@ -1,34 +1,18 @@
 # 📊 Resumen Ejecutivo - Turnero de Padel
 
-## 🎯 Estado del Proyecto: ✅ COMPLETADO Y VALIDADO
+## Estado del proyecto
 
-**Fecha de última actualización**: 27 de Agosto, 2025  
-**Versión**: 2.0 (Post-migración PostgreSQL)  
-**Estado**: Listo para producción  
+**Última actualización de este resumen**: abril 2026  
+**Base**: PostgreSQL (Neon) + Prisma; Next.js 15 y Auth.js / NextAuth v5  
+**Estado**: productivo; el detalle técnico vive en `docs/` y en el código  
 
 ---
 
-## 📈 Métricas Clave
+## Hitos y calidad
 
-### ✅ Migración Completada
-- **SQLite → PostgreSQL**: 100% exitosa
-- **Supabase → NextAuth.js**: 100% funcional
-- **Base de datos**: Neon PostgreSQL (sa-east-1)
-- **Tiempo de migración**: < 1 día
-- **Pérdida de datos**: 0%
-
-### 🧪 Pruebas Automatizadas
-- **Tests ejecutados**: 3/3 ✅
-- **Cobertura de navegadores**: 100%
-- **Tiempo de ejecución**: 2.1 minutos
-- **Errores críticos**: 0
-- **Rendimiento**: Óptimo (< 2s carga)
-
-### 🔒 Seguridad
-- **Autenticación**: Google OAuth (NextAuth.js v5)
-- **Conexión BD**: SSL + Channel Binding
-- **Sistema de roles**: Lista blanca dinámica
-- **Variables sensibles**: Protegidas en .env
+- **Migración histórica** a PostgreSQL y stack NextAuth/Prisma completada (detalle en `docs/migraciones/` y análisis `06-migracion-sqlite-postgresql.md`).
+- **Pruebas**: ejecutar `npm run test:ci` y `npm run test:e2e` (o el job de CI) para el estado actual; las cifras fijas de una corrida antigua no se reproducen aquí.
+- **Seguridad**: OAuth Google, roles por email, datos por `tenantId`; revisar [seguridad/](../seguridad/) y variables en Vercel.
 
 ---
 
@@ -41,7 +25,7 @@
 - **Componentes**: React Server Components
 
 ### **Backend**
-- **API**: Next.js API Routes
+- **API**: Route Handlers (`app/api`)
 - **ORM**: Prisma v6.14.0
 - **Base de datos**: PostgreSQL (Neon)
 - **Autenticación**: NextAuth.js v5
@@ -56,12 +40,12 @@
 
 ## 🚀 Funcionalidades Implementadas
 
-### ✅ **Core Features**
-- **Gestión de canchas**: CRUD completo
-- **Sistema de reservas**: Calendario interactivo
-- **Autenticación**: Google OAuth únicamente
-- **Panel de administración**: Gestión de usuarios y reservas
-- **Sistema de roles**: Administradores vs usuarios regulares
+### **Core y evolución reciente**
+- **Gestión de canchas** y horarios; contexto por tenant en admin
+- **Reservas** con estados de negocio y validación (Zod + servicios)
+- **Autenticación**: Google OAuth (lista blanca de admins / super admins por email)
+- **Panel de administración** (`app/admin-panel/`): turnos, canchas, usuarios, estadísticas, torneos, ventas según módulos habilitados
+- **Multitenant** y **Mercado Pago** por club (credenciales y webhooks acotados al tenant)
 
 ### ✅ **Características Técnicas**
 - **Responsive Design**: Desktop, tablet, móvil
@@ -108,22 +92,13 @@
 
 ---
 
-## 🔄 Próximos Pasos Recomendados
+## Próximos pasos (orientación 2026)
 
-### **Inmediatos (Esta semana)**
-- [ ] Deploy a producción en Vercel
-- [ ] Configurar monitoreo de base de datos
-- [ ] Configurar backups automáticos
+Prioridades típicas de operación, no un compromiso cerrado:
 
-### **Corto plazo (1-2 semanas)**
-- [ ] Implementar notificaciones por email
-- [ ] Agregar sistema de pagos (opcional)
-- [ ] Optimizar queries de base de datos
-
-### **Mediano plazo (1 mes)**
-- [ ] Implementar analytics de uso
-- [ ] Agregar más métodos de autenticación
-- [ ] Implementar sistema de reviews
+1. **Observabilidad**: alertas sobre webhooks MP, errores 5xx y colas de reservas pendientes.
+2. **Backups y DR**: política explícita en Neon (puntos de recuperación) y prueba de restore.
+3. **Producto**: notificaciones por email, lista de espera, membresías — según roadmap del negocio (ver [lo-siguiente-que-hacer.md](./lo-siguiente-que-hacer.md) para deuda técnica).
 
 ---
 
@@ -158,10 +133,9 @@
 - **Escalabilidad**: Preparada para crecimiento
 - **Mantenibilidad**: Código limpio y documentado
 
-### 📋 **Recomendación Final**
-**El proyecto está listo para producción** y puede ser desplegado inmediatamente. Todas las funcionalidades han sido probadas y validadas exitosamente.
+### **Recomendación**
+Mantener este resumen alineado con despliegues reales y con el [índice de documentación](../00-indice-documentacion.md); las métricas de “tests 3/3” o fechas antiguas no sustituyen una corrida actual de CI.
 
 ---
 
-*Documento generado automáticamente el 27 de Agosto, 2025*  
-*Próxima revisión recomendada: 27 de Septiembre, 2025*
+*Revisión: abril 2026*
