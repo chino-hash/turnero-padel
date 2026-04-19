@@ -44,7 +44,12 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-zinc-400">
                 <Mail className="w-5 h-5 text-[#BEF264]" />
-                <span>contacto@padelbook.com</span>
+                <a
+                  href="mailto:padelbook9@gmail.com"
+                  className="hover:text-[#BEF264] transition-colors"
+                >
+                  padelbook9@gmail.com
+                </a>
               </div>
               <div className="flex items-center gap-3 text-zinc-400">
                 <Phone className="w-5 h-5 text-[#BEF264]" />
