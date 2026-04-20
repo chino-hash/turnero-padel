@@ -24,6 +24,30 @@ const credentialsCache = new Map<string, CachedCredentials>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
 /**
+ * Credenciales guardadas con encryptCredential usan exactamente 3 segmentos hex separados por ":".
+ * Los valores en claro de Mercado Pago también pueden traer ":" (p.ej. APP_USR-...),
+ * así que NO basta con contar ":" para decidir si está encriptado.
+ */
+function isHexString(value: string): boolean {
+  return value.length > 0 && value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value);
+}
+
+function looksLikeEncryptedEnvelope(value: string): boolean {
+  const parts = value.split(':');
+  if (parts.length !== 3) return false;
+  const [ivHex, authTagHex, encryptedHex] = parts;
+  // AES-GCM: iv 16 bytes (32 hex), authTag 16 bytes (32 hex), ciphertext en hex (par)
+  return (
+    ivHex.length === 32 &&
+    authTagHex.length === 32 &&
+    encryptedHex.length >= 2 &&
+    isHexString(ivHex) &&
+    isHexString(authTagHex) &&
+    isHexString(encryptedHex)
+  );
+}
+
+/**
  * Limpia entradas expiradas del cache
  */
 function cleanCache(): void {
@@ -41,6 +65,16 @@ function cleanCache(): void {
 function tryDecrypt(encrypted: string | null): string | null {
   if (!encrypted) {
     return null;
+  }
+
+  // Valores típicos de MP en claro: no intentar "desencriptar" aunque traigan ":".
+  if (encrypted.startsWith('APP_USR-') || encrypted.startsWith('TEST-')) {
+    return encrypted;
+  }
+
+  // Si no parece el sobre AES-GCM del proyecto, asumir texto plano (migraciones / dev / legado).
+  if (!looksLikeEncryptedEnvelope(encrypted)) {
+    return encrypted;
   }
 
   try {
@@ -72,14 +106,10 @@ function tryDecrypt(encrypted: string | null): string | null {
         errorMessage.includes('bad decrypt') ||
         errorMessage.includes('formato de texto encriptado inválido')
       ) {
-        // Intentar retornar la credencial sin desencriptar (formato antiguo)
-        // Validar que no tenga el formato de encriptación (iv:authTag:encryptedData)
-        if (!encrypted.includes(':') || encrypted.split(':').length !== 3) {
-          console.warn(
-            `[TenantCredentials] Credencial no está encriptada (formato antiguo), usando directamente`
-          );
-          return encrypted;
-        }
+        console.warn(
+          `[TenantCredentials] No se pudo desencriptar credencial; se usa el valor original (puede ser legado).`
+        );
+        return encrypted;
       }
     }
 
