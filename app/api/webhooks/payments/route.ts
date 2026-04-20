@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { BookingWebhookHandler } from '@/lib/services/payments/BookingWebhookHandler';
 import { prisma } from '@/lib/database/neon-config';
 import { getTenantMercadoPagoCredentials } from '@/lib/services/payments/tenant-credentials';
+import type { WebhookPayload } from '@/lib/services/payments/interfaces/IWebhookHandler';
 
 export const runtime = 'nodejs';
 
@@ -111,7 +112,7 @@ function validateMercadoPagoSignature(
   return { valid: signatureValid };
 }
 
-function normalizeLegacyMercadoPagoPayload(rawBody: string): Record<string, unknown> | null {
+function normalizeLegacyMercadoPagoPayload(rawBody: string): WebhookPayload | null {
   const params = new URLSearchParams(rawBody);
   if (params.size === 0) {
     return null;
@@ -133,19 +134,32 @@ function normalizeLegacyMercadoPagoPayload(rawBody: string): Record<string, unkn
   };
 }
 
+function isWebhookPayload(value: unknown): value is WebhookPayload {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.type === 'string' && candidate.data !== undefined;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
     const trimmedBody = rawBody.trim();
     const tenantIdFromQuery = request.nextUrl.searchParams.get('tenantId');
-    let body: Record<string, any> | null = null;
+    let body: WebhookPayload | null = null;
 
     if (!trimmedBody) {
       return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
     }
 
     try {
-      body = JSON.parse(trimmedBody) as Record<string, any>;
+      const parsed = JSON.parse(trimmedBody) as unknown;
+      if (!isWebhookPayload(parsed)) {
+        return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
+      }
+      body = parsed;
     } catch (parseError) {
       const legacyPayload = normalizeLegacyMercadoPagoPayload(trimmedBody);
 
@@ -163,7 +177,7 @@ export async function POST(request: NextRequest) {
       console.log('[Webhook] Payload legacy detectado y normalizado');
     }
 
-    if (!body || typeof body !== 'object') {
+    if (!isWebhookPayload(body)) {
       return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
     }
 
