@@ -81,40 +81,25 @@ function tryDecrypt(encrypted: string | null): string | null {
     // Intentar desencriptar
     return decryptCredential(encrypted);
   } catch (error) {
-    // Si falla la desencriptación, puede ser que:
-    // 1. La credencial no está encriptada (formato antiguo)
-    // 2. Falta CREDENTIAL_ENCRYPTION_KEY
-    // 3. La credencial está corrupta
+    const message =
+      error instanceof Error ? error.message : typeof error === 'string' ? error : 'Error desconocido';
+    const messageLower = message.toLowerCase();
 
-    if (error instanceof Error) {
-      const errorMessage = error.message.toLowerCase();
-
-      // Si falta la clave de encriptación, lanzar error descriptivo
-      if (
-        errorMessage.includes('credential_encryption_key') ||
-        errorMessage.includes('clave de encriptación')
-      ) {
-        throw new Error(
-          'CREDENTIAL_ENCRYPTION_KEY no está configurada. ' +
-            'Necesitas configurar esta variable de entorno para desencriptar credenciales de tenants. ' +
-            'Genera una clave con: crypto.randomBytes(32).toString("hex")'
-        );
-      }
-
-      // Si es un error de formato (bad decrypt), puede ser que la credencial no esté encriptada
-      if (
-        errorMessage.includes('bad decrypt') ||
-        errorMessage.includes('formato de texto encriptado inválido')
-      ) {
-        console.warn(
-          `[TenantCredentials] No se pudo desencriptar credencial; se usa el valor original (puede ser legado).`
-        );
-        return encrypted;
-      }
+    // Si falta la clave de encriptación, es configuración: mejor fallar explícito.
+    if (messageLower.includes('credential_encryption_key') || messageLower.includes('clave de encriptación')) {
+      throw new Error(
+        'CREDENTIAL_ENCRYPTION_KEY no está configurada. ' +
+          'Necesitas configurar esta variable de entorno para desencriptar credenciales de tenants. ' +
+          'Genera una clave con: crypto.randomBytes(32).toString("hex")'
+      );
     }
 
-    // Si no podemos determinar el error, lanzar
-    throw error;
+    // Si parecía cifrado pero falla la desencriptación (clave distinta, dato viejo, corrupción),
+    // preferimos NO tumbar el request: webhooks/pagos no deberían caerse por esto.
+    console.warn(
+      `[TenantCredentials] Falló desencriptación de credencial con formato cifrado; se usa el valor original. Detalle: ${message}`
+    );
+    return encrypted;
   }
 }
 
