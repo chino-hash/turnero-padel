@@ -86,7 +86,7 @@ export default function AdminAvailabilityGrid(props: AdminAvailabilityGridProps 
         data-testid="admin-availability-grid"
         aria-label="Tabla de disponibilidad semanal"
       >
-        <table className={cn('availability-grid__table min-w-[800px] w-full text-sm')} role="table">
+        <table className={cn('availability-grid__table min-w-[640px] sm:min-w-[800px] w-full text-xs sm:text-sm')} role="table">
           <thead role="rowgroup" className={cn('availability-grid__head')}> 
             <tr role="row">
               <th
@@ -119,7 +119,16 @@ export default function AdminAvailabilityGrid(props: AdminAvailabilityGridProps 
             {data.timeSlots.map((slot) => (
               <tr key={slot.timeLabel} role="row" className={cn('availability-grid__row')}> 
                 <td role="cell" className={cn('availability-grid__cell availability-grid__cell--time whitespace-nowrap font-medium')}>
-                  {slot.timeLabel}
+                  {(() => {
+                    const [start, end] = slot.timeLabel.split(' - ')
+                    return (
+                      <span className={cn('availability-grid__time-label')}>
+                        <span className={cn('availability-grid__time-start')}>{start}</span>
+                        <span className={cn('availability-grid__time-sep')}> - </span>
+                        <span className={cn('availability-grid__time-end')}>{end ?? ''}</span>
+                      </span>
+                    )
+                  })()}
                 </td>
                 {slot.days.map((day) => (
                   <td
@@ -129,7 +138,7 @@ export default function AdminAvailabilityGrid(props: AdminAvailabilityGridProps 
                     data-date={day.date}
                   > 
                     <div className={cn('availability-grid__badges')}> 
-                      {day.courts.slice(0, 3).map((court, idx) => (
+                      {day.courts.map((court, idx) => (
                         <CourtStatusIndicator
                           key={court.courtId}
                           status={court.status}

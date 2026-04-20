@@ -525,56 +525,84 @@ export default function TurnosPage() {
       </div>
 
       {/* Métricas rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Turnos Hoy</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookingsLoading || statsLoading ? '...' : turnosHoy}</div>
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              {statsLoading ? 'Cargando' : variacionTexto}
-            </p>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 sm:gap-6">
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
+            <div className="flex items-center">
+              <div className="rounded-lg bg-blue-100 p-1.5 sm:p-2">
+                <Calendar className="h-4 w-4 text-blue-600 sm:h-6 sm:w-6" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium text-muted-foreground sm:text-sm">Turnos hoy</p>
+                <p className="text-xl font-bold sm:text-2xl">{bookingsLoading || statsLoading ? '...' : turnosHoy}</p>
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  {statsLoading ? 'Cargando' : variacionTexto}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Próximos Turnos</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookingsLoading ? '...' : proximosTurnos}</div>
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              {bookingsLoading ? 'Cargando' : 'En las próximas 2 horas'}
-            </p>
+
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
+            <div className="flex items-center">
+              <div className="rounded-lg bg-slate-100 p-1.5 sm:p-2 dark:bg-slate-800">
+                <Clock className="h-4 w-4 text-slate-600 sm:h-6 sm:w-6 dark:text-slate-300" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium leading-tight text-muted-foreground sm:text-sm">
+                  <span className="sm:hidden">Próx. turnos</span>
+                  <span className="hidden sm:inline">Próximos turnos</span>
+                </p>
+                <p className="text-xl font-bold sm:text-2xl">{bookingsLoading ? '...' : proximosTurnos}</p>
+                <p className="text-xs leading-tight text-muted-foreground" aria-live="polite">
+                  {bookingsLoading ? 'Cargando' : (
+                    <>
+                      <span className="sm:hidden">Próximas 2 h</span>
+                      <span className="hidden sm:inline">En las próximas 2 horas</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ocupación</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{bookingsLoading || statsLoading ? '...' : `${ocupacionRate}%`}</div>
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              {bookingsLoading ? 'Cargando' : 'Promedio del día'}
-            </p>
+
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
+            <div className="flex items-center">
+              <div className="rounded-lg bg-emerald-100 p-1.5 sm:p-2 dark:bg-emerald-900/30">
+                <TrendingUp className="h-4 w-4 text-emerald-600 sm:h-6 sm:w-6 dark:text-emerald-300" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium text-muted-foreground sm:text-sm">Ocupación</p>
+                <p className="text-xl font-bold sm:text-2xl">{bookingsLoading || statsLoading ? '...' : `${ocupacionRate}%`}</p>
+                <p className="text-xs text-muted-foreground" aria-live="polite">
+                  {bookingsLoading ? 'Cargando' : 'Promedio del día'}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuarios Activos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statsLoading ? '...' : activeUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Con reservas en los últimos 30 días
-            </p>
+
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
+            <div className="flex items-center">
+              <div className="rounded-lg bg-violet-100 p-1.5 sm:p-2 dark:bg-violet-900/30">
+                <Users className="h-4 w-4 text-violet-600 sm:h-6 sm:w-6 dark:text-violet-300" />
+              </div>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium leading-tight text-muted-foreground sm:text-sm">
+                  <span className="sm:hidden">Usu. activos</span>
+                  <span className="hidden sm:inline">Usuarios activos</span>
+                </p>
+                <p className="text-xl font-bold sm:text-2xl">{statsLoading ? '...' : activeUsers}</p>
+                <p className="text-xs leading-tight text-muted-foreground">
+                  <span className="sm:hidden">Reservas en 30 días</span>
+                  <span className="hidden sm:inline">Con reservas en los últimos 30 días</span>
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -583,7 +611,7 @@ export default function TurnosPage() {
         <CardHeader>
           <CardTitle className="text-xl">Disponibilidad de canchas (semana)</CardTitle>
           <CardDescription>
-            🗓️ Por día verás 3 círculos; cada uno representa una cancha: 1° cancha 1, 2° cancha 2, 3° cancha 3.<br />
+            🗓️ La grilla muestra todas las canchas activas del club por franja horaria; cada círculo representa una cancha y se numera en orden (1, 2, 3...N).<br />
             Estado: <span className="text-green-600">🟢 Libre</span>, <span className="text-red-600">🔴 Ocupado</span>, <span className="text-yellow-600">🟡 Pendiente</span>.
           </CardDescription>
         </CardHeader>
