@@ -12,16 +12,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    // Determinar tenant efectivo: prioridad a query (tenantSlug/tenantId), fallback a session.user.tenantId
+    // Determinar tenant efectivo: prioridad a query (tenantId/tenantSlug), fallback a session.user.tenantId
     const { searchParams } = new URL(request.url)
     const queryTenantId = searchParams.get('tenantId')?.trim() || null
     const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
     const sessionTenantId = (session.user as { tenantId?: string | null }).tenantId ?? null
 
-    let effectiveTenantId: string | null = queryTenantId || sessionTenantId
+    let effectiveTenantId: string | null = queryTenantId
     if (!effectiveTenantId && queryTenantSlug) {
-      const tenant = await getTenantFromSlug(queryTenantSlug)
-      effectiveTenantId = tenant?.id ?? null
+      const tenantFromSlug = await getTenantFromSlug(queryTenantSlug)
+      effectiveTenantId = tenantFromSlug?.id ?? null
+    }
+    if (!effectiveTenantId) {
+      effectiveTenantId = sessionTenantId
     }
 
     // Cancelar reservas pendientes expiradas del tenant (lazy) para que Mis Turnos no muestre pendientes vencidas
