@@ -502,6 +502,70 @@
   }
 }
 
+@media (prefers-color-scheme: dark) and (max-width: 640px) {
+  .availability-grid {
+    font-size: 12px;
+  }
+  .availability-grid__scroll {
+    max-height: 68vh;
+  }
+  .availability-grid__head-cell {
+    padding: 10px 8px;
+  }
+  .availability-grid__cell {
+    padding: 10px 8px;
+    vertical-align: top;
+  }
+  .availability-grid__cell--time {
+    min-width: 88px;
+    white-space: normal;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.1;
+    vertical-align: middle;
+  }
+  .availability-grid__time-label {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .availability-grid__time-start,
+  .availability-grid__time-end {
+    display: block;
+  }
+  .availability-grid__time-sep {
+    display: none;
+  }
+  .availability-grid__badges {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    place-items: center;
+    gap: 6px;
+    max-width: 112px;
+  }
+  .availability-grid__badges > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .availability-grid__badge {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+  }
+  .availability-grid__badge-number {
+    font-size: 10px;
+  }
+  .availability-grid__badge-content {
+    gap: 2px;
+  }
+  .availability-grid__badge-x {
+    font-size: 9px;
+  }
+}
+
 /* Gutter de snap para que el primer botón no se corte al inicio */
 [data-testid="date-selection-mobile"] {
   scroll-padding-left: 20px;
