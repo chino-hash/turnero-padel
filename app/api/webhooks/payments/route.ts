@@ -111,10 +111,57 @@ function validateMercadoPagoSignature(
   return { valid: signatureValid };
 }
 
+function normalizeLegacyMercadoPagoPayload(rawBody: string): Record<string, unknown> | null {
+  const params = new URLSearchParams(rawBody);
+  if (params.size === 0) {
+    return null;
+  }
+
+  // Formato legacy de MP: topic=payment&id=12345 (sin JSON).
+  const topic = params.get('topic') || params.get('type');
+  const action = params.get('action');
+  const id = params.get('id') || params.get('data.id') || params.get('data_id');
+
+  if (!topic && !id && !action) {
+    return null;
+  }
+
+  return {
+    type: topic || 'payment',
+    action: action || undefined,
+    data: id ? { id } : {},
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const rawBody = await request.text();
+    const trimmedBody = rawBody.trim();
     const tenantIdFromQuery = request.nextUrl.searchParams.get('tenantId');
+    let body: Record<string, any> | null = null;
+
+    if (!trimmedBody) {
+      return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
+    }
+
+    try {
+      body = JSON.parse(trimmedBody) as Record<string, any>;
+    } catch (parseError) {
+      const legacyPayload = normalizeLegacyMercadoPagoPayload(trimmedBody);
+
+      if (!legacyPayload) {
+        const errorMessage =
+          parseError instanceof Error ? parseError.message : 'Error parseando payload';
+        console.warn('[Webhook] Payload inválido (no JSON ni legacy):', {
+          error: errorMessage,
+          bodyPreview: trimmedBody.slice(0, 180),
+        });
+        return NextResponse.json({ error: 'Payload inválido' }, { status: 400 });
+      }
+
+      body = legacyPayload;
+      console.log('[Webhook] Payload legacy detectado y normalizado');
+    }
 
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Formato de webhook inválido' }, { status: 400 });
