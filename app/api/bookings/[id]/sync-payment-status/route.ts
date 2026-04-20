@@ -94,24 +94,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, error: 'Reserva no encontrada' }, { status: 404 })
     }
 
-    if (!isSuperAdmin && userTenantId && booking.tenantId !== userTenantId) {
-      return NextResponse.json(
-        { success: false, error: 'No tienes permisos para esta reserva' },
-        { status: 403 }
-      )
-    }
-
     const isAdmin = user.role === 'ADMIN' || isSuperAdmin
-    if (!isAdmin && booking.userId !== session.user.id) {
-      return NextResponse.json(
-        { success: false, error: 'No tienes permisos para esta reserva' },
-        { status: 403 }
-      )
-    }
+    const canReadBooking =
+      isAdmin ||
+      booking.userId === session.user.id ||
+      (!!userTenantId && booking.tenantId === userTenantId)
 
     if (booking.status !== 'PENDING' && booking.status !== 'CANCELLED') {
+      if (!canReadBooking) {
+        return NextResponse.json({ success: true, updated: false }, { status: 200 })
+      }
       const result = await bookingService.getBookingById(bookingId)
-      return NextResponse.json(result.success ? { success: true, data: result.data } : result, { status: result.success ? 200 : 404 })
+      return NextResponse.json(result.success ? { success: true, data: result.data } : result, {
+        status: result.success ? 200 : 404
+      })
     }
 
     if (!booking.tenantId) {
@@ -131,8 +127,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const approvedPayment = await findApprovedPaymentByExternalReference(bookingId, credentials.accessToken)
     if (!approvedPayment) {
+      if (!canReadBooking) {
+        return NextResponse.json({ success: true, updated: false }, { status: 200 })
+      }
       const result = await bookingService.getBookingById(bookingId)
-      return NextResponse.json(result.success ? { success: true, data: result.data, updated: false } : result, { status: result.success ? 200 : 404 })
+      return NextResponse.json(result.success ? { success: true, data: result.data, updated: false } : result, {
+        status: result.success ? 200 : 404
+      })
     }
 
     // Reusar la misma lógica del webhook para mantener el comportamiento consistente
@@ -152,6 +153,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { success: false, error: webhookResult.error || 'No se pudo sincronizar el pago' },
         { status: 400 }
+      )
+    }
+
+    if (!canReadBooking) {
+      return NextResponse.json(
+        { success: true, updated: !!webhookResult.bookingUpdated, message: webhookResult.error },
+        { status: 200 }
       )
     }
 
