@@ -1,7 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import useSWR from 'swr'
+import { useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import { buildAdminAvailabilityFetchUrl } from '@/lib/utils/admin-availability-url'
 import CourtStatusIndicator from '@/components/admin/CourtStatusIndicator'
 import { Button } from '@/components/ui/button'
 import { RefreshCcw } from 'lucide-react'
@@ -24,9 +27,29 @@ const fetcher = async (url: string): Promise<IAvailabilityResponse> => {
   return res.json()
 }
 
-export default function AdminAvailabilityGrid() {
+export type AdminAvailabilityGridProps = {
+  tenantId?: string | null
+  tenantSlug?: string | null
+}
+
+export default function AdminAvailabilityGrid(props: AdminAvailabilityGridProps = {}) {
+  const { tenantId: tenantIdProp, tenantSlug: tenantSlugProp } = props
   const [abierta, setAbierta] = useState(false)
-  const swrKey = abierta ? '/api/admin/availability' : null
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const searchParams = useSearchParams()
+  const tenantQueryKey = searchParams.toString()
+  const availabilityUrl = useMemo(
+    () =>
+      buildAdminAvailabilityFetchUrl({
+        tenantIdProp: tenantIdProp ?? null,
+        tenantSlugProp: tenantSlugProp ?? null,
+        searchParams,
+        isSuperAdmin,
+      }),
+    [tenantIdProp, tenantSlugProp, tenantQueryKey, isSuperAdmin]
+  )
+  const swrKey = abierta ? availabilityUrl : null
   const { data, error, isLoading, isValidating, mutate } = useSWR<IAvailabilityResponse>(swrKey, fetcher, {
     refreshInterval: abierta ? 20000 : 0,
     revalidateOnFocus: abierta,

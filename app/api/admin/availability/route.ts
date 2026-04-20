@@ -1,7 +1,16 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
+import {
+  canAccessTenant,
+  getUserTenantIdSafe,
+  isSuperAdminUser,
+  type User as PermissionsUser,
+} from '@/lib/utils/permissions'
+import { getTenantFromSlug } from '@/lib/tenant/context'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const ALL_TIME_SLOTS = [
   '08:00 - 09:30', '09:30 - 11:00', '11:00 - 12:30',
@@ -22,9 +31,83 @@ function formatDateYMD(d: Date) {
   return `${y}-${m}-${dd}`
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    if (!session.user.isAdmin) {
+      return NextResponse.json({ error: 'Se requieren permisos de administrador' }, { status: 403 })
+    }
+
+    const user: PermissionsUser = {
+      id: session.user.id,
+      email: session.user.email || null,
+      role: session.user.role || 'USER',
+      isAdmin: session.user.isAdmin || false,
+      isSuperAdmin: session.user.isSuperAdmin || false,
+      tenantId: session.user.tenantId || null,
+    }
+
+    const isSuperAdmin = await isSuperAdminUser(user)
+    const userTenantId = await getUserTenantIdSafe(user)
+    const { searchParams } = new URL(request.url)
+    const queryTenantId = searchParams.get('tenantId')?.trim() || null
+    const queryTenantSlug = searchParams.get('tenantSlug')?.trim() || null
+
+    let effectiveTenantId: string | null = null
+
+    if (isSuperAdmin) {
+      if (queryTenantId) {
+        effectiveTenantId = queryTenantId
+      } else if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        effectiveTenantId = tenant?.id ?? null
+      }
+      if (!effectiveTenantId) {
+        return NextResponse.json(
+          {
+            error:
+              'Como super administrador debés indicar tenantId o tenantSlug (por ejemplo en la URL del panel).',
+          },
+          { status: 400 }
+        )
+      }
+    } else {
+      effectiveTenantId = userTenantId
+      if (!effectiveTenantId) {
+        return NextResponse.json(
+          { error: 'Tu usuario no tiene un club (tenant) asignado.' },
+          { status: 403 }
+        )
+      }
+      if (queryTenantId && queryTenantId !== effectiveTenantId) {
+        return NextResponse.json({ error: 'No podés consultar otro club.' }, { status: 403 })
+      }
+      if (queryTenantSlug) {
+        const tenant = await getTenantFromSlug(queryTenantSlug)
+        if (!tenant || tenant.id !== effectiveTenantId) {
+          return NextResponse.json({ error: 'No podés consultar otro club.' }, { status: 403 })
+        }
+      }
+    }
+
+    const allowed = await canAccessTenant(user, effectiveTenantId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Sin acceso a este club.' }, { status: 403 })
+    }
+
+    const tenantExists = await prisma.tenant.findFirst({
+      where: { id: effectiveTenantId, isActive: true },
+      select: { id: true },
+    })
+    if (!tenantExists) {
+      return NextResponse.json({ error: 'Club no encontrado o inactivo.' }, { status: 404 })
+    }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
     const days: string[] = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(today)
       d.setDate(d.getDate() + i)
@@ -32,7 +115,11 @@ export async function GET() {
     })
 
     const activeCourts = await prisma.court.findMany({
-      where: { isActive: true, deletedAt: null },
+      where: {
+        tenantId: effectiveTenantId,
+        isActive: true,
+        deletedAt: null,
+      },
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     })
@@ -42,6 +129,7 @@ export async function GET() {
 
     const bookings = await prisma.booking.findMany({
       where: {
+        tenantId: effectiveTenantId,
         bookingDate: { gte: startDate, lte: endDate },
         status: { in: ['CONFIRMED', 'PENDING'] },
         deletedAt: null,
@@ -54,7 +142,7 @@ export async function GET() {
       const dateKey = formatDateYMD(new Date(b.bookingDate))
       byDateCourt[dateKey] ||= {}
       byDateCourt[dateKey][b.courtId] ||= []
-      byDateCourt[dateKey][b.courtId].push({ start: b.startTime, end: b.endTime, status: b.status as any })
+      byDateCourt[dateKey][b.courtId].push({ start: b.startTime, end: b.endTime, status: b.status as 'CONFIRMED' | 'PENDING' })
     }
 
     const timeSlots = ALL_TIME_SLOTS.map((label) => {

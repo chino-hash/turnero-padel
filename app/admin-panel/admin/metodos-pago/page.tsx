@@ -689,9 +689,9 @@ export default function MetodosPagoPage() {
                 </p>
                 {formData.mercadoPagoEnabled && formData.mercadoPagoEnvironment === 'production' ? (
                   <p className="text-amber-600 dark:text-amber-500">
-                    En producción, Mercado Pago exige access token y public key. Si borrás alguno de
-                    esos dos, el guardado puede fallar hasta que cargues credenciales válidas o
-                    cambies a sandbox.
+                    En producción, los cobros con Mercado Pago necesitan access token y public key.
+                    Podés borrar lo guardado para cargar claves nuevas; hasta que guardes de nuevo
+                    con credenciales válidas, los pagos con MP pueden fallar.
                   </p>
                 ) : null}
               </div>

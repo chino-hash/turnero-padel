@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
@@ -62,6 +62,38 @@ interface AdminTurnosProps {
   tenantSlug?: string | null
 }
 
+/** Snapshot para fetch de lista: detectar respuestas obsoletas si cambian filtro/tenant antes de que termine el request */
+type BookingsListSnap = {
+  limit: number
+  dateFilter: string
+  propTenantId: string | null
+  propTenantSlug: string | null
+}
+
+function buildBookingListSearchParams(snap: BookingsListSnap): URLSearchParams {
+  const params = new URLSearchParams()
+  params.set('page', '1')
+  params.set('limit', String(snap.limit))
+  params.set('sortBy', 'bookingDate')
+  params.set('sortOrder', 'desc')
+  if (snap.dateFilter === 'today') {
+    const d = new Date()
+    const today = d.toISOString().split('T')[0]
+    params.set('dateFrom', today)
+    params.set('dateTo', today)
+  } else if (snap.dateFilter.startsWith('plus')) {
+    const offset = Number(snap.dateFilter.replace('plus', '')) || 0
+    const d = new Date()
+    d.setDate(d.getDate() + offset)
+    const day = d.toISOString().split('T')[0]
+    params.set('dateFrom', day)
+    params.set('dateTo', day)
+  }
+  if (snap.propTenantId) params.set('tenantId', snap.propTenantId)
+  else if (snap.propTenantSlug) params.set('tenantSlug', snap.propTenantSlug)
+  return params
+}
+
 const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: propIsDarkMode, tenantId: propTenantId, tenantSlug: propTenantSlug }) => {
   const { isDarkMode: contextIsDarkMode, getPaymentStatusColor } = useAppState()
   const isDarkMode = propIsDarkMode !== undefined ? propIsDarkMode : contextIsDarkMode
@@ -77,6 +109,19 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
   const [dateFilter, setDateFilter] = useState('all')
   const [limit] = useState(500)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [listSilentRefreshing, setListSilentRefreshing] = useState(false)
+  const loadParamsRef = useRef<BookingsListSnap>({
+    limit: 500,
+    dateFilter: 'all',
+    propTenantId: null,
+    propTenantSlug: null,
+  })
+  loadParamsRef.current = {
+    limit,
+    dateFilter,
+    propTenantId: propTenantId ?? null,
+    propTenantSlug: propTenantSlug ?? null,
+  }
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null)
   const [extrasOpen, setExtrasOpen] = useState<Record<string, boolean>>({})
   const [showFiltersModal, setShowFiltersModal] = useState(false)
@@ -665,32 +710,28 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
     }
   }
 
-  // Cargar datos reales desde la API (una sola página con todos los turnos)
+  // Carga inicial y cuando cambian filtro / tenant: spinner de sección (no mezclar con polling)
   useEffect(() => {
-    const loadBookings = async () => {
+    let cancelled = false
+    const snap: BookingsListSnap = {
+      limit,
+      dateFilter,
+      propTenantId: propTenantId ?? null,
+      propTenantSlug: propTenantSlug ?? null,
+    }
+    const snapStale = () => {
+      const c = loadParamsRef.current
+      return (
+        c.limit !== snap.limit ||
+        c.dateFilter !== snap.dateFilter ||
+        c.propTenantId !== snap.propTenantId ||
+        c.propTenantSlug !== snap.propTenantSlug
+      )
+    }
+    const run = async () => {
       setLoading(true)
       try {
-        const params = new URLSearchParams()
-        params.set('page', '1')
-        params.set('limit', String(limit))
-        params.set('sortBy', 'bookingDate')
-        params.set('sortOrder', 'desc')
-        // No filtrar por status: traer todos para mostrar las cuatro secciones en una misma página
-        if (dateFilter === 'today') {
-          const d = new Date()
-          const today = d.toISOString().split('T')[0]
-          params.set('dateFrom', today)
-          params.set('dateTo', today)
-        } else if (dateFilter.startsWith('plus')) {
-          const offset = Number(dateFilter.replace('plus', '')) || 0
-          const d = new Date()
-          d.setDate(d.getDate() + offset)
-          const day = d.toISOString().split('T')[0]
-          params.set('dateFrom', day)
-          params.set('dateTo', day)
-        }
-        if (propTenantId) params.set('tenantId', propTenantId)
-        else if (propTenantSlug) params.set('tenantSlug', propTenantSlug)
+        const params = buildBookingListSearchParams(snap)
         const fetchWithRetry = async (retries: number, delayMs: number) => {
           try {
             const res = await timedFetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' }, 'GET /api/bookings (AdminTurnos)')
@@ -705,22 +746,91 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           }
         }
         const payload = await fetchWithRetry(2, 300)
+        if (cancelled || snapStale()) return
         const list = Array.isArray(payload?.data) ? payload.data : []
         const mapped: Booking[] = list.map(mapApiBookingToLocal)
         setBookings(mapped)
       } catch (error) {
-        fetch('/api/admin/test-event', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ type: 'bookings_fetch_error', message: 'Fallo obteniendo reservas' })
-        }).catch(() => {})
+        if (!cancelled && !snapStale()) {
+          fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ type: 'bookings_fetch_error', message: 'Fallo obteniendo reservas' })
+          }).catch(() => {})
+        }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    loadBookings()
-  }, [limit, dateFilter, refreshKey, propTenantId, propTenantSlug])
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [limit, dateFilter, propTenantId, propTenantSlug])
+
+  // Polling: mismo dataset sin ocultar la lista
+  useEffect(() => {
+    if (refreshKey === 0) return
+    let cancelled = false
+    const snap: BookingsListSnap = {
+      limit,
+      dateFilter,
+      propTenantId: propTenantId ?? null,
+      propTenantSlug: propTenantSlug ?? null,
+    }
+    const snapStale = () => {
+      const c = loadParamsRef.current
+      return (
+        c.limit !== snap.limit ||
+        c.dateFilter !== snap.dateFilter ||
+        c.propTenantId !== snap.propTenantId ||
+        c.propTenantSlug !== snap.propTenantSlug
+      )
+    }
+    const run = async () => {
+      setListSilentRefreshing(true)
+      try {
+        const params = buildBookingListSearchParams(snap)
+        const fetchWithRetry = async (retries: number, delayMs: number) => {
+          try {
+            const res = await timedFetch(`/api/bookings?${params.toString()}`, { credentials: 'same-origin' }, 'GET /api/bookings (AdminTurnos poll)')
+            if (!res.ok) throw new Error(String(res.status))
+            return await res.json()
+          } catch (err) {
+            if (retries > 0) {
+              await new Promise(r => setTimeout(r, delayMs))
+              return fetchWithRetry(retries - 1, delayMs * 2)
+            }
+            throw err
+          }
+        }
+        const payload = await fetchWithRetry(2, 300)
+        if (cancelled || snapStale()) return
+        const list = Array.isArray(payload?.data) ? payload.data : []
+        const mapped: Booking[] = list.map(mapApiBookingToLocal)
+        setBookings(mapped)
+      } catch {
+        if (!cancelled && !snapStale()) {
+          toast.error('No se pudo actualizar la lista de turnos')
+          fetch('/api/admin/test-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ type: 'bookings_fetch_error', message: 'Fallo obteniendo reservas (poll)' })
+          }).catch(() => {})
+        }
+      } finally {
+        if (!cancelled) setListSilentRefreshing(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+    // Solo el tick de polling (refreshKey); limit/dateFilter/tenant vienen del cierre de esta renderización.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- evitar silent fetch al cambiar filtro (eso lo cubre el efecto full)
+  }, [refreshKey])
 
   // Polling: refrescar lista cada 45s solo cuando la pestaña está visible
   useEffect(() => {
@@ -1364,8 +1474,8 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
         </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={() => openExtrasModal(booking.id)} className="text-blue-600 border-blue-600 hover:bg-blue-50" data-testid={`admin-add-extra-btn-${idx + 1}`}>
+        <div className="flex flex-wrap gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => openExtrasModal(booking.id)} className="min-h-11 w-full justify-center text-blue-600 border-blue-600 hover:bg-blue-50 sm:min-h-9 sm:w-auto" data-testid={`admin-add-extra-btn-${idx + 1}`}>
             <Plus className="w-4 h-4 mr-1" />
             Agregar Extra
           </Button>
@@ -1382,7 +1492,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     variant="outline"
                     size="sm"
                     onClick={() => updateBookingStatus(booking.id, 'completado')}
-                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    className="min-h-11 w-full justify-center text-blue-600 border-blue-600 hover:bg-blue-50 sm:min-h-9 sm:w-auto"
                     data-testid={`admin-terminar-turno-btn-${idx + 1}`}
                   >
                     <CheckCircle className="w-4 h-4 mr-1" />
@@ -1394,7 +1504,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                     variant="outline"
                     size="sm"
                     onClick={() => setConfirmBookingId(booking.id)}
-                    className="text-green-600 border-green-600 hover:bg-green-50"
+                    className="min-h-11 w-full justify-center text-green-600 border-green-600 hover:bg-green-50 sm:min-h-9 sm:w-auto"
                     data-testid={`admin-complete-btn-${idx + 1}`}
                   >
                     <CheckCircle className="w-4 h-4 mr-1" />
@@ -1402,7 +1512,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                   </Button>
                 )}
                 {isClosed && (
-                  <span className="px-2 py-1 rounded text-xs font-medium border border-gray-300 bg-gray-100 text-gray-600">
+                  <span className="inline-flex min-h-11 w-full items-center justify-center px-2 py-1 text-xs font-medium text-gray-600 border border-gray-300 rounded bg-gray-100 sm:min-h-0 sm:w-auto">
                     Cerrado
                   </span>
                 )}
@@ -1418,7 +1528,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 variant="outline"
                 size="sm"
                 onClick={() => setCancelBookingId(booking.id)}
-                className={`text-red-500 dark:text-red-300 border-border hover:bg-red-50 dark:hover:bg-red-900/15 dark:hover:text-red-300 focus-visible:ring-red-500/30 disabled:text-muted-foreground disabled:border-border disabled:opacity-70 ${disableCancel ? 'cursor-not-allowed' : ''}`}
+                className={`min-h-11 w-full justify-center text-red-500 dark:text-red-300 border-border hover:bg-red-50 dark:hover:bg-red-900/15 dark:hover:text-red-300 focus-visible:ring-red-500/30 disabled:text-muted-foreground disabled:border-border disabled:opacity-70 sm:min-h-9 sm:w-auto ${disableCancel ? 'cursor-not-allowed' : ''}`}
                 data-testid={`admin-cancel-btn-${idx + 1}`}
                 disabled={disableCancel}
                 aria-disabled={disableCancel}
@@ -1433,7 +1543,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               variant="outline"
               size="sm"
               onClick={() => openExceptionsModal(booking.id)}
-              className="text-purple-600 border-purple-600 hover:bg-purple-50"
+              className="min-h-11 w-full justify-center text-purple-600 border-purple-600 hover:bg-purple-50 sm:min-h-9 sm:w-auto"
               data-testid={`admin-exceptions-btn-${idx + 1}`}
             >
               <AlertCircle className="w-4 h-4 mr-1" />
@@ -1526,50 +1636,62 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           <p className="text-gray-600" id="turnos-description">Administra y supervisa todas las reservas</p>
         </div>
         
-        <nav className="flex gap-2" role="toolbar" aria-label="Opciones de vista y acciones" data-testid="turnos-toolbar">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-            aria-pressed={viewMode === 'list'}
-            aria-label="Vista de lista"
-            data-testid="view-list-button"
-          >
-            <List className="w-4 h-4 mr-2" aria-hidden="true" />
-            Lista
-          </Button>
-          <Button
-            variant={showCalendarModal ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setShowCalendarModal(true)}
-            aria-pressed={showCalendarModal}
-            aria-label="Abrir vista de calendario"
-            data-testid="view-calendar-button"
-          >
-            <Calendar className="w-4 h-4 mr-2" aria-hidden="true" />
-            Calendario
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFiltersModal(true)}
-            aria-label="Abrir filtros"
-            data-testid="filters-button"
-          >
-            <Filter className="w-4 h-4 mr-2" aria-hidden="true" />
-            Filtros
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportToCsv}
-            disabled={exportLoading}
-            aria-label="Exportar a CSV"
-            data-testid="export-csv-button"
-          >
-            {exportLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-            Exportar
-          </Button>
+        <nav className="flex w-full flex-col gap-2 sm:w-auto" role="toolbar" aria-label="Opciones de vista y acciones" data-testid="turnos-toolbar">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-wrap">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              className="min-h-11 justify-center sm:min-h-9"
+              onClick={() => setViewMode('list')}
+              aria-pressed={viewMode === 'list'}
+              aria-label="Vista de lista"
+              data-testid="view-list-button"
+            >
+              <List className="w-4 h-4 mr-2" aria-hidden="true" />
+              Lista
+            </Button>
+            <Button
+              variant={showCalendarModal ? 'default' : 'outline'}
+              size="sm"
+              className="min-h-11 justify-center sm:min-h-9"
+              onClick={() => setShowCalendarModal(true)}
+              aria-pressed={showCalendarModal}
+              aria-label="Abrir vista de calendario"
+              data-testid="view-calendar-button"
+            >
+              <Calendar className="w-4 h-4 mr-2" aria-hidden="true" />
+              Calendario
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 justify-center sm:min-h-9"
+              onClick={() => setShowFiltersModal(true)}
+              aria-label="Abrir filtros"
+              data-testid="filters-button"
+            >
+              <Filter className="w-4 h-4 mr-2" aria-hidden="true" />
+              Filtros
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 justify-center sm:min-h-9"
+              onClick={exportToCsv}
+              disabled={exportLoading}
+              aria-label="Exportar a CSV"
+              data-testid="export-csv-button"
+            >
+              {exportLoading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Exportar
+            </Button>
+          </div>
+          {listSilentRefreshing ? (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground sm:self-center" aria-live="polite">
+              <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" aria-hidden />
+              Actualizando lista…
+            </span>
+          ) : null}
         </nav>
       </header>
 
@@ -1739,10 +1861,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 {fixedDerived.slice(0, visibleFixed).map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
                       <CardHeader className="pb-2 pt-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                              <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
                                 const statusKey = toBookingStatus(d.booking.status)
@@ -1754,7 +1876,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               })()}
                               <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 text-purple-800 border-purple-200">Fijo</span>
                             </CardTitle>
-                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1769,7 +1891,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                             {(() => {
                               const chipValue = d.chipValue
                               return (
@@ -1781,6 +1903,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
                               onClick={() => toggleBookingExpansion(d.booking.id)}
                               aria-expanded={expandedBooking === d.booking.id}
                               data-testid={`expand-booking-${d.booking.id}`}
@@ -1842,10 +1965,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 {confirmedDerived.slice(0, visibleConfirmed).map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
                       <CardHeader className="pb-2 pt-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                              <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
                                 const statusKey = toBookingStatus(d.booking.status)
@@ -1856,7 +1979,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1871,7 +1994,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                             {(() => {
                               const chipValue = d.chipValue
                               return (
@@ -1883,6 +2006,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
                               onClick={() => toggleBookingExpansion(d.booking.id)}
                               aria-expanded={expandedBooking === d.booking.id}
                               data-testid={`expand-booking-${d.booking.id}`}
@@ -1931,10 +2055,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 {inProgressDerived.map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
                       <CardHeader className="pb-2 pt-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                              <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
                                 const statusKey = toBookingStatus(d.booking.status)
@@ -1945,7 +2069,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1960,7 +2084,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                             {(() => {
                               const remainingMs = d.remainingMs
                               const isOverdue = remainingMs < 0
@@ -1981,6 +2105,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
                               onClick={() => toggleBookingExpansion(d.booking.id)}
                               aria-expanded={expandedBooking === d.booking.id}
                               data-testid={`expand-booking-${d.booking.id}`}
@@ -2016,10 +2141,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                 {completedDerived.map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
                       <CardHeader className="pb-2 pt-0">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              <MapPin className="w-5 h-5 text-blue-600" />
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                              <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
                                 const statusKey = toBookingStatus(d.booking.status)
@@ -2030,7 +2155,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex items-center gap-4 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -2045,7 +2170,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                             {(() => {
                               const cat = d.category
                               if (cat === 'completed') {
@@ -2068,6 +2193,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                             <Button
                               variant="ghost"
                               size="sm"
+                              className="min-h-11 min-w-11 shrink-0 sm:min-h-9 sm:min-w-9"
                               onClick={() => toggleBookingExpansion(d.booking.id)}
                               aria-expanded={expandedBooking === d.booking.id}
                               data-testid={`expand-booking-${d.booking.id}`}

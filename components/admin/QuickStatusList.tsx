@@ -1,6 +1,10 @@
 'use client'
+import { useMemo } from 'react'
 import useSWR from 'swr'
+import { useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { cn } from '@/lib/utils'
+import { buildAdminAvailabilityFetchUrl } from '@/lib/utils/admin-availability-url'
 
 type CourtStatus = 'free' | 'booked' | 'pending'
 
@@ -21,7 +25,21 @@ const fetcher = async (url: string): Promise<IAvailabilityResponse> => {
 }
 
 export default function QuickStatusList() {
-  const { data, error, isLoading } = useSWR<IAvailabilityResponse>('/api/admin/availability', fetcher, {
+  const { data: session } = useSession()
+  const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
+  const searchParams = useSearchParams()
+  const tenantQueryKey = searchParams.toString()
+  const availabilityUrl = useMemo(
+    () =>
+      buildAdminAvailabilityFetchUrl({
+        tenantIdProp: null,
+        tenantSlugProp: null,
+        searchParams,
+        isSuperAdmin,
+      }),
+    [tenantQueryKey, isSuperAdmin]
+  )
+  const { data, error, isLoading } = useSWR<IAvailabilityResponse>(availabilityUrl, fetcher, {
     refreshInterval: 20000,
     revalidateOnFocus: true,
   })

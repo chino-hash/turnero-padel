@@ -43,6 +43,7 @@ export default function TurnosPage() {
   const isSuperAdmin = Boolean(session?.user?.isSuperAdmin)
   const tenantIdFromUrl = searchParams.get('tenantId')?.trim() || null
   const tenantSlugFromUrl = searchParams.get('tenantSlug')?.trim() || null
+  const didTenantRedirectRef = useRef(false)
 
   const { isAuthenticated, isAdmin, user, loading: authLoading } = useAuth()
   const { bookings, loading: bookingsLoading, checkAvailability, getAvailabilitySlots, createBooking } = useBookings({
@@ -66,15 +67,18 @@ export default function TurnosPage() {
     }
   }, [tenantIdFromUrl, tenantSlugFromUrl])
 
-  // Super admin sin tenant en URL: redirigir con el tenant guardado para ver solo ese tenant
+  // Super admin sin tenant en URL: redirigir una sola vez con el tenant guardado (evita dobles replace por re-ejecución del efecto)
   useEffect(() => {
     if (!isSuperAdmin || tenantIdFromUrl || tenantSlugFromUrl) return
+    if (didTenantRedirectRef.current) return
     const { tenantId, tenantSlug } = getAdminContextTenant()
     if (tenantId) {
+      didTenantRedirectRef.current = true
       router.replace(`${pathname}?tenantId=${encodeURIComponent(tenantId)}`)
       return
     }
     if (tenantSlug) {
+      didTenantRedirectRef.current = true
       router.replace(`${pathname}?tenantSlug=${encodeURIComponent(tenantSlug)}`)
     }
   }, [isSuperAdmin, tenantIdFromUrl, tenantSlugFromUrl, pathname, router])
@@ -584,7 +588,7 @@ export default function TurnosPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AdminAvailabilityGrid />
+          <AdminAvailabilityGrid tenantId={tenantIdFromUrl} tenantSlug={tenantSlugFromUrl} />
         </CardContent>
       </Card>
 
@@ -609,7 +613,7 @@ export default function TurnosPage() {
           if (open) { setSelectedUserId(null); setUserSearchQuery(''); setShowUserDropdown(false) }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6 gap-0">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
           <DialogHeader className="pb-4 flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Plus className="w-5 h-5" />

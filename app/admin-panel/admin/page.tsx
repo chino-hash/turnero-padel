@@ -325,70 +325,6 @@ export default function AdminDashboard() {
     }
   })
 
-  const mockBookings: Booking[] = [
-    {
-      id: '1',
-      courtName: 'Cancha 1',
-      date: '2024-01-20',
-      timeRange: '10:00 - 11:30',
-      userName: 'Juan Pérez',
-      userEmail: 'juan@email.com',
-      status: 'confirmado',
-      paymentStatus: 'parcial',
-      totalPrice: 8000,
-      createdAt: '2024-01-19T10:00:00Z',
-      players: {
-        player1: 'Juan Pérez',
-        player2: 'María García',
-        player3: 'Carlos López',
-        player4: 'Ana Martín'
-      },
-      individualPayments: {
-        player1: 'pagado',
-        player2: 'pagado',
-        player3: 'pendiente',
-        player4: 'pagado'
-      },
-      extras: [
-        {
-          id: 'extra1',
-          type: 'pelotas',
-          name: 'Pelotas Wilson',
-          cost: 1500,
-          assignedTo: 'all'
-        }
-      ]
-    },
-    {
-      id: '2',
-      courtName: 'Cancha 2',
-      date: '2024-01-20',
-      timeRange: '14:00 - 15:30',
-      userName: 'Laura Sánchez',
-      userEmail: 'laura@email.com',
-      status: 'completado',
-      paymentStatus: 'pagado',
-      totalPrice: 9000,
-      createdAt: '2024-01-19T14:00:00Z',
-      closedAt: '2024-01-20T16:00:00Z',
-      recurringId: null,
-      players: {
-        player1: 'Laura Sánchez',
-        player2: 'Pedro Ruiz',
-        player3: 'Sofia Torres',
-        player4: 'Miguel Herrera'
-      },
-      individualPayments: {
-        player1: 'pagado',
-        player2: 'pagado',
-        player3: 'pagado',
-        player4: 'pagado'
-      },
-      extras: []
-    }
-  ]
-
-
 
   // Funciones utilitarias
   const parseTimeRange = (timeRange: string) => {
@@ -699,8 +635,8 @@ export default function AdminDashboard() {
       setBookings(mapped as any)
       setFilteredBookings(mapped as any)
     } else {
-      setBookings(mockBookings)
-      setFilteredBookings(mockBookings)
+      setBookings([])
+      setFilteredBookings([])
     }
   }, [bookingsApi.bookings])
 
@@ -751,19 +687,6 @@ export default function AdminDashboard() {
 
     setFilteredBookings(filtered)
   }, [bookings, searchTerm, statusFilter, dateFilter])
-
-  const buildDemoBookingsForDay = (dateStr: string): Booking[] => {
-    const d = dateStr
-    return [
-      { id: 'd1', courtName: 'Cancha 1', date: d, timeRange: '08:00 - 09:30', userName: 'Demo 1', userEmail: '', status: 'confirmado', paymentStatus: 'parcial', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
-      { id: 'd2', courtName: 'Cancha 1', date: d, timeRange: '11:00 - 12:30', userName: 'Demo 2', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
-      { id: 'd3', courtName: 'Cancha 2', date: d, timeRange: '09:30 - 11:00', userName: 'Demo 3', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
-      { id: 'd4', courtName: 'Cancha 2', date: d, timeRange: '14:00 - 15:30', userName: 'Demo 4', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
-      { id: 'd5', courtName: 'Cancha 3', date: d, timeRange: '16:30 - 18:00', userName: 'Demo 5', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] },
-      { id: 'd6', courtName: 'Cancha 3', date: d, timeRange: '19:30 - 21:00', userName: 'Demo 6', userEmail: '', status: 'confirmado', paymentStatus: 'pendiente', totalPrice: 0, createdAt: d + 'T00:00:00Z', players: { player1: '', player2: '', player3: '', player4: '' }, individualPayments: { player1: 'pendiente', player2: 'pendiente', player3: 'pendiente', player4: 'pendiente' }, extras: [] }
-    ] as any
-  }
-
 
   const isToday = useMemo(() => {
     const t = new Date(); t.setHours(0,0,0,0)

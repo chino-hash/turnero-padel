@@ -9,7 +9,7 @@
 import React, { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
-import { ArrowLeft, BookOpen, Calendar, Clock, MapPin, Users, DollarSign, AlertCircle } from "lucide-react"
+import { ArrowLeft, BookOpen, Calendar, Clock, DollarSign, AlertCircle } from "lucide-react"
 import { BOOKING_STATUS_LABELS, type BookingStatus } from '../types/booking'
 import { formatPesosFromCents } from '@/lib/utils/currency'
 
@@ -120,48 +120,46 @@ const BookingCard = React.memo<{
   
   const { isActive, isUpcoming, remainingTime } = bookingData;
   
+  const actionBtnClass = 'min-h-11 w-full text-xs sm:min-h-9 sm:w-auto sm:min-w-0'
+
   return (
     <div className={getCardClasses(isDarkMode, isActive)} data-testid="booking-item">
-      <div className="flex justify-between items-start gap-4">
-        {/* Información principal - lado izquierdo */}
-        <div className="flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="flex-1 min-w-0">
           <h3 className={`font-semibold text-sm sm:text-base ${getTextClasses(isDarkMode, 'primary')}`}>{booking.courtName}</h3>
-          
-          {/* Estado de pago - debajo del nombre de la cancha. En historial (isPast), "Deposit Paid" se muestra como "Turno Completado" */}
+
           <span className={`inline-block px-2 py-1 rounded text-xs mb-2 ${getPaymentStatusColor(booking.paymentStatus, isDarkMode)}`}>
             {booking.paymentStatus === 'Paid' ? 'Pagado' :
              booking.paymentStatus === 'Deposit Paid' ? (isPast ? 'Turno Completado' : 'Seña Pagada') : 'Pendiente'}
           </span>
-          
+
           <p className={`text-xs sm:text-sm ${getTextClasses(isDarkMode, 'secondary')}`}>
             {formatDate(booking.date)} - {booking.timeRange}
           </p>
           <p className={`text-xs sm:text-sm ${getTextClasses(isDarkMode, 'secondary')}`}>{booking.location}</p>
-          
-          {/* Información en tiempo real para turno activo */}
+
           {isActive && (
             <div className="mt-2 p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
               <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-green-600 dark:text-green-400" />
+                <Clock className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
                 <span className="text-xs font-medium text-green-700 dark:text-green-300">
                   Tiempo restante: {remainingTime}
                 </span>
               </div>
             </div>
           )}
-          
-          {/* Detalles de pago para turnos futuros */}
+
           {isUpcoming && (
             <div className="mt-2 space-y-1">
               <div className="flex items-center gap-1">
-                <DollarSign className={`w-3 h-3 ${getTextClasses(isDarkMode, 'muted')}`} />
+                <DollarSign className={`w-3 h-3 shrink-0 ${getTextClasses(isDarkMode, 'muted')}`} />
                 <span className={`text-xs ${getTextClasses(isDarkMode, 'muted')}`}>
                   Pagado: ${formatPesosFromCents(booking.deposit ?? 0)}
                 </span>
               </div>
               {booking.paymentStatus !== 'Paid' && (
                 <div className="flex items-center gap-1">
-                  <AlertCircle className={`w-3 h-3 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}`} />
+                  <AlertCircle className={`w-3 h-3 shrink-0 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}`} />
                   <span className={`text-xs ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
                     Pendiente: ${formatPesosFromCents(booking.totalPrice - (booking.deposit ?? 0))}
                   </span>
@@ -170,54 +168,52 @@ const BookingCard = React.memo<{
             </div>
           )}
         </div>
-        
-        {/* Precio y acciones - lado derecho */}
-        <div className="flex flex-col items-end gap-2">
-          {/* Precio */}
-          <div className="text-right">
+
+        <div className="flex w-full flex-col gap-2 border-t border-gray-200 pt-3 dark:border-gray-600 sm:w-auto sm:shrink-0 sm:border-t-0 sm:pt-0 sm:items-end">
+          <div className="text-left sm:text-right">
             <p className={`text-base sm:text-lg font-bold ${getTextClasses(isDarkMode, 'primary')}`}>
               ${formatPesosFromCents(booking.totalPrice)}
             </p>
-            
-            {/* Estado de confirmación */}
             <p className={`text-xs ${getTextClasses(isDarkMode, 'muted')}`}>
               {BOOKING_STATUS_LABELS[toBookingStatus(booking.status)]}
             </p>
           </div>
-          
-          {/* Botón cancelar solo para turnos próximos */}
-          {!isPast && isUpcoming && onCancelBooking && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onCancelBooking(booking.id)}
-              className={`text-xs px-2 py-1 h-auto border ${isDarkMode ? 'border-red-600 text-red-400 hover:bg-red-900/20' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
-            >
-              Cancelar
-            </Button>
-          )}
-          {/* Botón Pagar seña: solo para Pendiente y no expirado */}
-          {!isPast && onPayDeposit && booking.paymentStatus === 'Pending' && (!booking.expiresAt || new Date(booking.expiresAt) > new Date()) && (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onPayDeposit(booking)}
-              className="text-xs px-2 py-1 h-auto ml-1"
-            >
-              Pagar seña
-            </Button>
-          )}
-          {/* Si ya pagaste pero sigue en Pendiente: sincronizar estado con Mercado Pago */}
-          {!isPast && booking.paymentStatus === 'Pending' && onSyncPayment && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onSyncPayment(booking.id)}
-              className="text-xs px-2 py-1 h-auto ml-1"
-            >
-              ¿Ya pagaste? Sincronizar
-            </Button>
-          )}
+
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            {!isPast && isUpcoming && onCancelBooking && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onCancelBooking(booking.id)}
+                className={`${actionBtnClass} border ${isDarkMode ? 'border-red-600 text-red-400 hover:bg-red-900/20' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
+              >
+                Cancelar
+              </Button>
+            )}
+            {!isPast && onPayDeposit && booking.paymentStatus === 'Pending' && (!booking.expiresAt || new Date(booking.expiresAt) > new Date()) && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => onPayDeposit(booking)}
+                className={actionBtnClass}
+              >
+                Pagar seña
+              </Button>
+            )}
+            {!isPast && booking.paymentStatus === 'Pending' && onSyncPayment && (
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                title="¿Ya pagaste? Sincronizar el estado con Mercado Pago"
+                onClick={() => onSyncPayment(booking.id)}
+                className={actionBtnClass}
+              >
+                <span className="sm:hidden">Sincronizar</span>
+                <span className="hidden sm:inline">¿Ya pagaste? Sincronizar</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -245,23 +241,22 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
       isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
     } ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-emerald-50"}`} data-testid="mis-turnos">
-      <div className="min-h-fit pb-2.5 px-4 pt-16 sm:pt-20">
-        {/* Header */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 relative z-20">
+      <div className="min-h-fit px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-16 sm:pt-20">
+        <div className="relative z-20 mb-4 min-h-[3rem] sm:mb-6 sm:min-h-0">
           <Button
             onClick={onBack}
             variant="outline"
             size="sm"
-            className={`transition-all duration-300 ${
+            className={`absolute left-0 top-0 z-10 min-h-11 transition-all duration-300 sm:min-h-9 ${
               isDarkMode
                 ? "bg-gray-800 border-gray-600 text-gray-200 hover:bg-gray-700"
                 : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
             }`}
           >
-            <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <ArrowLeft className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Volver</span>
           </Button>
-          <div className="text-center flex-1">
+          <div className="px-14 text-center sm:px-16">
             <h2 className={`text-xl sm:text-2xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               Mis Turnos
             </h2>
@@ -271,15 +266,14 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
           </div>
         </div>
 
-        {/* Current Bookings */}
         <Card className={`mb-1 mt-2.5 border-0 shadow-lg ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-              <BookOpen className="w-5 h-5 text-blue-600" />
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <CardTitle className={`flex items-center gap-2 text-base sm:text-lg ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+              <BookOpen className="h-5 w-5 shrink-0 text-blue-600" />
               Reservas Actuales
             </CardTitle>
           </CardHeader>
-          <CardContent className="py-3">
+          <CardContent className="px-4 py-3 sm:px-6">
             <div className="space-y-2">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
@@ -320,12 +314,13 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
                     </p>
                   </div>
                   {onStartBooking && (
-                    <button
+                    <Button
+                      type="button"
                       onClick={onStartBooking}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-md hover:shadow-lg"
+                      className="min-h-11 bg-blue-600 px-6 text-white shadow-md hover:bg-blue-700 hover:shadow-lg"
                     >
                       Reservar Turno
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -335,13 +330,13 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
 
         {/* Past Bookings */}
         <Card className={`mb-6 border-0 shadow-lg ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-              <Calendar className="w-5 h-5 text-gray-600" />
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <CardTitle className={`flex items-center gap-2 text-base sm:text-lg ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+              <Calendar className="h-5 w-5 shrink-0 text-gray-600" />
               Historial de Reservas
             </CardTitle>
           </CardHeader>
-          <CardContent className="py-3">
+          <CardContent className="px-4 py-3 sm:px-6">
             <div className="space-y-2">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">

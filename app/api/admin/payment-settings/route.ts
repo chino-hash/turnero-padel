@@ -272,8 +272,12 @@ export async function PUT(request: NextRequest) {
       clearFlag: clearPublicKey,
     })
 
+    // En producción exigimos token y public key, salvo que el hueco sea un borrado explícito
+    // (misma petición con clear*), para permitir rotar credenciales en dos pasos.
     if (nextEnabled && nextEnvironment === 'production') {
-      if (!hasAccessToken || !hasPublicKey) {
+      const missingAccessTokenWithoutClear = !hasAccessToken && !clearAccessToken
+      const missingPublicKeyWithoutClear = !hasPublicKey && !clearPublicKey
+      if (missingAccessTokenWithoutClear || missingPublicKeyWithoutClear) {
         return NextResponse.json(
           createErrorResponse(
             'Datos inválidos',
