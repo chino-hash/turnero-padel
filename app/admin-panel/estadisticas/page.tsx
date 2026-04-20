@@ -276,6 +276,37 @@ export default function EstadisticasPage() {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            Resumen financiero
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-4">
+            <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20 sm:p-4">
+              <p className="text-xs font-medium text-green-600 dark:text-green-300 sm:text-sm">Total recaudado</p>
+              <p className="text-lg font-bold text-green-700 dark:text-green-400 sm:text-xl">
+                ${estadisticas.financiero.totalRecaudado.toLocaleString('es-AR')}
+              </p>
+            </div>
+            <div className="rounded-lg bg-yellow-50 p-3 text-center dark:bg-yellow-900/20 sm:p-4">
+              <p className="text-xs font-medium text-yellow-600 dark:text-yellow-300 sm:text-sm">Saldo pendiente</p>
+              <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400 sm:text-xl">
+                ${estadisticas.financiero.saldoPendiente.toLocaleString('es-AR')}
+              </p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20 sm:p-4">
+              <p className="text-xs font-medium text-blue-600 dark:text-blue-300 sm:text-sm">Total reserva</p>
+              <p className="text-lg font-bold text-blue-700 dark:text-blue-400 sm:text-xl">
+                ${estadisticas.financiero.totalReservas.toLocaleString('es-AR')}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Evolución reservas e ingresos */}
       <Card>
         <CardHeader>
@@ -609,44 +640,6 @@ export default function EstadisticasPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <DollarSign className="w-5 h-5 mr-2" />
-            Resumen Financiero
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Total Recaudado
-              </span>
-              <span className="font-semibold text-foreground">
-                $
-                {estadisticas.financiero.totalRecaudado.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Saldo Pendiente
-              </span>
-              <span className="font-semibold text-foreground">
-                $
-                {estadisticas.financiero.saldoPendiente.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">
-                Total Reservas (cantidad)
-              </span>
-              <span className="font-semibold text-foreground">
-                {estadisticas.financiero.totalReservas}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog"
-import { Calendar, List, Clock, User, MapPin, DollarSign, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, TrendingUp, CheckCircle, AlertCircle, Users, XCircle, Download, Loader2 } from "lucide-react"
+import { Calendar, List, Clock, User, MapPin, Filter, Search, RefreshCw, ChevronDown, ChevronUp, Plus, X, CheckCircle, AlertCircle, Users, XCircle, Download, Loader2 } from "lucide-react"
 import { Input } from "./ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select"
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover"
@@ -1455,22 +1455,22 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-live="polite">
-          <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-            <p className={`text-sm font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total original</p>
-            <p className={`text-xl font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'}`}>${formatCurrency(centsToPesos(totalOriginal))}</p>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3 sm:gap-4" aria-live="polite">
+          <div className={`rounded-lg border p-2.5 text-center ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} sm:p-4`}>
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-600'} sm:text-sm`}>Total original</p>
+            <p className={`text-base font-bold ${isDarkMode ? 'text-blue-200' : 'text-blue-700'} sm:text-xl`}>${formatCurrency(centsToPesos(totalOriginal))}</p>
           </div>
-          <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
-            <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Pagado</p>
-            <p className={`text-xl font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'}`}>${formatCurrency(centsToPesos(amountPaid))}</p>
+          <div className={`rounded-lg border p-2.5 text-center ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} sm:p-4`}>
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'} sm:text-sm`}>Pagado</p>
+            <p className={`text-base font-bold ${isDarkMode ? 'text-green-200' : 'text-green-700'} sm:text-xl`}>${formatCurrency(centsToPesos(amountPaid))}</p>
           </div>
-        <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'}`}>
+        <div className={`rounded-lg border p-2.5 text-center ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} sm:p-4`}>
           {pendingBalance === 0 ? (
-            <p className={`text-sm font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-green-300' : 'text-green-600'} sm:text-sm`}><span className="inline-flex items-center gap-1"><CheckCircle className="w-4 h-4" /> Sin saldo</span></p>
           ) : (
-            <p className={`text-sm font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'}`}>Saldo pendiente</p>
+            <p className={`text-xs font-medium ${isDarkMode ? 'text-yellow-300' : 'text-yellow-600'} sm:text-sm`}>Saldo pendiente</p>
           )}
-          <p className={`text-xl font-bold ${pendingBalance === 0 ? (isDarkMode ? 'text-green-200' : 'text-green-700') : (isDarkMode ? 'text-yellow-200' : 'text-yellow-700')} animate-in fade-in`}>${formatCurrency(centsToPesos(pendingBalance))}</p>
+          <p className={`text-base font-bold ${pendingBalance === 0 ? (isDarkMode ? 'text-green-200' : 'text-green-700') : (isDarkMode ? 'text-yellow-200' : 'text-yellow-700')} animate-in fade-in sm:text-xl`}>${formatCurrency(centsToPesos(pendingBalance))}</p>
         </div>
         </div>
 
@@ -1696,75 +1696,36 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
       </header>
 
       {/* Estadísticas Rápidas - 3 columnas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-6">
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-600" />
+              <div className="rounded-lg bg-blue-100 p-1.5 sm:p-2">
+                <Calendar className="h-4 w-4 text-blue-600 sm:h-6 sm:w-6" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Turnos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalBookings}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium text-gray-600 sm:text-sm">Total de turnos</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{totalBookings}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
+        <Card className="gap-2.5 py-3 sm:gap-6 sm:py-6">
+          <CardContent className="p-2.5 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+              <div className="rounded-lg bg-green-100 p-1.5 sm:p-2">
+                <CheckCircle className="h-4 w-4 text-green-600 sm:h-6 sm:w-6" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Confirmados</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{confirmedBookings}</p>
+              <div className="ml-3 sm:ml-4">
+                <p className="text-xs font-medium text-gray-600 sm:text-sm">Confirmados</p>
+                <p className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">{confirmedBookings}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Ingresos</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">${formatPesosFromCents(totalRevenue)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
-
-      {/* Resumen Financiero */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            Resumen Financiero
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <p className="text-sm text-green-600 dark:text-green-300 font-medium">Total Recaudado</p>
-              <p className="text-xl font-bold text-green-700 dark:text-green-400">${formatPesosFromCents(totalCollected)}</p>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <p className="text-sm text-yellow-600 dark:text-yellow-300 font-medium">Saldo Pendiente</p>
-              <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">${formatPesosFromCents(pendingBalance)}</p>
-            </div>
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-sm text-blue-600 dark:text-blue-300 font-medium">Total Reserva</p>
-              <p className="text-xl font-bold text-blue-700 dark:text-blue-400">${formatPesosFromCents(reserveTotal)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filtros */}
       <div className="hidden">
@@ -1854,16 +1815,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-purple-300"></div>
-                <span className="text-xs font-bold tracking-widest text-purple-700 bg-purple-50 px-3 py-1 rounded">TURNOS FIJOS</span>
+                <span className="rounded bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-purple-700 sm:px-3 sm:py-1 sm:text-xs sm:tracking-widest">TURNOS FIJOS</span>
                 <div className="flex-1 border-t border-purple-300"></div>
               </div>
               <div className="mt-4 space-y-4">
                 {fixedDerived.slice(0, visibleFixed).map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
-                      <CardHeader className="pb-2 pt-0">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <CardHeader className="px-3 pb-1.5 pt-0 sm:px-6 sm:pb-2">
+                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base leading-tight sm:text-lg flex flex-wrap items-center gap-1.5 sm:gap-2">
                               <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
@@ -1876,7 +1837,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               })()}
                               <span className="px-2 py-1 rounded-full text-xs font-medium border bg-purple-100 text-purple-800 border-purple-200">Fijo</span>
                             </CardTitle>
-                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1891,7 +1852,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 border-t border-border/60 pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0">
                             {(() => {
                               const chipValue = d.chipValue
                               return (
@@ -1942,7 +1903,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-green-300"></div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold tracking-widest text-green-700 bg-green-50 px-3 py-1 rounded">TURNOS CONFIRMADOS</span>
+                  <span className="rounded bg-green-50 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-green-700 sm:px-3 sm:py-1 sm:text-xs sm:tracking-widest">TURNOS CONFIRMADOS</span>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1964,10 +1925,10 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <div className="mt-4 space-y-4">
                 {confirmedDerived.slice(0, visibleConfirmed).map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
-                      <CardHeader className="pb-2 pt-0">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <CardHeader className="px-3 pb-1.5 pt-0 sm:px-6 sm:pb-2">
+                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base leading-tight sm:text-lg flex flex-wrap items-center gap-1.5 sm:gap-2">
                               <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
@@ -1979,7 +1940,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -1994,7 +1955,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 border-t border-border/60 pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0">
                             {(() => {
                               const chipValue = d.chipValue
                               return (
@@ -2048,16 +2009,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-blue-300"></div>
-                <span className="text-xs font-bold tracking-widest text-blue-700 bg-blue-50 px-3 py-1 rounded">TURNOS EN CURSO</span>
+                <span className="rounded bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-blue-700 sm:px-3 sm:py-1 sm:text-xs sm:tracking-widest">TURNOS EN CURSO</span>
                 <div className="flex-1 border-t border-blue-300"></div>
               </div>
               <div className="mt-4 space-y-4">
                 {inProgressDerived.map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
-                      <CardHeader className="pb-2 pt-0">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <CardHeader className="px-3 pb-1.5 pt-0 sm:px-6 sm:pb-2">
+                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base leading-tight sm:text-lg flex flex-wrap items-center gap-1.5 sm:gap-2">
                               <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
@@ -2069,7 +2030,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -2084,7 +2045,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 border-t border-border/60 pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0">
                             {(() => {
                               const remainingMs = d.remainingMs
                               const isOverdue = remainingMs < 0
@@ -2134,16 +2095,16 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
             <div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-gray-300"></div>
-                <span className="text-xs font-bold tracking-widest text-gray-700 bg-gray-50 px-3 py-1 rounded">TURNOS COMPLETADOS</span>
+                <span className="rounded bg-gray-50 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-gray-700 sm:px-3 sm:py-1 sm:text-xs sm:tracking-widest">TURNOS COMPLETADOS</span>
                 <div className="flex-1 border-t border-gray-300"></div>
               </div>
               <div className="mt-4 space-y-4">
                 {completedDerived.map((d, idx) => (
                     <Card key={d.booking.id} className="overflow-hidden py-3 gap-0">
-                      <CardHeader className="pb-2 pt-0">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <CardHeader className="px-3 pb-1.5 pt-0 sm:px-6 sm:pb-2">
+                        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0 flex-1">
-                            <CardTitle className="text-lg flex flex-wrap items-center gap-2">
+                            <CardTitle className="text-base leading-tight sm:text-lg flex flex-wrap items-center gap-1.5 sm:gap-2">
                               <MapPin className="h-5 w-5 shrink-0 text-blue-600" />
                               {d.booking.courtName}
                               {(() => {
@@ -2155,7 +2116,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                                 )
                               })()}
                             </CardTitle>
-                            <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-sm mt-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <div className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-4 h-4" />
                                 {new Date(d.booking.date).toLocaleDateString('es-ES')}
@@ -2170,7 +2131,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
                               </span>
                             </div>
                           </div>
-                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                          <div className="flex w-full shrink-0 flex-wrap items-center gap-2 border-t border-border/60 pt-2 sm:w-auto sm:justify-end sm:border-t-0 sm:pt-0">
                             {(() => {
                               const cat = d.category
                               if (cat === 'completed') {
@@ -2223,7 +2184,7 @@ const AdminTurnos: React.FC<AdminTurnosProps> = ({ className = "", isDarkMode: p
               <div className="flex items-center gap-3">
                 <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold tracking-widest text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded">
+                  <span className="rounded bg-gray-50 px-2.5 py-0.5 text-[10px] font-bold tracking-[0.14em] text-gray-700 dark:bg-gray-800 dark:text-gray-300 sm:px-3 sm:py-1 sm:text-xs sm:tracking-widest">
                     TURNOS CERRADOS {closedVisibleDerived.length > 0 && `(${closedVisibleDerived.length})`}
                   </span>
                   <Button
