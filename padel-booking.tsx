@@ -153,6 +153,7 @@ function PadelBookingPage() {
 
   // Modal para confirmar salir del tenant hacia la landing
   const [showExitToLandingModal, setShowExitToLandingModal] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
 
   const hasPendingPayment = useMemo(() => {
     return currentBookings.some(
@@ -243,6 +244,15 @@ function PadelBookingPage() {
     }, 60000) // Update every minute
 
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY || 0)
+    }
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   // Calculate payment summaries
@@ -810,8 +820,38 @@ function PadelBookingPage() {
     )
   }
 
+  const clampedScroll = Math.min(scrollY, 700)
+  const scrollProgress = clampedScroll / 700
+  const backgroundBlur = Math.min(isDarkMode ? 7 : 5, 1 + clampedScroll * 0.012)
+  const backgroundOverlay = isDarkMode
+    ? 0.22 + scrollProgress * 0.56
+    : 0.08 + scrollProgress * 0.42
+  const topShade = isDarkMode
+    ? 0.28 + scrollProgress * 0.42
+    : 0.12 + scrollProgress * 0.3
+
   return (
-    <div className="dashboard-theme font-sans">
+    <div className="dashboard-theme font-sans min-h-screen relative overflow-x-hidden">
+      {/* Fondo sticky con zoom + blur progresivo al hacer scroll */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-300 will-change-transform"
+          style={{
+            backgroundImage: "url('/padel%20larga.jpeg')",
+            transform: 'scale(1)',
+          }}
+        />
+        <div
+          className="absolute inset-0 transition-all duration-300"
+          style={{
+            backgroundColor: `rgba(0, 0, 0, ${backgroundOverlay})`,
+            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,${topShade}), rgba(0,0,0,${backgroundOverlay}))`,
+            backdropFilter: `blur(${backgroundBlur}px)`,
+            WebkitBackdropFilter: `blur(${backgroundBlur}px)`,
+          }}
+        />
+      </div>
+      <div className="relative z-10">
       {/* Navbar con diseño de notch invertido */}
       <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
         {/* Contenedor principal con flexbox */}
@@ -1355,6 +1395,7 @@ function PadelBookingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
       </div>
     </div>
   )
