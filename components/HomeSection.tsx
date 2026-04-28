@@ -370,7 +370,7 @@ export default function HomeSection({
     <div
       id="courts-section"
       data-testid="home-section"
-      className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-zinc-100"
+      className={`h-full pb-16 sm:pb-20 transition-colors duration-300 overflow-x-hidden ${isDarkMode ? 'bg-transparent' : 'bg-gradient-to-br from-blue-50 to-zinc-100'
         }`}
     >
       <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 max-w-7xl">
@@ -389,7 +389,11 @@ export default function HomeSection({
 
         {/* Court Info Card */}
         <Card
-          className={`mb-6 rounded-2xl shadow-lg border border-border bg-card text-card-foreground transition-colors duration-300 backdrop-blur-sm`}
+          className={`mb-6 rounded-2xl shadow-lg border transition-colors duration-300 backdrop-blur-[22px] ${
+            isDarkMode
+              ? 'border-white/20 bg-black/40 text-white'
+              : 'border-white/60 bg-white/35 text-slate-900'
+          }`}
         >
           <CardContent className="p-6">
             {showHomeCardSkeleton ? (
@@ -571,15 +575,15 @@ export default function HomeSection({
                 data-testid="court-card"
                 className={`${COURT_CARD_LIST_CELL} relative rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 p-2.5 sm:p-3 lg:p-4 ${selectedCourt === court.id
                     ? isDarkMode
-                      ? 'bg-zinc-800 border-zinc-800 shadow-xl'
+                      ? 'bg-black/70 border-[#BEF264]/35 shadow-2xl backdrop-blur-[22px]'
                       : `border-border shadow-xl`
-                    : `${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'} shadow-md`
+                    : `${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'} shadow-md`
                   }`}
                 style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
                 {/* Availability Badge — compacto en móvil */}
                 <div
-                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
+                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-black/70' : 'bg-white/65'
                     }`}
                 >
                   {(() => {
@@ -664,12 +668,12 @@ export default function HomeSection({
                           setIsUnifiedView(false)
                         }}
                         data-testid="court-card"
-                        className={`${COURT_CARD_LIST_CELL} relative p-2.5 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'
+                        className={`${COURT_CARD_LIST_CELL} relative p-2.5 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
                           } shadow-md`}
                         style={!isDarkMode ? { backgroundColor: selectedBg } : undefined}
                       >
                         <div
-                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-zinc-900/90' : 'bg-white/90'
+                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-black/70' : 'bg-white/65'
                             }`}
                         >
                           <div
@@ -694,7 +698,7 @@ export default function HomeSection({
                     const num = getCourtNumber(court.name || '', court.id)
                     const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
                     return (
-                      <div key={court.id} className={`${COURT_CARD_LIST_CELL} relative p-4 rounded-2xl border ${isDarkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-border'} opacity-70`}>
+                      <div key={court.id} className={`${COURT_CARD_LIST_CELL} relative p-4 rounded-2xl border ${isDarkMode ? 'bg-black/35 border-white/15 backdrop-blur-[22px]' : 'bg-white/35 border-white/60 backdrop-blur-[22px]'} opacity-70`}>
                         <div className="text-xs">{court.name}</div>
                         <div className={"mx-auto mt-2 w-20 h-8 rounded-lg border relative"} style={{ backgroundColor: courtHex }}></div>
                       </div>
@@ -711,7 +715,7 @@ export default function HomeSection({
           {/* Mobile: Stacked Layout */}
           <div className="flex flex-col gap-3 md:hidden">
             {/* View Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -744,7 +748,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`}>
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -786,7 +790,7 @@ export default function HomeSection({
           {/* Desktop: Horizontal Layout */}
           <div className="hidden md:flex flex-col sm:flex-row justify-center items-center gap-8">
             {/* View Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`} data-testid="view-toggle">
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="view-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -823,7 +827,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 ${isDarkMode ? 'bg-zinc-900' : 'bg-gray-100'}`} data-testid="filter-toggle">
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="filter-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -901,7 +905,7 @@ export default function HomeSection({
                         className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center snap-center ${isSelected
                             ? "text-white shadow-lg"
                             : isDarkMode
-                              ? "bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-800"
+                              ? "bg-black/40 text-white hover:bg-black/50 border border-white/15 backdrop-blur-[22px]"
                               : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                           } ${index === 0 ? 'ml-4' : ''}`}
                         style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -953,7 +957,7 @@ export default function HomeSection({
                       className={`w-full p-4 rounded-lg transition-all duration-200 text-left ${isSelected
                           ? "text-white shadow-lg"
                           : isDarkMode
-                            ? "bg-zinc-900 text-white hover:bg-zinc-800 border border-zinc-800"
+                            ? "bg-black/40 text-white hover:bg-black/50 border border-white/15 backdrop-blur-[22px]"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                         }`}
                       style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -988,7 +992,7 @@ export default function HomeSection({
                   variant="outline"
                   size="sm"
                   disabled={isRefreshing}
-                  className={`flex items-center gap-2 ${isDarkMode ? 'border-zinc-800 text-gray-300 hover:bg-zinc-800' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                  className={`flex items-center gap-2 ${isDarkMode ? 'border-white/15 bg-black/40 text-gray-200 hover:bg-black/50 backdrop-blur-[22px]' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
                   data-testid="refresh-slots-btn"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -1010,6 +1014,15 @@ export default function HomeSection({
                     }).length} disponibles
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Badge Demo Section */}
+            <div className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-300'}`}>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm ${isDarkMode ? "text-white" : "text-gray-600"}`}>Estados:</span>
+                <span className="badge-disponible">Disponible</span>
+                <span className="badge-reservado">No disponible</span>
               </div>
             </div>
 
@@ -1048,7 +1061,7 @@ export default function HomeSection({
 
             {/* Slots Grid - 5 Columns Layout */}
             {!loading && !error && (
-              <div className={`grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4 p-4 border rounded-lg bg-card border-border`}>
+              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 p-4 rounded-lg ${isDarkMode ? 'bg-transparent' : 'border bg-card border-border'}`}>
                 {!hasAvailableSlots ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div
@@ -1091,11 +1104,17 @@ export default function HomeSection({
                         disabled={!isClickable}
                         aria-disabled={!isClickable}
                         data-testid="time-slot"
-                        className={`rounded-lg border-[1.5px] transition-all duration-200 text-center flex flex-col items-center justify-start gap-0.5 disabled:opacity-60 disabled:grayscale ${!isClickable
-                            ? "px-1 py-1 min-h-0 text-sm bg-card border-border/80 border-[2px] cursor-not-allowed"
+                        className={`rounded-lg border-[1.5px] transition-all duration-200 text-center flex flex-col items-center justify-center gap-0.5 disabled:opacity-60 disabled:grayscale ${!isClickable
+                            ? isDarkMode
+                              ? "p-1 md:p-1 min-h-[64px] md:min-h-[68px] text-sm bg-black/40 border-white/15 border-[2px] backdrop-blur-[22px] cursor-not-allowed"
+                              : "p-1 md:p-1 min-h-[64px] md:min-h-[68px] text-sm bg-card border-border/80 border-[2px] cursor-not-allowed"
                             : isSelected
-                              ? "px-1.5 py-1.5 sm:p-2 min-h-0 sm:min-h-[4.75rem] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
-                              : "px-1.5 py-1.5 sm:p-2 min-h-0 sm:min-h-[4.75rem] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
+                              ? isDarkMode
+                                ? "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-black/55 border-[color:var(--electric-teal)] border-[2px] shadow-md backdrop-blur-[22px]"
+                                : "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
+                              : isDarkMode
+                                ? "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-black/45 border-white/15 border-[2px] transform hover:scale-105 hover:shadow-sm backdrop-blur-[22px]"
+                                : "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
                           }`}
                       >
                         {/* Court Name - Top with specific color */}

@@ -64,9 +64,8 @@ export default function Navbar({ scrollY, session, tenantSlug, tenantName }: Nav
               alt="Logo de PadelBook"
               className="w-7 h-7 lg:w-8 lg:h-8 object-contain"
             />
-            <span className="text-xl lg:text-2xl font-bold">
-              <span className="text-white">Padel</span><span className="text-[#BEF264]">Book</span>
-            </span>
+            <span className="text-xl lg:text-2xl font-bold text-white">Padel</span>
+            <span className="-ml-1 text-xl lg:text-2xl font-bold text-[#BEF264]">Book</span>
           </Link>
 
           {/* Desktop Navigation */}

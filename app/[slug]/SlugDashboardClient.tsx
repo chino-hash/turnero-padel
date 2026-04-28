@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 function TenantDashboardShellSkeleton() {
   return (
-    <div className="dashboard-theme font-sans min-h-screen bg-background">
+    <div className="dashboard-theme font-sans min-h-screen bg-black">
       <div className="fixed top-0 left-0 right-0 z-[80] bg-transparent px-1 sm:px-2 pt-0">
         <div className="flex items-start justify-between max-w-7xl mx-auto gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-b-2xl border border-border shadow-lg flex-1 max-w-[200px] sm:max-w-xs">
