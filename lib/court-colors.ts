@@ -22,7 +22,7 @@ export type CourtColorFeatures = {
 export const COURT_COLOR_HEX = [
   '#8b5cf6', // purple
   '#ef4444', // red
-  '#22c55e', // green
+  '#008000', // verde bosque (cancha 3)
   '#f97316', // orange
   '#ec4899', // pink
   '#06b6d4', // cyan

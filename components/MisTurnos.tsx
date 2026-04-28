@@ -59,7 +59,7 @@ interface MisTurnosProps {
 const getCardClasses = (isDarkMode: boolean, isActive: boolean) => {
   const baseClasses = 'p-3 sm:p-4 border rounded-lg transition-all duration-200'
   const themeClasses = isDarkMode ? 'border-gray-600 bg-gray-800/50' : 'border-gray-200 bg-white'
-  const activeClasses = isActive ? 'ring-2 ring-green-500 ring-opacity-50 shadow-lg' : 'hover:shadow-md'
+  const activeClasses = isActive ? 'ring-2 ring-[rgba(190,242,100,0.45)] shadow-lg' : 'hover:shadow-md'
   return `${baseClasses} ${themeClasses} ${activeClasses}`
 }
 
@@ -139,10 +139,12 @@ const BookingCard = React.memo<{
           <p className={`text-xs sm:text-sm ${getTextClasses(isDarkMode, 'secondary')}`}>{booking.location}</p>
 
           {isActive && (
-            <div className="mt-2 p-2 bg-green-100 dark:bg-green-900/30 rounded-md">
+            <div className="mt-2 p-2 rounded-md border border-[color:var(--dashboard-lime-border)] bg-[var(--dashboard-lime-surface)]">
               <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
-                <span className="text-xs font-medium text-green-700 dark:text-green-300">
+                <Clock className="w-3 h-3 shrink-0 text-[color:var(--color-neon-lime)]" />
+                <span
+                  className={`text-xs font-medium ${isDarkMode ? "text-[color:var(--color-neon-lime)]" : "text-[var(--dashboard-lime-text-strong)]"}`}
+                >
                   Tiempo restante: {remainingTime}
                 </span>
               </div>
@@ -240,7 +242,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({
   return (
     <div className={`absolute inset-0 transition-all duration-500 ease-in-out mis-turnos user-bookings overflow-y-auto ${
       isVisible ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-    } ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-emerald-50"}`} data-testid="mis-turnos">
+    } ${isDarkMode ? "bg-[#0a0a0a]" : "bg-gradient-to-br from-blue-50 to-zinc-100"}`} data-testid="mis-turnos">
       <div className="min-h-fit px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] pt-16 sm:pt-20">
         <div className="relative z-20 mb-4 min-h-[3rem] sm:mb-6 sm:min-h-0">
           <Button

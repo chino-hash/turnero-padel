@@ -247,7 +247,7 @@ const getPaymentStatusColor = (paymentStatus: string, isDarkMode: boolean = fals
     switch (paymentStatus) {
       case "Fully Paid":
       case "Paid":
-        return "text-green-300 bg-green-900/30 border border-green-700/50"
+        return "text-[#d9f99d] bg-[rgba(190,242,100,0.12)] border border-[rgba(190,242,100,0.35)]"
       case "Deposit Paid":
         return "text-yellow-300 bg-yellow-900/30 border border-yellow-700/50"
       case "Pending":
@@ -259,7 +259,7 @@ const getPaymentStatusColor = (paymentStatus: string, isDarkMode: boolean = fals
     switch (paymentStatus) {
       case "Fully Paid":
       case "Paid":
-        return "text-green-700 bg-green-100 border border-green-200"
+        return "text-[#3d4f14] bg-[rgba(190,242,100,0.2)] border border-[rgba(190,242,100,0.45)]"
       case "Deposit Paid":
         return "text-yellow-700 bg-yellow-100 border border-yellow-200"
       case "Pending":
@@ -279,7 +279,7 @@ const getStatusColor = (status: string, type: string, isDarkMode: boolean = fals
     switch (status) {
       case "Confirmed":
       case "Active":
-        return "text-green-300 bg-green-900/30 border border-green-700/50"
+        return "text-[#d9f99d] bg-[rgba(190,242,100,0.12)] border border-[rgba(190,242,100,0.35)]"
       case "Pending":
       case "Upcoming":
         return "text-yellow-300 bg-yellow-900/30 border border-yellow-700/50"
@@ -296,7 +296,7 @@ const getStatusColor = (status: string, type: string, isDarkMode: boolean = fals
     switch (status) {
       case "Confirmed":
       case "Active":
-        return "text-green-700 bg-green-100 border border-green-200"
+        return "text-[#3d4f14] bg-[rgba(190,242,100,0.2)] border border-[rgba(190,242,100,0.45)]"
       case "Pending":
       case "Upcoming":
         return "text-yellow-700 bg-yellow-100 border border-yellow-200"
@@ -893,7 +893,7 @@ const formatShortDate = (date: Date) => {
 const getAdminStatusColor = (status: string) => {
   switch (status) {
     case "Active":
-      return "text-green-600 bg-green-100"
+      return "text-[#3d4f14] bg-[rgba(190,242,100,0.22)]"
     case "Upcoming":
       return "text-blue-600 bg-blue-100"
     case "Completed":
