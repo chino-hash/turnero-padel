@@ -120,6 +120,8 @@
 }
 
 .dashboard-theme {
+  /* Tema club: lima de marca (no heredar #065f46 del :root en modo claro) */
+  --color-neon-lime: #bef264;
   --radius: 1rem;
   --font-sans: var(--font-inter);
   --background: oklch(0.98 0.02 264.665);
@@ -155,7 +157,12 @@
   --sidebar-border: oklch(0 0 0 / 0.08);
   --sidebar-ring: oklch(0.43 0.042 272);
   --electric-teal: #0EA5E9;
-  --accent-green-dark: #008000;
+  /* Acentos “verde” unificados en familia lima (misma base que --color-neon-lime) */
+  --dashboard-lime-surface: color-mix(in oklab, var(--color-neon-lime) 16%, var(--card));
+  --dashboard-lime-surface-strong: color-mix(in oklab, var(--color-neon-lime) 24%, var(--card));
+  --dashboard-lime-border: color-mix(in oklab, var(--color-neon-lime) 42%, var(--border));
+  --dashboard-lime-text-strong: color-mix(in oklab, var(--color-neon-lime) 58%, #14200a);
+  --accent-green-dark: color-mix(in oklab, var(--color-neon-lime) 50%, #d4d4d8);
 }
 
 .dark .dashboard-theme {
@@ -195,7 +202,11 @@
   --sidebar-ring: oklch(0.43 0.042 272);
   --navbar-bg: rgb(10 10 10 / 70%);
   --electric-teal: #0EA5E9;
-  --accent-green-dark: #008000;
+  --dashboard-lime-surface: color-mix(in oklab, var(--color-neon-lime) 12%, var(--card));
+  --dashboard-lime-surface-strong: color-mix(in oklab, var(--color-neon-lime) 18%, var(--card));
+  --dashboard-lime-border: color-mix(in oklab, var(--color-neon-lime) 38%, var(--border));
+  --dashboard-lime-text-strong: color-mix(in oklab, var(--color-neon-lime) 82%, #fafafa);
+  --accent-green-dark: color-mix(in oklab, var(--color-neon-lime) 42%, #0a0a0a);
 }
 
 @layer base {
@@ -235,15 +246,15 @@
 }
 
 .badge-disponible {
-  background-color: var(--electric-teal);
-  color: #ffffff;
+  background-color: transparent;
+  color: var(--color-neon-lime, #bef264);
   border-radius: 9999px;
   padding: 6px 14px;
   font-weight: 600;
   font-size: 0.8rem;
   display: inline-block;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
 }
 
 /* Dark mode badge variants */
@@ -254,9 +265,9 @@
 }
 
 .dark .badge-disponible {
-  background-color: var(--electric-teal);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: transparent;
+  color: var(--color-neon-lime, #bef264);
+  border: none;
 }
 
 /* Modal Styles - backdrop blur para diferenciar el modal del fondo */
@@ -966,9 +977,9 @@
 }
 
 .badge-disponible {
-  background-color: #d1fae5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background-color: transparent;
+  color: var(--color-neon-lime, #bef264);
+  border: none;
 }
 
 .badge-reservado {
@@ -979,9 +990,9 @@
 
 /* Dark mode variants for badges */
 .dark .badge-disponible {
-  background-color: #064e3b !important;
-  color: #a7f3d0 !important;
-  border: 1px solid #065f46 !important;
+  background-color: transparent;
+  color: var(--color-neon-lime, #bef264);
+  border: none;
 }
 
 .dark .badge-reservado {

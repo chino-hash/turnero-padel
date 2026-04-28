@@ -642,10 +642,18 @@ function PadelBookingPage() {
                     <p className={`text-sm font-medium ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
                       Ingresos Totales
                     </p>
-                    <p className="text-2xl font-bold text-green-600">${formatPesosFromCents(paymentSummary.totalRevenue)}</p>
+                    <p
+                      className={`text-2xl font-bold ${isDarkMode ? "text-[color:var(--color-neon-lime)]" : "text-[var(--dashboard-lime-text-strong)]"}`}
+                    >
+                      ${formatPesosFromCents(paymentSummary.totalRevenue)}
+                    </p>
                   </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-green-600" />
+                  <div
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${isDarkMode ? "bg-[var(--dashboard-lime-surface-strong)]" : "bg-[var(--dashboard-lime-surface)]"}`}
+                  >
+                    <DollarSign
+                      className={`w-6 h-6 ${isDarkMode ? "text-[color:var(--color-neon-lime)]" : "text-[var(--dashboard-lime-text-strong)]"}`}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -756,7 +764,7 @@ function PadelBookingPage() {
                             key={booking.id}
                             className={`p-3 rounded-lg border-2 transition-all duration-200 ${
                               booking.status === "Active"
-                                ? "border-green-200 bg-green-50"
+                                ? "border-[color:var(--dashboard-lime-border)] bg-[var(--dashboard-lime-surface)]"
                                 : booking.status === "Upcoming"
                                   ? "border-blue-200 bg-blue-50"
                                   : "border-gray-200 bg-gray-50"
@@ -769,7 +777,7 @@ function PadelBookingPage() {
                                   <div
                                     className={`w-3 h-3 rounded-full ${
                                       booking.status === "Active"
-                                        ? "bg-green-500 animate-pulse"
+                                        ? "bg-[color:var(--color-neon-lime)] animate-pulse"
                                         : booking.status === "Upcoming"
                                           ? "bg-blue-500"
                                           : "bg-gray-400"
@@ -869,7 +877,7 @@ function PadelBookingPage() {
                 {profile?.full_name || user?.email}
               </div>
               {isAdmin && (
-                <div className="text-xs font-semibold mt-0.5 px-1 sm:px-2 py-0.5 rounded-full inline-block text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-900/20 dark:opacity-80">
+                <div className="text-xs font-semibold mt-0.5 px-1 sm:px-2 py-0.5 rounded-full inline-block border border-[color:var(--dashboard-lime-border)] text-[color:var(--color-neon-lime)] bg-[var(--dashboard-lime-surface)]">
                   ADMIN
                 </div>
               )}
@@ -934,8 +942,8 @@ function PadelBookingPage() {
               <div className="w-10 h-6 sm:w-12 sm:h-7 overflow-hidden flex items-center justify-center">
                 <img src="/logo/padel1.svg" alt="padelbook logo" className="w-full h-full object-contain" />
               </div>
-              <span className="ml-1 sm:ml-2 text-xs sm:text-sm font-bold tracking-tight text-[color:var(--color-neon-lime)]">
-                padelbook
+              <span className="ml-1 sm:ml-2 text-xs sm:text-sm font-bold tracking-tight">
+                <span className={isDarkMode ? "text-white" : "text-gray-900"}>Padel</span><span className="text-[color:var(--color-neon-lime)]">Book</span>
               </span>
             </div>
             {/* Div modo oscuro con dimensiones exactas del botón */}
@@ -1247,7 +1255,7 @@ function PadelBookingPage() {
               </AlertDialogAction>
             ) : paymentProcessing ? (
               <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[color:var(--color-neon-lime)]"></div>
                 <span>Procesando...</span>
               </div>
             ) : (
@@ -1332,15 +1340,19 @@ function PadelBookingPage() {
                 <div
                   className={`flex items-start gap-3 rounded-xl p-3 ${
                     canRefund
-                      ? "bg-emerald-500/10 ring-1 ring-emerald-400/30"
+                      ? "bg-[var(--dashboard-lime-surface-strong)] ring-1 ring-[rgba(190,242,100,0.32)]"
                       : isDarkMode
                         ? "bg-slate-800/60"
                         : "bg-slate-100"
                   }`}
                 >
-                  <CheckCircle className="mt-1 h-6 w-6 text-emerald-400" />
+                  <CheckCircle className="mt-1 h-6 w-6 text-[color:var(--color-neon-lime)]" />
                   <div>
-                    <p className={`text-xl font-semibold ${isDarkMode ? "text-emerald-300" : "text-emerald-700"}`}>Reembolso disponible</p>
+                    <p
+                      className={`text-xl font-semibold ${isDarkMode ? "text-[color:var(--color-neon-lime)]" : "text-[var(--dashboard-lime-text-strong)]"}`}
+                    >
+                      Reembolso disponible
+                    </p>
                     <p className={isDarkMode ? "text-slate-300" : "text-slate-600"}>
                       Cancelando con +2h de anticipación
                     </p>
