@@ -1,32 +1,20 @@
 {
-  "timestamp": "2026-04-28T22:25:04.122Z",
-  "totalRuntime": 7621,
+  "timestamp": "2026-04-29T02:13:07.326Z",
+  "totalRuntime": 5486,
   "slowestTests": [
     {
       "file": "\\__tests__\\lib\\services\\courts.test.ts",
-      "runtime": 4067,
+      "runtime": 5486,
       "numTests": 16,
-      "avgTimePerTest": 254.1875
-    },
-    {
-      "file": "\\__tests__\\app\\api\\courts\\route.test.ts",
-      "runtime": 3554,
-      "numTests": 11,
-      "avgTimePerTest": 323.09090909090907
+      "avgTimePerTest": 342.875
     }
   ],
   "allTests": [
     {
       "file": "\\__tests__\\lib\\services\\courts.test.ts",
-      "runtime": 4067,
+      "runtime": 5486,
       "numTests": 16,
-      "avgTimePerTest": 254.1875
-    },
-    {
-      "file": "\\__tests__\\app\\api\\courts\\route.test.ts",
-      "runtime": 3554,
-      "numTests": 11,
-      "avgTimePerTest": 323.09090909090907
+      "avgTimePerTest": 342.875
     }
   ]
 }

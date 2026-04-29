@@ -31,18 +31,27 @@ export const COURT_COLOR_HEX = [
   '#6b7280', // gray
 ] as const
 
+/**
+ * Opción A (docs/design/canchas-colores-marca-interior-exterior.md):
+ * interior = violeta alineado al dashboard; exterior = cielo (distinto del teal de UI #0EA5E9).
+ */
+export const COURT_TYPE_GRADIENT_HEX: Record<CourtType, { from: string; to: string }> = {
+  INDOOR: { from: '#6d5ebd', to: '#7c6fd4' },
+  OUTDOOR: { from: '#38bdf8', to: '#5ab3e8' },
+}
+
 export const COURT_TYPE_COLORS: Record<CourtType, CourtColorFeatures & { hex: string }> = {
   OUTDOOR: {
-    color: 'from-green-400 to-green-600',
-    bgColor: 'bg-green-100',
-    textColor: 'text-green-700',
-    hex: '#16a34a',
+    color: 'from-sky-400 to-sky-500',
+    bgColor: 'bg-sky-100',
+    textColor: 'text-sky-700',
+    hex: '#38bdf8',
   },
   INDOOR: {
-    color: 'from-blue-400 to-blue-600',
-    bgColor: 'bg-blue-100',
-    textColor: 'text-blue-700',
-    hex: '#2563eb',
+    color: 'from-violet-500 to-violet-600',
+    bgColor: 'bg-violet-100',
+    textColor: 'text-violet-700',
+    hex: '#6d5ebd',
   },
 }
 
@@ -74,10 +83,17 @@ export function getCourtFeaturesByIndex(courtNumber: number): CourtColorFeatures
 
 /**
  * Devuelve el color hex para mostrar el nombre de la cancha (slots, dashboard).
- * Usa el número de cancha extraído del nombre (ej. "Cancha 4" → 4) para mantener
- * la misma paleta que la sección de canchas.
+ * Si se pasa `courtType`, usa la paleta semántica interior/exterior (opción A).
+ * Si no, fallback por índice numérico del nombre (legado).
  */
-export function getCourtHexForDisplay(courtId: string, courtName: string): string {
+export function getCourtHexForDisplay(
+  courtId: string,
+  courtName: string,
+  courtType?: string | null
+): string {
+  if (courtType !== undefined && courtType !== null && courtType !== '') {
+    return getCourtHexByType(courtType)
+  }
   const name = (courtName || '').toLowerCase().trim()
   const m = name.match(/cancha\s*(\d+)/i)
   let n = m ? Number(m[1]) : 0

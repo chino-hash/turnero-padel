@@ -1,81 +1,20 @@
 [
   {
-    "file": "\\__tests__\\app\\api\\courts\\route.test.ts",
-    "failures": [
-      {
-        "title": "should return all courts successfully",
-        "fullName": "/api/courts GET /api/courts should return all courts successfully",
-        "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: called with 0 arguments\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:87:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 13
-      },
-      {
-        "title": "should return empty array when no courts exist",
-        "fullName": "/api/courts GET /api/courts should return empty array when no courts exist",
-        "failureMessages": [
-          "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 200\nReceived: 500\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:99:31)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 3
-      },
-      {
-        "title": "should return 401 when not authenticated",
-        "fullName": "/api/courts GET /api/courts should return 401 when not authenticated",
-        "failureMessages": [
-          "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: 401\nReceived: 500\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:109:31)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 1
-      },
-      {
-        "title": "should handle service errors",
-        "fullName": "/api/courts GET /api/courts should handle service errors",
-        "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error en GET /api/courts:\", [Error: Database connection failed]\nReceived: \"Error en GET /api/courts:\", [TypeError: Cannot read properties of undefined (reading 'url')]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:122:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 2
-      },
-      {
-        "title": "should create court successfully with admin session",
-        "fullName": "/api/courts POST /api/courts should create court successfully with admin session",
-        "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: {\"basePrice\": 1200, \"description\": \"Cancha de prueba\", \"features\": [\"techada\", \"iluminada\"], \"name\": \"Nueva Cancha\", \"priceMultiplier\": 1.5}\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:166:31)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 6
-      },
-      {
-        "title": "should handle service errors",
-        "fullName": "/api/courts POST /api/courts should handle service errors",
-        "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error en POST /api/courts:\", [Error: Database connection failed]\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:232:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 1
-      },
-      {
-        "title": "should handle service errors during creation",
-        "fullName": "/api/courts POST /api/courts should handle service errors during creation",
-        "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error en POST /api/courts:\", [Error: Database constraint violation]\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\app\\api\\courts\\route.test.ts:254:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
-        ],
-        "duration": 1
-      }
-    ]
-  },
-  {
     "file": "\\__tests__\\lib\\services\\courts.test.ts",
     "failures": [
       {
         "title": "should return all active courts",
         "fullName": "Courts Service getCourts should return all active courts",
         "failureMessages": [
-          "Error: Error al obtener las canchas\n    at getCourts (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:132:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:64:22)"
+          "Error: Error al obtener las canchas\n    at getCourts (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:132:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:63:22)"
         ],
-        "duration": 5
+        "duration": 2
       },
       {
         "title": "should return empty array when no courts exist",
         "fullName": "Courts Service getCourts should return empty array when no courts exist",
         "failureMessages": [
-          "Error: Error al obtener las canchas\n    at getCourts (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:132:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:76:22)"
+          "Error: Error al obtener las canchas\n    at getCourts (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:132:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:75:22)"
         ],
         "duration": 0
       },
@@ -83,15 +22,15 @@
         "title": "should throw error when database fails",
         "fullName": "Courts Service getCourts should throw error when database fails",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error obteniendo canchas:\", [Error: Database connection failed]\nReceived: \"Error obteniendo canchas:\", [TypeError: courts is not iterable]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:86:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error obteniendo canchas:\", [Error: Database connection failed]\nReceived: \"Error obteniendo canchas:\", [TypeError: courts is not iterable]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:85:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
-        "duration": 4
+        "duration": 3
       },
       {
         "title": "should return court when found",
         "fullName": "Courts Service getCourtById should return court when found",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: {\"where\": {\"id\": \"court-123\"}}\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:96:43)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: {\"where\": {\"id\": \"court-123\"}}\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:95:43)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
         "duration": 1
       },
@@ -99,15 +38,15 @@
         "title": "should throw error when database fails",
         "fullName": "Courts Service getCourtById should throw error when database fails",
         "failureMessages": [
-          "Error: expect(received).rejects.toThrow()\n\nReceived promise resolved instead of rejected\nResolved to value: null\n    at expect (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\expect\\build\\index.js:2116:15)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:114:13)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+          "Error: expect(received).rejects.toThrow()\n\nReceived promise resolved instead of rejected\nResolved to value: null\n    at expect (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\expect\\build\\index.js:2116:15)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:113:13)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:343:7)"
         ],
-        "duration": 1
+        "duration": 0
       },
       {
         "title": "should create court successfully",
         "fullName": "Courts Service createCourt should create court successfully",
         "failureMessages": [
-          "Error: Error al crear la cancha\n    at createCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:248:11)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:137:39)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+          "Error: Error al crear la cancha\n    at createCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:248:11)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:138:39)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:343:7)"
         ],
         "duration": 1
       },
@@ -115,15 +54,15 @@
         "title": "should create court with minimal data",
         "fullName": "Courts Service createCourt should create court with minimal data",
         "failureMessages": [
-          "Error: Error al crear la cancha\n    at createCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:248:11)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:160:39)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+          "Error: Error al crear la cancha\n    at createCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:248:11)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:162:39)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:343:7)"
         ],
-        "duration": 0
+        "duration": 1
       },
       {
         "title": "should throw error when creation fails",
         "fullName": "Courts Service createCourt should throw error when creation fails",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error creando cancha:\", [Error: Unique constraint violation]\nReceived: \"Error creando cancha:\", [Error: tenantId es requerido para crear una cancha]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:184:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error creando cancha:\", [Error: Unique constraint violation]\nReceived: \"Error creando cancha:\", [TypeError: Cannot read properties of undefined (reading 'findUnique')]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:186:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
         "duration": 1
       },
@@ -131,7 +70,7 @@
         "title": "should update court successfully",
         "fullName": "Courts Service updateCourt should update court successfully",
         "failureMessages": [
-          "Error: Error al actualizar la cancha\n    at updateCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:276:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:199:22)"
+          "Error: Error al actualizar la cancha\n    at updateCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:306:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:201:22)"
         ],
         "duration": 1
       },
@@ -139,23 +78,23 @@
         "title": "should throw error when update fails",
         "fullName": "Courts Service updateCourt should throw error when update fails",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error actualizando cancha:\", [Error: Court not found]\nReceived: \"Error actualizando cancha:\", [TypeError: Cannot read properties of undefined (reading 'courtType')]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:213:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\n- Expected\n+ Received\n\n- \"Error actualizando cancha:\",\n+ \"Error actualizando cancha (debug):\",\n- [Error: Court not found]\n+ Object {\n+   \"id\": \"court-123\",\n+   \"input\": Object {\n+     \"basePrice\": 1200,\n+     \"isActive\": false,\n+     \"name\": \"Cancha Actualizada\",\n+   },\n+   \"message\": \"Cannot read properties of undefined (reading 'courtType')\",\n+   \"prismaCode\": null,\n+   \"prismaMeta\": null,\n+   \"stack\": \"TypeError: Cannot read properties of undefined (reading 'courtType')\n+     at transformCourtData (C:\\\\Users\\\\Chinoo\\\\Documents\\\\augment-projects\\\\turnero de padel\\\\lib\\\\services\\\\courts.ts:36:46)\n+     at updateCourt (C:\\\\Users\\\\Chinoo\\\\Documents\\\\augment-projects\\\\turnero de padel\\\\lib\\\\services\\\\courts.ts:295:12)\n+     at processTicksAndRejections (node:internal/process/task_queues:105:5)\n+     at Object.<anonymous> (C:\\\\Users\\\\Chinoo\\\\Documents\\\\augment-projects\\\\turnero de padel\\\\__tests__\\\\lib\\\\services\\\\courts.test.ts:214:7)\",\n+ },\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:215:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
-        "duration": 1
+        "duration": 4
       },
       {
         "title": "should deactivate court successfully",
         "fullName": "Courts Service deactivateCourt should deactivate court successfully",
         "failureMessages": [
-          "Error: Error al desactivar la cancha\n    at deactivateCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:290:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:222:22)"
+          "Error: Error al desactivar la cancha\n    at deactivateCourt (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\lib\\services\\courts.ts:320:11)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:224:22)"
         ],
-        "duration": 1
+        "duration": 0
       },
       {
         "title": "should throw error when deactivation fails",
         "fullName": "Courts Service deactivateCourt should throw error when deactivation fails",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error desactivando cancha:\", [Error: Court not found]\nReceived: \"Error desactivando cancha:\", [TypeError: Cannot read properties of undefined (reading 'courtType')]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:236:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: \"Error desactivando cancha:\", [Error: Court not found]\nReceived: \"Error desactivando cancha:\", [TypeError: Cannot read properties of undefined (reading 'courtType')]\n\nNumber of calls: 1\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:238:29)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
         "duration": 1
       },
@@ -163,15 +102,15 @@
         "title": "should return true when court is available",
         "fullName": "Courts Service checkCourtAvailability should return true when court is available",
         "failureMessages": [
-          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: {\"where\": {\"OR\": [{\"AND\": [{\"startTime\": {\"lte\": \"10:00\"}}, {\"endTime\": {\"gt\": \"10:00\"}}]}, {\"AND\": [{\"startTime\": {\"lt\": \"11:30\"}}, {\"endTime\": {\"gte\": \"11:30\"}}]}, {\"AND\": [{\"startTime\": {\"gte\": \"10:00\"}}, {\"endTime\": {\"lte\": \"11:30\"}}]}], \"bookingDate\": 2024-06-15T00:00:00.000Z, \"courtId\": \"court-123\", \"status\": {\"not\": \"CANCELLED\"}}}\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:251:44)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)\n\nExpected: {\"where\": {\"OR\": [{\"AND\": [{\"startTime\": {\"lte\": \"10:00\"}}, {\"endTime\": {\"gt\": \"10:00\"}}]}, {\"AND\": [{\"startTime\": {\"lt\": \"11:30\"}}, {\"endTime\": {\"gte\": \"11:30\"}}]}, {\"AND\": [{\"startTime\": {\"gte\": \"10:00\"}}, {\"endTime\": {\"lte\": \"11:30\"}}]}], \"bookingDate\": 2024-06-15T00:00:00.000Z, \"courtId\": \"court-123\", \"status\": {\"not\": \"CANCELLED\"}}}\n\nNumber of calls: 0\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:253:44)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
-        "duration": 2
+        "duration": 1
       },
       {
         "title": "should return false when court has conflicting bookings",
         "fullName": "Courts Service checkCourtAvailability should return false when court has conflicting bookings",
         "failureMessages": [
-          "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: false\nReceived: true\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:292:22)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
+          "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: false\nReceived: true\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:294:22)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)"
         ],
         "duration": 1
       },
@@ -179,7 +118,7 @@
         "title": "should throw error when database fails",
         "fullName": "Courts Service checkCourtAvailability should throw error when database fails",
         "failureMessages": [
-          "Error: expect(received).rejects.toThrow()\n\nReceived promise resolved instead of rejected\nResolved to value: true\n    at expect (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\expect\\build\\index.js:2116:15)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:299:13)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:343:7)\n    at Object.worker (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\testWorker.js:497:12)"
+          "Error: expect(received).rejects.toThrow()\n\nReceived promise resolved instead of rejected\nResolved to value: true\n    at expect (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\expect\\build\\index.js:2116:15)\n    at Object.<anonymous> (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\__tests__\\lib\\services\\courts.test.ts:301:13)\n    at Promise.finally.completed (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1559:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1499:10)\n    at _callCircusTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1009:40)\n    at processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at _runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:949:3)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:839:13)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at _runTestsForDescribeBlock (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:829:11)\n    at run (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:757:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1920:21)\n    at jestAdapter (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-circus\\build\\runner.js:101:19)\n    at runTestInternal (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:275:16)\n    at runTest (C:\\Users\\Chinoo\\Documents\\augment-projects\\turnero de padel\\node_modules\\jest-runner\\build\\index.js:343:7)"
         ],
         "duration": 1
       }

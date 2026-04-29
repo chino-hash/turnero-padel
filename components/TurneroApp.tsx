@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { COURT_TYPE_GRADIENT_HEX, normalizeCourtType } from '../lib/court-colors'
 import { useAuth } from '../hooks/useAuth'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Button } from './ui/button'
@@ -105,19 +106,24 @@ export default function TurneroApp() {
                         } catch {}
                         const isIndoor =
                           court.courtType === 'INDOOR' ||
-                          features.some((f: string) => /indoor|covered|climate/i.test(f))
+                          features.some((f: string) =>
+                            /indoor|covered|climate|techada|cubierta/i.test(f)
+                          )
                         const basePrice = court.basePrice ?? court.base_price ?? 0
                         const price = Math.round(basePrice / 4)
                         return (
                           <div key={court.id} className="rounded-xl border p-4 flex flex-col gap-2 bg-white">
-                            <span className="text-[11px] text-gray-600">{isIndoor ? 'Indoor' : ''}</span>
-                            {/* Mini padel court 2:1 */}
+                            <span className="text-[11px] text-gray-600">{isIndoor ? 'Interior' : 'Exterior'}</span>
+                            {/* Mini padel court 2:1 — gradientes opción A (violeta / cielo) */}
                             <div className="relative w-full rounded-md overflow-hidden border" style={{ aspectRatio: '2 / 1' }}>
                               {(() => {
-                                // Usar paleta por nombre si existe en el nombre
-                                const palette = isIndoor
-                                  ? { from: '#2563eb', to: '#60a5fa' }
-                                  : { from: '#16a34a', to: '#4ade80' }
+                                const courtTypeKey =
+                                  court.courtType != null && String(court.courtType).trim() !== ''
+                                    ? normalizeCourtType(court.courtType)
+                                    : isIndoor
+                                      ? 'INDOOR'
+                                      : 'OUTDOOR'
+                                const palette = COURT_TYPE_GRADIENT_HEX[courtTypeKey]
                                 const background = `linear-gradient(135deg, ${palette.from}, ${palette.to}),
                                   repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 6px),
                                   repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 8px)`

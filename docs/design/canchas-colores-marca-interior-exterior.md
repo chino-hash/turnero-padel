@@ -15,13 +15,15 @@ Unificar criterios sobre **qué colores usa la aplicación** frente a **qué col
 
 Definición principal en `app/globals.css`:
 
-| Rol | Token / variable | Valor típico | Uso en UI |
-|-----|------------------|--------------|-----------|
-| Acento marca lima | `--color-neon-lime` | `#BEF264` (tema club / oscuro); en `:root` claro puede aparecer también verde oscuro para algunos contrastos | Badges “Disponible”, marca “Book”, botón “Ir al próximo disponible”, gradientes landing |
-| Acento interacción / precio | `--electric-teal` | `#0EA5E9` | Selección de slots, bordes activos, total en modal, toggles |
-| Tema club | `.dashboard-theme` | Fondos y cards con **matiz violeta suave** (~277 en OKLCH); `--primary` alineado a esa familia | Dashboard tenant (`SlugDashboardClient`) |
-| Neutros | `--background`, `--foreground`, `--card`, `--muted`, etc. | OKLCH / zinc | Base shadcn + overrides dashboard |
-| Derivados lima | `--dashboard-lime-surface`, `--dashboard-lime-border`, … | `color-mix` con `--card` / `--border` | Superficies y bordes del dashboard |
+
+| Rol                         | Token / variable                                          | Valor típico                                                                                                 | Uso en UI                                                                               |
+| --------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Acento marca lima           | `--color-neon-lime`                                       | `#BEF264` (tema club / oscuro); en `:root` claro puede aparecer también verde oscuro para algunos contrastos | Badges “Disponible”, marca “Book”, botón “Ir al próximo disponible”, gradientes landing |
+| Acento interacción / precio | `--electric-teal`                                         | `#0EA5E9`                                                                                                    | Selección de slots, bordes activos, total en modal, toggles                             |
+| Tema club                   | `.dashboard-theme`                                        | Fondos y cards con **matiz violeta suave** (~277 en OKLCH); `--primary` alineado a esa familia               | Dashboard tenant (`SlugDashboardClient`)                                                |
+| Neutros                     | `--background`, `--foreground`, `--card`, `--muted`, etc. | OKLCH / zinc                                                                                                 | Base shadcn + overrides dashboard                                                       |
+| Derivados lima              | `--dashboard-lime-surface`, `--dashboard-lime-border`, …  | `color-mix` con `--card` / `--border`                                                                        | Superficies y bordes del dashboard                                                      |
+
 
 La **landing** y el **hero** enfatizan negro + lima; el manual histórico de marca en `docs/analisis/identidad-marca-fase-1-y-2.md` describe otra paleta (azul `#0D5BFF`, etc.): conviene tratarla como **referencia de posicionamiento**, no como duplicado exacto del CSS actual (véase también `docs/analisis/estado-identidad-marca-implementado-vs-faltante.md`).
 
@@ -32,26 +34,28 @@ La **landing** y el **hero** enfatizan negro + lima; el manual histórico de mar
 ### 3.1 Fuente de verdad técnica
 
 - Archivo: `lib/court-colors.ts`
-- **`COURT_COLOR_PALETTE`**: gradientes Tailwind por índice (morado, rojo, verde bosque, naranja, rosa, cian, gris).
-- **`COURT_COLOR_HEX`**: hex alineados para texto inline (slots, dashboard).
-- **`COURT_TYPE_COLORS`**: colores por tipo (`OUTDOOR` verde, `INDOOR` azul) usados en runtime.
-- **`getCourtFeaturesByType(type)` / `getCourtHexByType(type)`**: helpers de color por clasificación.
-- **`getCourtFeaturesByIndex(n)`**: asignación por **número de cancha** `(n - 1) % paleta.length`.
-- **`getCourtHexForDisplay(courtId, courtName)`**: mismo criterio por número extraído del nombre.
+- `**COURT_COLOR_PALETTE`**: gradientes Tailwind por índice (morado, rojo, verde bosque, naranja, rosa, cian, gris).
+- `**COURT_COLOR_HEX**`: hex alineados para texto inline (solo fallback por número de cancha si no hay tipo).
+- `**COURT_TYPE_COLORS**` / `**COURT_TYPE_GRADIENT_HEX**`: **opción A** — `INDOOR` violeta (`#6d5ebd`, Tailwind `violet-*`), `OUTDOOR` cielo (`#38bdf8`, `sky-*`), distinto del teal de UI.
+- `**getCourtFeaturesByType(type)` / `getCourtHexByType(type)**`: helpers de color por clasificación `CourtType`.
+- `**getCourtFeaturesByIndex(n)**`: asignación por **número de cancha** `(n - 1) % paleta.length`.
+- `**getCourtHexForDisplay(courtId, courtName, courtType?)**`: si viene `courtType`, usa opción A; si no, fallback por índice (`COURT_COLOR_HEX`).
 
 ### 3.2 Dónde impacta
 
 - Bootstrap / creación de tenant: `getCourtFeaturesByIndex` en `lib/services/tenants/bootstrap.ts`, `app/api/tenants/route.ts`.
 - Servicio: `lib/services/courts.ts` — si `Court.features` en BD **no** es un JSON con `color`, `bgColor`, `textColor`, se recalculan colores con la paleta por índice.
-- UI: `components/HomeSection.tsx` (nombre de cancha en slots con `getCourtHexForDisplay`; tarjetas usan `court.color` / features).
+- UI: `components/HomeSection.tsx` (`getCourtHexByType`); admin canchas badges violeta/cielo; `TurneroApp` mini cancha con `COURT_TYPE_GRADIENT_HEX`.
 
 ### 3.3 Documentación que ya hablaba de esto
 
-| Documento | Qué dice sobre colores de canchas |
-|-----------|-----------------------------------|
-| [feature-dashboard-ui-booking-pr5-2026-04.md](../actualizaciones/feature-dashboard-ui-booking-pr5-2026-04.md) | PR #5: alineación con marca lima; en **Canchas** explícitamente: *tercer color de paleta fijo a verde bosque `#008000`* en `lib/court-colors.ts` para consistencia con visualización por número. Lista cambios en Home y tokens CSS. |
-| [identidad-marca-fase-1-y-2.md](../analisis/identidad-marca-fase-1-y-2.md) | **Sistema de color** de marca (primario azul, acentos cyan/violeta, estados). No describe la paleta por cancha; sirve de contraste con lo implementado en app. |
-| [database-diagram.md](../architecture/database-diagram.md) | Ejemplo de `Court.features` como JSON de **amenities** (`lighting`, `roof`, `parking`, …). **No coincide** con el uso actual en servicios, donde `features` suele almacenar **colores UI** o mezclas históricas. Tratar el diagrama como **orientativo** hasta que modelo y código unifiquen un solo esquema. |
+
+| Documento                                                                                                     | Qué dice sobre colores de canchas                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [feature-dashboard-ui-booking-pr5-2026-04.md](../actualizaciones/feature-dashboard-ui-booking-pr5-2026-04.md) | PR #5: alineación con marca lima; en **Canchas** explícitamente: *tercer color de paleta fijo a verde bosque `#008000`* en `lib/court-colors.ts` para consistencia con visualización por número. Lista cambios en Home y tokens CSS.                                                                          |
+| [identidad-marca-fase-1-y-2.md](../analisis/identidad-marca-fase-1-y-2.md)                                    | **Sistema de color** de marca (primario azul, acentos cyan/violeta, estados). No describe la paleta por cancha; sirve de contraste con lo implementado en app.                                                                                                                                                |
+| [database-diagram.md](../architecture/database-diagram.md)                                                    | Ejemplo de `Court.features` como JSON de **amenities** (`lighting`, `roof`, `parking`, …). **No coincide** con el uso actual en servicios, donde `features` suele almacenar **colores UI** o mezclas históricas. Tratar el diagrama como **orientativo** hasta que modelo y código unifiquen un solo esquema. |
+
 
 Otros documentos ([admin-canchas-documentacion.md](../admin/admin-canchas-documentacion.md), [courts.md](../apis/courts.md)) apenas mencionan `features` o colores visuales.
 
@@ -70,10 +74,12 @@ Otros documentos ([admin-canchas-documentacion.md](../admin/admin-canchas-docume
 
 ### Opción A — Alineada al tema dashboard (recomendada)
 
-| Tipo | Rol visual | Hex sugerido (texto / icono) | Notas |
-|------|------------|------------------------------|--------|
-| **Interior / techada** | Familia del primary violeta del club | `#6d5ebd` – `#7c6fd4` | Refuerza el matiz ~277 de `.dashboard-theme` |
-| **Exterior / aire libre** | Cielo, sin usar el teal de UI | `#38bdf8` – `#5ab3e8` | Cercano al frío del sistema pero **distinto** de `#0EA5E9` |
+
+| Tipo                      | Rol visual                           | Hex sugerido (texto / icono) | Notas                                                      |
+| ------------------------- | ------------------------------------ | ---------------------------- | ---------------------------------------------------------- |
+| **Interior / techada**    | Familia del primary violeta del club | `#6d5ebd` – `#7c6fd4`        | Refuerza el matiz ~277 de `.dashboard-theme`               |
+| **Exterior / aire libre** | Cielo, sin usar el teal de UI        | `#38bdf8` – `#5ab3e8`        | Cercano al frío del sistema pero **distinto** de `#0EA5E9` |
+
 
 Fondos: preferir `color-mix` con `--card` al 12–18 % en lugar de bloques enteros saturados.
 
@@ -119,7 +125,11 @@ Hoy `Court.features` en TypeScript (`types/types.ts`) modela sobre todo **estilo
 
 ## 8. Changelog del documento
 
-| Fecha | Cambio |
-|-------|--------|
-| 2026-04-28 | Creación: radiografía de marca, revisión de docs existentes, propuestas interior/exterior y criterios de reserva de acentos. |
+
+| Fecha      | Cambio                                                                                                                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-04-28 | Creación: radiografía de marca, revisión de docs existentes, propuestas interior/exterior y criterios de reserva de acentos.                                                                                                                     |
 | 2026-04-28 | Actualización de estado: implementación end-to-end validada; bugfix en `PUT /api/courts` para edición de tipo y mejora de diagnóstico de errores. Ver detalle en `docs/actualizaciones/canchas-court-type-exterior-interior-fix-put-2026-04.md`. |
+| 2026-04-28 | **Opción A aplicada en código**: `COURT_TYPE_COLORS` violeta/sky, `COURT_TYPE_GRADIENT_HEX`, badges admin, mini cancha en `TurneroApp`. |
+
+

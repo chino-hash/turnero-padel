@@ -560,8 +560,13 @@ export default function HomeSection({
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
-                  setSelectedCourt(court.id)
-                  setIsUnifiedView(false)
+                  if (selectedCourt === court.id) {
+                    setSelectedCourt('')
+                    setIsUnifiedView(true)
+                  } else {
+                    setSelectedCourt(court.id)
+                    setIsUnifiedView(false)
+                  }
                 }}
                 data-testid="court-card"
                 className={`${COURT_CARD_LIST_CELL} relative rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 p-2 sm:p-2.5 lg:p-3 ${selectedCourt === court.id
@@ -643,8 +648,13 @@ export default function HomeSection({
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          setSelectedCourt(court.id)
-                          setIsUnifiedView(false)
+                          if (selectedCourt === court.id) {
+                            setSelectedCourt('')
+                            setIsUnifiedView(true)
+                          } else {
+                            setSelectedCourt(court.id)
+                            setIsUnifiedView(false)
+                          }
                         }}
                         data-testid="court-card"
                         className={`${COURT_CARD_LIST_CELL} relative p-2 sm:p-2.5 lg:p-3 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
@@ -765,10 +775,10 @@ export default function HomeSection({
 
           </div>
 
-          {/* Desktop: Horizontal Layout */}
-          <div className="hidden md:flex flex-col sm:flex-row justify-center items-center gap-8">
+          {/* Desktop: mismo tratamiento visual que móvil (texto activo, sin pastilla rellena distinta entre toggles) */}
+          <div className="hidden md:flex w-full flex-col sm:flex-row justify-center items-stretch gap-4 sm:gap-8">
             {/* View Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="view-toggle">
+            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="view-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -776,11 +786,10 @@ export default function HomeSection({
                   e.stopPropagation()
                   setIsUnifiedView(false)
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${!isUnifiedView
-                    ? 'text-white shadow-md'
+                className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${!isUnifiedView
+                    ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-[rgba(190,242,100,0.28)]`}
-                style={!isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
                 data-testid="toggle-view-by-court"
               >
                 Por cancha
@@ -793,11 +802,10 @@ export default function HomeSection({
                   setIsUnifiedView(true)
                   setSelectedCourt('')
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
-                    ? 'text-white shadow-md'
+                className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isUnifiedView
+                    ? 'text-[color:var(--color-neon-lime)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-[rgba(190,242,100,0.28)]`}
-                style={isUnifiedView ? { backgroundColor: 'var(--accent-green-dark)' } : undefined}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
                 data-testid="toggle-view-unified"
               >
                 Vista unificada
@@ -805,7 +813,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Desktop */}
-            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="filter-toggle">
+            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="filter-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -813,11 +821,10 @@ export default function HomeSection({
                   e.stopPropagation()
                   setShowOnlyOpen(false)
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${!showOnlyOpen
-                    ? 'text-white shadow-md'
+                className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${!showOnlyOpen
+                    ? 'text-[color:var(--electric-teal)] font-bold'
                     : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'} hover:ring-1 hover:ring-[rgba(190,242,100,0.28)]`}
-                style={!showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
+                  } ${isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white'}`}
                 data-testid="toggle-filter-all"
                 aria-pressed={!showOnlyOpen}
               >
@@ -833,13 +840,12 @@ export default function HomeSection({
                 disabled={!hasAvailableSlots}
                 aria-disabled={!hasAvailableSlots}
                 aria-pressed={showOnlyOpen}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${!hasAvailableSlots
+                className={`flex-1 px-4 py-3 rounded-md text-sm font-medium transition-all duration-200 ${!hasAvailableSlots
                     ? 'text-gray-400 line-through cursor-not-allowed'
                     : showOnlyOpen
-                      ? 'text-white shadow-md'
+                      ? 'text-[color:var(--electric-teal)] font-bold'
                       : isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white')} hover:ring-1 hover:ring-[rgba(190,242,100,0.28)]`}
-                style={showOnlyOpen ? { backgroundColor: 'var(--electric-teal)' } : undefined}
+                  } ${!hasAvailableSlots ? '' : (isDarkMode ? 'hover:bg-zinc-800' : 'hover:bg-white')}`}
                 data-testid="toggle-filter-open"
               >
                 Solo disponibles
