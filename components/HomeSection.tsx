@@ -33,9 +33,9 @@ const DEFAULT_HOME_CARD_COPY = {
   iconImage: '',
 }
 
-/** Listado de canchas: siempre 2 columnas (misma `gap` que el contenedor: gap-2 → 0.5rem, sm:gap-3 → 0.75rem). Tarjetas más anchas = horarios y texto más legibles. */
+/** Listado de canchas: mantiene 2 columnas en móvil y escala en desktop (3/4/5) conservando centrado con flex-wrap + justify-center. */
 const COURT_CARD_LIST_CELL =
-  'w-[calc((100%-0.5rem)/2)] sm:w-[calc((100%-0.75rem)/2)] shrink-0 min-w-0'
+  'w-[calc((100%-0.5rem)/2)] sm:w-[calc((100%-0.75rem)/2)] md:w-[calc((100%-1.5rem)/3)] xl:w-[calc((100%-2.25rem)/4)] 2xl:w-[calc((100%-3rem)/5)] shrink-0 min-w-0'
 
 interface HomeSectionProps {
   isVisible: boolean
@@ -409,7 +409,7 @@ export default function HomeSection({
                 </div>
               </div>
             ) : (
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+            <div className="flex flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:items-stretch lg:gap-8">
               {/* Sección Izquierda - Información general de disponibilidad */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3 sm:gap-4">
@@ -481,7 +481,7 @@ export default function HomeSection({
               </div>
 
               {/* Sección Derecha - Información de Precio al lado derecho */}
-              <div className="text-center lg:text-center lg:flex-shrink-0 lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-center lg:justify-center">
+              <div className="text-center lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-center lg:justify-center">
                 <div className="p-0 text-center">
                   <div className={"text-2xl sm:text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: selectedCourtHex }}>
                     ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
@@ -497,7 +497,7 @@ export default function HomeSection({
             </div>
             )}
             {!showHomeCardSkeleton && (
-              <div className="mt-4 sm:mt-6">
+              <div className="mt-4 sm:mt-6 lg:flex lg:justify-center">
                 <Button
                   onClick={() => {
                     scrollToNextAvailable()
@@ -509,7 +509,7 @@ export default function HomeSection({
                     }
                   }}
                   variant="ghost"
-                  className="w-full !h-auto min-h-12 sm:min-h-14 px-4 sm:px-6 py-3 sm:py-5 rounded-xl border border-white/40 hover:border-white/70 bg-transparent transition-all duration-200 transform hover:scale-[1.02] sm:hover:scale-105 text-[color:var(--color-neon-lime)]"
+                  className="w-full lg:w-auto lg:min-w-[360px] !h-auto min-h-12 sm:min-h-14 px-4 sm:px-6 py-3 sm:py-5 rounded-xl border border-white/40 hover:border-white/70 bg-transparent transition-all duration-200 transform hover:scale-[1.02] sm:hover:scale-105 text-[color:var(--color-neon-lime)]"
                   data-testid="next-available-btn"
                   ref={nextAvailableBtnRef}
                 >
@@ -522,7 +522,7 @@ export default function HomeSection({
         </Card>
 
         {/* Court Selection Cards — flex + anchos fijos para centrar filas incompletas (p. ej. 5 canchas) */}
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-3 p-1 -m-1">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 mb-3 p-1 -m-1">
           {creationModeActive && (() => {
             const items = [
               { key: 'OUTDOOR', label: 'Exterior', hex: getCourtHexByType('OUTDOOR') },
@@ -630,7 +630,7 @@ export default function HomeSection({
           {creationModeActive && (
             <>
               <div id="courts-available" className="w-full">
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) > 0).map((court) => {
                     const rate = ratesByCourt[court.id] ?? 0
                     const courtHex = getCourtHexByType(court.courtType)
@@ -687,7 +687,7 @@ export default function HomeSection({
                 </div>
               </div>
               <div id="courts-other" className="w-full">
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) <= 0).map((court) => {
                     const courtHex = getCourtHexByType(court.courtType)
                     return (
