@@ -383,13 +383,13 @@ export default function HomeSection({
 
         {/* Court Info Card */}
         <Card
-          className={`mb-6 rounded-2xl shadow-lg border transition-colors duration-300 backdrop-blur-[22px] ${
+          className={`mb-4 sm:mb-6 !gap-0 !py-0 rounded-2xl shadow-lg border transition-colors duration-300 backdrop-blur-[22px] ${
             isDarkMode
-              ? 'border-white/20 bg-black/40 text-white'
+              ? 'border-white/20 bg-black/55 text-white'
               : 'border-white/60 bg-white/35 text-slate-900'
           }`}
         >
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {showHomeCardSkeleton ? (
               <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-6">
                 <div className="flex flex-1 gap-4">
@@ -409,76 +409,81 @@ export default function HomeSection({
                 </div>
               </div>
             ) : (
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
               {/* Sección Izquierda - Información general de disponibilidad */}
-              <div className="flex items-start gap-4 flex-1">
-                <div
-                  className={"w-16 h-16 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"}
-                  style={{ backgroundColor: '#4b5563' }}
-                >
-                  {homeCardSettings.iconImage ? (
-                    <img src={homeCardSettings.iconImage} alt="icono" className="w-16 h-16 object-cover rounded-lg" />
-                  ) : (
-                    <Users className="w-8 h-8 text-white" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xl text-muted-foreground mb-0.5 font-bold">{displayLabelCourt}</div>
-                  <h2 className={`text-lg mt-2 mb-1`}>
-                    <span className="font-semibold">Disponibilidad de</span>{" "}
-                    <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
-                  </h2>
-
-                  {/* Barra de disponibilidad combinada / individual */}
-                  <div className="mb-3">
-                    {courts && courts.length > 0 ? (
-                      (() => {
-                        const currentSlots = Array.isArray(slotsForRender) ? slotsForRender : []
-                        const totalSlots = currentSlots.length
-                        const availableSlots = currentSlots.filter((s: any) => s?.available ?? s?.isAvailable).length
-                        return (
-                          <div>
-                            <div className="flex items-center gap-4 mb-1">
-                              <span className="text-3xl font-bold" style={{ color: 'var(--color-neon-lime)' }}>
-                                {`${availableSlots} de ${totalSlots} horarios disponibles`}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })()
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div
+                    className={"w-14 h-14 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center shadow-md flex-shrink-0"}
+                    style={{ backgroundColor: '#4b5563' }}
+                  >
+                    {homeCardSettings.iconImage ? (
+                      <img src={homeCardSettings.iconImage} alt="icono" className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg" />
                     ) : (
-                      <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>No se encontraron canchas activas.</div>
+                      <Users className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                     )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-lg sm:text-xl text-muted-foreground mb-0.5 font-bold">{displayLabelCourt}</div>
+                    <h2 className={`text-base sm:text-lg mt-1.5 sm:mt-2 mb-1`}>
+                      <span className="font-semibold">Disponibilidad de</span>{" "}
+                      <span className="font-bold" style={{ color: 'var(--color-neon-lime)' }}>hoy</span>
+                    </h2>
 
-                  {/* Información Adicional (sin cambios) */}
-                  <div className="space-y-2">
-                    <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
-                      <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                      {homeCardSettings.mapUrl ? (
-                        <a href={homeCardSettings.mapUrl} target="_blank" rel="noopener noreferrer" className="underline">
-                          {displayLocation}
-                        </a>
+                    {/* Barra de disponibilidad combinada / individual */}
+                    <div className="mb-2 sm:mb-3">
+                      {courts && courts.length > 0 ? (
+                        (() => {
+                          const currentSlots = Array.isArray(slotsForRender) ? slotsForRender : []
+                          const totalSlots = currentSlots.length
+                          const availableSlots = currentSlots.filter((s: any) => s?.available ?? s?.isAvailable).length
+                          return (
+                            <div>
+                              <div className="flex flex-wrap items-end gap-x-2 gap-y-1 mb-1">
+                                <span className="text-3xl sm:text-4xl font-bold leading-none" style={{ color: 'var(--color-neon-lime)' }}>
+                                  {`${availableSlots}/${totalSlots}`}
+                                </span>
+                                <span className="text-sm sm:text-base font-semibold leading-tight text-muted-foreground">
+                                  horarios disponibles
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        })()
                       ) : (
-                        <span>{displayLocation}</span>
+                        <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>No se encontraron canchas activas.</div>
                       )}
                     </div>
-                    <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
-                      <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                      <span>{displaySession}</span>
-                    </div>
                   </div>
-
-                  <p className={`text-sm mt-3 leading-relaxed text-muted-foreground`}>
-                    {displayDescription}
-                  </p>
                 </div>
+
+                {/* Información adicional a ancho completo en móvil (evita columna vacía bajo el ícono) */}
+                <div className="space-y-1.5 sm:space-y-2 mt-1 sm:mt-0">
+                  <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
+                    <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    {homeCardSettings.mapUrl ? (
+                      <a href={homeCardSettings.mapUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                        {displayLocation}
+                      </a>
+                    ) : (
+                      <span>{displayLocation}</span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-2 text-sm text-muted-foreground`}>
+                    <Clock className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                    <span>{displaySession}</span>
+                  </div>
+                </div>
+
+                <p className={`text-sm mt-2 sm:mt-3 leading-snug sm:leading-relaxed text-muted-foreground`}>
+                  {displayDescription}
+                </p>
               </div>
 
               {/* Sección Derecha - Información de Precio al lado derecho */}
               <div className="text-center lg:text-center lg:flex-shrink-0 lg:pl-6 lg:border-l lg:border-border lg:self-stretch lg:flex lg:flex-col lg:items-center lg:justify-center">
                 <div className="p-0 text-center">
-                  <div className={"text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: selectedCourtHex }}>
+                  <div className={"text-2xl sm:text-3xl font-bold mb-1 transition-colors duration-300 ease-in-out"} style={{ color: selectedCourtHex }}>
                     ${Math.round((((selectedCourtData as any)?.basePrice ?? (selectedCourtData as any)?.base_price ?? 24000) * (selectedCourtData?.priceMultiplier ?? 1)) / 4).toLocaleString()}
                   </div>
                   <div className={`text-sm font-medium mb-2 text-muted-foreground`}>
@@ -492,7 +497,7 @@ export default function HomeSection({
             </div>
             )}
             {!showHomeCardSkeleton && (
-              <div className="mt-6">
+              <div className="mt-4 sm:mt-6">
                 <Button
                   onClick={() => {
                     scrollToNextAvailable()
@@ -504,11 +509,11 @@ export default function HomeSection({
                     }
                   }}
                   variant="ghost"
-                  className="w-full !h-auto min-h-14 px-6 py-5 rounded-xl border border-white/40 hover:border-white/70 bg-transparent transition-all duration-200 transform hover:scale-105 text-[color:var(--color-neon-lime)]"
+                  className="w-full !h-auto min-h-12 sm:min-h-14 px-4 sm:px-6 py-3 sm:py-5 rounded-xl border border-white/40 hover:border-white/70 bg-transparent transition-all duration-200 transform hover:scale-[1.02] sm:hover:scale-105 text-[color:var(--color-neon-lime)]"
                   data-testid="next-available-btn"
                   ref={nextAvailableBtnRef}
                 >
-                  <Calendar className="w-5 h-5 mr-2 text-[color:var(--color-neon-lime)]" />
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[color:var(--color-neon-lime)]" />
                   Ir al próximo disponible
                 </Button>
               </div>
@@ -573,13 +578,13 @@ export default function HomeSection({
                     ? isDarkMode
                       ? 'bg-black/70 border-[#BEF264]/35 shadow-2xl backdrop-blur-[22px]'
                       : `border-border shadow-xl`
-                    : `${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'} shadow-md`
+                    : `${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'} shadow-md`
                   }`}
                 style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
-                {/* Disponibilidad: prioridad visual 1 (porcentaje destacado) */}
+                {/* Disponibilidad: prioridad visual 1 (porcentaje destacado); compacto en móvil para no solaparse con el ícono */}
                 <div
-                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded-md md:rounded-lg px-1.5 py-1 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
+                  className={`absolute top-1 left-1 z-10 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-0.5 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
                     }`}
                 >
                   {(() => {
@@ -587,14 +592,14 @@ export default function HomeSection({
                     const rateText = showLoadingRate ? '—%' : `${rate}%`
                     return (
                       <div
-                        className={`tabular-nums text-xs sm:text-sm md:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                        className={`tabular-nums text-[0.65rem] sm:text-xs md:text-sm lg:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
                           }`}
                       >
                         {rateText}
                       </div>
                     )
                   })()}
-                  <div className="text-[9px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-0.5 font-medium">
+                  <div className="text-[7px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-px sm:mt-0.5 font-medium">
                     Disponible
                   </div>
                 </div>
@@ -657,19 +662,19 @@ export default function HomeSection({
                           }
                         }}
                         data-testid="court-card"
-                        className={`${COURT_CARD_LIST_CELL} relative p-2 sm:p-2.5 lg:p-3 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
+                        className={`${COURT_CARD_LIST_CELL} relative p-2 sm:p-2.5 lg:p-3 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
                           } shadow-md`}
                         style={!isDarkMode ? { backgroundColor: selectedBg } : undefined}
                       >
                         <div
-                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded-md md:rounded-lg px-1.5 py-1 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
+                          className={`absolute top-1 left-1 z-10 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-0.5 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
                             }`}
                         >
                           <div
-                            className={`tabular-nums text-xs sm:text-sm md:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
+                            className={`tabular-nums text-[0.65rem] sm:text-xs md:text-sm lg:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
                               }`}
                           >{`${rate}%`}</div>
-                          <div className="text-[9px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-0.5 font-medium">
+                          <div className="text-[7px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-px sm:mt-0.5 font-medium">
                             Disponible
                           </div>
                         </div>
@@ -703,7 +708,7 @@ export default function HomeSection({
           {/* Mobile: Stacked Layout */}
           <div className="flex flex-col gap-3 md:hidden">
             {/* View Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -736,7 +741,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Mobile */}
-            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
+            <div className={`flex items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`}>
               <button
                 type="button"
                 onClick={(e) => {
@@ -778,7 +783,7 @@ export default function HomeSection({
           {/* Desktop: mismo tratamiento visual que móvil (texto activo, sin pastilla rellena distinta entre toggles) */}
           <div className="hidden md:flex w-full flex-col sm:flex-row justify-center items-stretch gap-4 sm:gap-8">
             {/* View Toggle - Desktop */}
-            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="view-toggle">
+            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="view-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -813,7 +818,7 @@ export default function HomeSection({
             </div>
 
             {/* Filter Toggle - Desktop */}
-            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="filter-toggle">
+            <div className={`flex flex-1 min-w-0 basis-0 max-w-md items-center rounded-lg p-1 border ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-200'}`} data-testid="filter-toggle">
               <button
                 type="button"
                 onClick={(e) => {
@@ -889,7 +894,7 @@ export default function HomeSection({
                         className={`flex-shrink-0 w-20 p-3 rounded-lg transition-all duration-200 text-center snap-center ${isSelected
                             ? "text-white shadow-lg"
                             : isDarkMode
-                              ? "bg-black/40 text-white hover:bg-black/50 border border-white/15 backdrop-blur-[22px]"
+                              ? "bg-black/55 text-white hover:bg-black/65 border border-white/15 backdrop-blur-[22px]"
                               : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-200"
                           } ${index === 0 ? 'ml-4' : ''}`}
                         style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -941,7 +946,7 @@ export default function HomeSection({
                       className={`w-full p-4 rounded-lg transition-all duration-200 text-left ${isSelected
                           ? "text-white shadow-lg"
                           : isDarkMode
-                            ? "bg-black/40 text-white hover:bg-black/50 border border-white/15 backdrop-blur-[22px]"
+                            ? "bg-black/55 text-white hover:bg-black/65 border border-white/15 backdrop-blur-[22px]"
                             : "bg-white text-gray-900 hover:bg-gray-100 border border-gray-300"
                         }`}
                       style={isSelected ? { backgroundColor: 'var(--electric-teal)' } : undefined}
@@ -977,7 +982,7 @@ export default function HomeSection({
                     variant="outline"
                     size="sm"
                     disabled={isRefreshing}
-                    className={`flex items-center gap-2 ${isDarkMode ? 'border-white/15 bg-black/40 text-gray-200 hover:bg-black/50 backdrop-blur-[22px]' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                    className={`flex items-center gap-2 ${isDarkMode ? 'border-white/15 bg-black/55 text-gray-200 hover:bg-black/65 backdrop-blur-[22px]' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
                     data-testid="refresh-slots-btn"
                   >
                     <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -1004,7 +1009,7 @@ export default function HomeSection({
             </div>
 
             {/* Badge Demo Section */}
-            <div className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-300'}`}>
+            <div className={`mb-4 p-3 rounded-lg border ${isDarkMode ? 'bg-black/55 border-white/15 backdrop-blur-[22px]' : 'bg-gray-100 border-gray-300'}`}>
               <div className="flex items-center gap-3">
                 <span className={`text-sm ${isDarkMode ? "text-white" : "text-gray-600"}`}>Estados:</span>
                 <span className="badge-disponible">Disponible</span>
@@ -1093,14 +1098,14 @@ export default function HomeSection({
                         data-testid="time-slot"
                         className={`rounded-lg border-[1.5px] transition-all duration-200 text-center flex flex-col items-center justify-center gap-0.5 disabled:opacity-60 disabled:grayscale ${!isClickable
                             ? isDarkMode
-                              ? 'px-1.5 py-2 min-h-[64px] md:min-h-[68px] text-sm bg-black/40 border-white/15 border-[2px] backdrop-blur-[22px] cursor-not-allowed'
+                              ? 'px-1.5 py-2 min-h-[64px] md:min-h-[68px] text-sm bg-black/65 border-white/15 border-[2px] cursor-not-allowed'
                               : 'px-1.5 py-2 min-h-[64px] md:min-h-[68px] text-sm bg-card border-border/80 border-[2px] cursor-not-allowed'
                             : isSelected
                               ? isDarkMode
-                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/55 border-[color:var(--electric-teal)] border-[2px] shadow-md backdrop-blur-[22px]'
+                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/75 border-[color:var(--electric-teal)] border-[2px] shadow-md'
                                 : 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md'
                               : isDarkMode
-                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/45 border-white/15 border-[2px] transform hover:scale-105 hover:shadow-sm backdrop-blur-[22px]'
+                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/65 border-white/15 border-[2px] transform hover:scale-105 hover:shadow-sm'
                                 : 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm'
                           }`}
                       >

@@ -156,7 +156,6 @@ function PadelBookingPage() {
 
   // Modal para confirmar salir del tenant hacia la landing
   const [showExitToLandingModal, setShowExitToLandingModal] = useState(false)
-  const [scrollY, setScrollY] = useState(0)
 
   const hasPendingPayment = useMemo(() => {
     return currentBookings.some(
@@ -264,21 +263,6 @@ function PadelBookingPage() {
     }, 60000) // Update every minute
 
     return () => clearInterval(timer)
-  }, [])
-
-  useEffect(() => {
-    let ticking = false
-    const handleScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(() => {
-        setScrollY(window.scrollY || 0)
-        ticking = false
-      })
-    }
-    handleScroll()
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   // Calculate payment summaries
@@ -854,12 +838,9 @@ function PadelBookingPage() {
     )
   }
 
-  const clampedScroll = Math.min(scrollY, 700)
-  const scrollProgress = clampedScroll / 700
-  const backgroundBlur = Math.min(isDarkMode ? 7 : 5, 1 + clampedScroll * 0.012)
-  const backgroundOverlay = isDarkMode
-    ? 0.22 + scrollProgress * 0.56
-    : 0.08 + scrollProgress * 0.42
+  // Evita re-renders durante el scroll para prevenir artefactos visuales en móvil.
+  const backgroundBlur = isDarkMode ? 4 : 2
+  const backgroundOverlay = isDarkMode ? 0.34 : 0.16
 
   return (
     <div className="dashboard-theme font-sans min-h-screen relative overflow-x-hidden">
