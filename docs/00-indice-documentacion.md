@@ -12,6 +12,7 @@
 | [changelog/](./changelog/) | Changelogs y resúmenes de cambios técnicos |
 | [multitenant/](./multitenant/) | Arquitectura multitenant, rollback, APIs, super admin |
 | [analisis/](./analisis/) | Análisis y diseño (frontend, migraciones, pruebas, refactors) |
+| [design/](./design/) | Decisiones de UI/UX (paleta canchas, coherencia con marca) |
 | [testing/](./testing/) | Pruebas automatizadas, Playwright, funcionamiento |
 | [deployment/](./deployment/) | Vercel, Docker, variables de entorno |
 | [troubleshooting/](./troubleshooting/) | Soluciones a errores conocidos (OAuth, Vercel, scroll, etc.) |
@@ -35,6 +36,7 @@
 
 ## Análisis y diseño
 
+- [Colores de canchas: marca, estado actual, interior/exterior (propuesta)](./design/canchas-colores-marca-interior-exterior.md) — Paleta global vs `lib/court-colors.ts`, revisión de docs (PR5 dashboard, identidad, `Court.features`), opciones de color techada / aire libre
 - [Análisis del Frontend Actual](./analisis/01-analisis-frontend-actual.md)
 - [Migración SQLite → PostgreSQL](./analisis/06-migracion-sqlite-postgresql.md)
 - [Mejora de la Documentación Interna](./analisis/07-mejora-documentacion-interna.md)

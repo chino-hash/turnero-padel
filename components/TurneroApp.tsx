@@ -103,7 +103,9 @@ export default function TurneroApp() {
                           if (Array.isArray(court.features)) features = court.features
                           else if (typeof court.features === 'string') features = JSON.parse(court.features || '[]')
                         } catch {}
-                        const isIndoor = features.some((f: string) => /indoor|covered|climate/i.test(f))
+                        const isIndoor =
+                          court.courtType === 'INDOOR' ||
+                          features.some((f: string) => /indoor|covered|climate/i.test(f))
                         const basePrice = court.basePrice ?? court.base_price ?? 0
                         const price = Math.round(basePrice / 4)
                         return (
@@ -113,10 +115,9 @@ export default function TurneroApp() {
                             <div className="relative w-full rounded-md overflow-hidden border" style={{ aspectRatio: '2 / 1' }}>
                               {(() => {
                                 // Usar paleta por nombre si existe en el nombre
-                                const name: string = (court.name || '').toLowerCase()
-                                const palette = name.includes('a') ? { from: '#8b5cf6', to: '#a78bfa' }
-                                  : name.includes('b') ? { from: '#ef4444', to: '#f87171' }
-                                  : { from: '#22c55e', to: '#4ade80' }
+                                const palette = isIndoor
+                                  ? { from: '#2563eb', to: '#60a5fa' }
+                                  : { from: '#16a34a', to: '#4ade80' }
                                 const background = `linear-gradient(135deg, ${palette.from}, ${palette.to}),
                                   repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 6px),
                                   repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0 1px, transparent 1px 8px)`

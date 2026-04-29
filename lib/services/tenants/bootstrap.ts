@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/database/neon-config'
 import { DEFAULT_COURT_VALUES, getDefaultOperatingHoursJson } from '@/lib/constants/court-defaults'
-import { getCourtFeaturesByIndex } from '@/lib/court-colors'
+import { getCourtFeaturesByType } from '@/lib/court-colors'
 import { encryptCredential } from '@/lib/encryption/credential-encryption'
 import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 
@@ -102,7 +102,7 @@ export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
     const name = `Cancha ${n}`
     const description = `Cancha ${n}`
     const basePrice = DEFAULT_COURT_VALUES.basePrice
-    const features = JSON.stringify(getCourtFeaturesByIndex(n))
+    const features = JSON.stringify(getCourtFeaturesByType('OUTDOOR'))
     const existing = await prisma.court.findFirst({
       where: { tenantId, name, deletedAt: null },
       select: { id: true },
@@ -115,10 +115,11 @@ export async function ensureCourtsForPlan(tenantId: string): Promise<number> {
           description,
           basePrice,
           priceMultiplier: 1.0,
+          courtType: 'OUTDOOR',
           features,
           operatingHours: operatingHoursJson,
           isActive: true,
-        },
+        } as any,
       })
       count++
     }

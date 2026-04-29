@@ -1,7 +1,7 @@
 import { prisma } from '../database/neon-config'
 import { bookingOccupancyWhere } from '../utils/booking-availability-where'
-import type { Court, CourtFeatures, OperatingHours } from '../../types/types'
-import { COURT_COLOR_PALETTE } from '../court-colors'
+import type { Court, OperatingHours, CourtType } from '../../types/types'
+import { getCourtFeaturesByType, normalizeCourtType } from '../court-colors'
 import { getPlanMaxCourts, getPlan } from '../subscription-plans'
 
 export interface CreateCourtData {
@@ -16,6 +16,7 @@ export interface CreateCourtData {
     slot_duration: number
   }
   tenantId?: string
+  courtType?: CourtType
 }
 
 export interface UpdateCourtData {
@@ -26,42 +27,14 @@ export interface UpdateCourtData {
   features?: string
   operatingHours?: string | { start: string; end: string; slot_duration: number }
   isActive?: boolean
+  tenantId?: string
+  courtType?: CourtType
 }
 
 // Helper function to transform Prisma court data to Court type
 function transformCourtData(court: any): Court {
-  // Parse features JSON (colors), con fallback a colores derivados
-  let features: CourtFeatures | null = null
-  try {
-    if (court.features && typeof court.features === 'string') {
-      const parsed = JSON.parse(court.features)
-      if (parsed && typeof parsed === 'object' && parsed.color && parsed.bgColor && parsed.textColor) {
-        features = {
-          color: String(parsed.color),
-          bgColor: String(parsed.bgColor),
-          textColor: String(parsed.textColor)
-        }
-      }
-    }
-  } catch {
-    // ignore JSON parse errors
-  }
-
-  const getCourtColors = (courtId: string, courtName: string) => {
-    const name = (courtName || '').toLowerCase().trim()
-    const m = name.match(/cancha\s*(\d+)/i)
-    let n = m ? Number(m[1]) : 0
-    if (!n) {
-      if (courtId === 'cmew6nvsd0001u2jcngxgt8au' || name.includes(' a') || name.startsWith('a')) n = 1
-      else if (courtId === 'cmew6nvsd0002u2jcc24nirbn' || name.includes(' b') || name.startsWith('b')) n = 2
-      else if (courtId === 'cmew6nvi40000u2jcmer3av60' || name.includes(' c') || name.startsWith('c')) n = 3
-    }
-    if (!n || n < 1) n = 3
-    const idx = (n - 1) % COURT_COLOR_PALETTE.length
-    return COURT_COLOR_PALETTE[idx]
-  }
-
-  const colors = getCourtColors(court.id, court.name)
+  const courtType = normalizeCourtType(court.courtType)
+  const colors = getCourtFeaturesByType(courtType)
 
   // Parse operatingHours JSON desde DB string, con fallback seguro
   let operatingHours: OperatingHours = { start: '00:00', end: '23:00', slot_duration: 90 }
@@ -84,7 +57,8 @@ function transformCourtData(court: any): Court {
     id: court.id,
     name: court.name,
     description: court.description || null,
-    features: features || {
+    courtType,
+    features: {
       color: colors.color,
       bgColor: colors.bgColor,
       textColor: colors.textColor
@@ -257,15 +231,16 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
         tenantId: data.tenantId,
         name: data.name,
         description: data.description,
+        courtType: normalizeCourtType(data.courtType),
         basePrice: Math.round(data.basePrice * 100),
         priceMultiplier: data.priceMultiplier || 1.0,
-        features: JSON.stringify(data.features || []),
+        features: JSON.stringify(getCourtFeaturesByType(data.courtType)),
         operatingHours: JSON.stringify(data.operatingHours || {
           start: "00:00",
           end: "23:00",
           slot_duration: 90
         })
-      }
+      } as any
     })
     return transformCourtData(court)
   } catch (error) {
@@ -277,24 +252,57 @@ export async function createCourt(data: CreateCourtData): Promise<Court> {
 // Actualizar cancha
 export async function updateCourt(id: string, data: UpdateCourtData): Promise<Court> {
   try {
-    // Preparar datos para Prisma, convirtiendo basePrice si est� presente
-    const prismaData: Record<string, unknown> = { ...data }
+    // Preparar datos para Prisma evitando valores inválidos en updates parciales.
+    const prismaData: Record<string, unknown> = {}
+
+    if (data.name !== undefined) prismaData.name = data.name
+    if (data.description !== undefined) prismaData.description = data.description
+    if (data.priceMultiplier !== undefined) prismaData.priceMultiplier = data.priceMultiplier
+    if (data.isActive !== undefined) prismaData.isActive = data.isActive
+
     if (data.basePrice !== undefined) {
       prismaData.basePrice = Math.round(data.basePrice * 100)
     }
+
+    if (data.features !== undefined) {
+      prismaData.features = data.features
+    }
+
     if (data.operatingHours !== undefined) {
       prismaData.operatingHours = typeof data.operatingHours === 'object'
         ? JSON.stringify(data.operatingHours)
         : data.operatingHours
     }
 
+    if (data.tenantId !== undefined) {
+      const normalizedTenantId = data.tenantId.trim()
+      if (normalizedTenantId) {
+        prismaData.tenantId = normalizedTenantId
+      }
+    }
+
+    if (data.courtType !== undefined) {
+      const normalizedCourtType = normalizeCourtType(data.courtType)
+      prismaData.courtType = normalizedCourtType
+      // Mantener features coherentes con la clasificación exterior/interior.
+      prismaData.features = JSON.stringify(getCourtFeaturesByType(normalizedCourtType))
+    }
+
     const court = await prisma.court.update({
       where: { id },
-      data: prismaData
+      data: prismaData as any
     })
     return transformCourtData(court)
   } catch (error) {
-    console.error('Error actualizando cancha:', error)
+    const errorWithCode = error as { code?: string; meta?: unknown; stack?: string } | null
+    console.error('Error actualizando cancha (debug):', {
+      id,
+      input: data,
+      prismaCode: errorWithCode?.code ?? null,
+      prismaMeta: errorWithCode?.meta ?? null,
+      message: error instanceof Error ? error.message : 'Error desconocido',
+      stack: errorWithCode?.stack ?? null,
+    })
     throw new Error('Error al actualizar la cancha')
   }
 }

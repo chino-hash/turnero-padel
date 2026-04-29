@@ -10,6 +10,7 @@ export const courtCreateSchema = z.object({
   tenantId: z.string().cuid().optional(),
   name: z.string().min(1, 'Nombre requerido'),
   basePrice: z.number().positive('El precio debe ser mayor a 0'),
+  courtType: z.enum(['OUTDOOR', 'INDOOR']).default('OUTDOOR'),
   isActive: z.boolean().default(true),
   description: z.string().optional(),
   operatingHours: operatingHoursSchema,

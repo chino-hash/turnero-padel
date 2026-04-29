@@ -131,6 +131,7 @@ model Court {
   updatedAt         DateTime           @updatedAt
   name              String
   description       String?
+  courtType         CourtType          @default(OUTDOOR)
   basePrice         Int
   priceMultiplier   Float              @default(1.0)
   features          String
@@ -149,6 +150,11 @@ model Court {
   @@index([deletedAt])
   @@index([tenantId, isActive])
   @@index([tenantId, name])
+}
+
+enum CourtType {
+  OUTDOOR
+  INDOOR
 }
 
 model Booking {

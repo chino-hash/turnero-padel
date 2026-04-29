@@ -32,6 +32,7 @@ interface Court {
   name: string
   basePrice: number
   isActive: boolean
+  courtType?: 'OUTDOOR' | 'INDOOR'
   description?: string
   tenantId?: string
   tenantName?: string
@@ -89,10 +90,21 @@ export default function GestionCanchas() {
     name: '',
     basePrice: 0,
     isActive: true,
+    courtType: 'OUTDOOR' as 'OUTDOOR' | 'INDOOR',
     description: '',
     tenantId: '',
     operatingHours: DEFAULT_OPERATING_HOURS,
   })
+
+  const getCourtTypeLabel = (courtType: 'OUTDOOR' | 'INDOOR') => (
+    courtType === 'INDOOR' ? 'Interior' : 'Exterior'
+  )
+
+  const getCourtTypeBadgeClasses = (courtType: 'OUTDOOR' | 'INDOOR') => (
+    courtType === 'INDOOR'
+      ? 'bg-blue-100 text-blue-700 border-blue-200'
+      : 'bg-green-100 text-green-700 border-green-200'
+  )
 
   // Persistir tenant en cookie cuando viene en la URL (para siguiente visita sin param)
   useEffect(() => {
@@ -186,6 +198,7 @@ export default function GestionCanchas() {
             name: formData.name.trim(),
             basePrice: formData.basePrice,
             isActive: formData.isActive,
+            courtType: formData.courtType,
             description: formData.description || undefined,
             operatingHours: formData.operatingHours,
           }
@@ -193,6 +206,7 @@ export default function GestionCanchas() {
             name: formData.name.trim(),
             basePrice: formData.basePrice,
             isActive: formData.isActive,
+            courtType: formData.courtType,
             description: formData.description || undefined,
             tenantId: formData.tenantId || undefined,
             operatingHours: formData.operatingHours,
@@ -227,6 +241,7 @@ export default function GestionCanchas() {
       name: court.name,
       basePrice: court.basePrice,
       isActive: court.isActive,
+      courtType: court.courtType || 'OUTDOOR',
       description: court.description || '',
       tenantId: court.tenantId || '',
       operatingHours: {
@@ -291,6 +306,7 @@ export default function GestionCanchas() {
       name: '',
       basePrice: 0,
       isActive: true,
+      courtType: 'OUTDOOR',
       description: '',
       tenantId: '',
       operatingHours: DEFAULT_OPERATING_HOURS,
@@ -350,6 +366,9 @@ export default function GestionCanchas() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-medium border border-white/20 shadow-sm">
                         <CalendarIcon className="w-3 h-3 mr-1 text-blue-100" />
                         Cancha activa
+                      </span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium border shadow-sm ${getCourtTypeBadgeClasses(court.courtType || 'OUTDOOR')}`}>
+                        {getCourtTypeLabel(court.courtType || 'OUTDOOR')}
                       </span>
                       {isSuperAdmin && (court.tenantName || court.tenantSlug) && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-white/10 backdrop-blur-md text-[10px] font-medium border border-white/20 shadow-sm">
@@ -578,6 +597,22 @@ export default function GestionCanchas() {
                   min="1"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-muted-foreground">Tipo de cancha</Label>
+                <Select
+                  value={formData.courtType}
+                  onValueChange={(v: 'OUTDOOR' | 'INDOOR') => setFormData({ ...formData, courtType: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OUTDOOR">Exterior</SelectItem>
+                    <SelectItem value="INDOOR">Interior</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

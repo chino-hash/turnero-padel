@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useTenantSlugFromPath } from '@/lib/tenant/TenantSlugFromPathContext'
 import { useAuth } from '../../hooks/useAuth'
@@ -49,6 +49,8 @@ interface AppStateContextType {
   
   // Estado de canchas
   courts: Court[]
+  /** true hasta que termine la petición inicial/revalidación de `/api/courts` para el tenant actual */
+  courtsLoading: boolean
   selectedCourt: string
   setSelectedCourt: (courtId: string) => void
   
@@ -80,6 +82,8 @@ interface AppStateContextType {
   loading: boolean
   slotsLoading: boolean
   multipleSlotsLoading: boolean
+  slotsFetchedOnce: boolean
+  multipleSlotsFetchedOnce: boolean
   slotsError: string | null
   multipleSlotsError: string | null
   
@@ -346,13 +350,30 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const searchParams = useSearchParams()
   const router = useRouter()
   const tenantSlugFromPath = useTenantSlugFromPath()
-  const tenantSlug = searchParams?.get('tenantSlug')?.trim() || tenantSlugFromPath || null
+  const tenantSlug = useMemo(() => {
+    const slugFromParams = searchParams?.get('tenantSlug')?.trim()
+    if (slugFromParams) return slugFromParams
+    // Fallback en cliente para evitar un primer render sin query params hidratados.
+    if (typeof window !== 'undefined') {
+      const fromWindow = new URLSearchParams(window.location.search).get('tenantSlug')?.trim()
+      if (fromWindow) return fromWindow
+    }
+    return tenantSlugFromPath || null
+  }, [searchParams, tenantSlugFromPath])
   const [courts, setCourts] = useState<Court[]>([])
+  const [courtsLoading, setCourtsLoading] = useState(true)
+  const [courtsCacheBuster, setCourtsCacheBuster] = useState(0)
+  const previousTenantSlugRef = useRef<string | null>(tenantSlug)
   useEffect(() => {
-    setCourts([])
+    const tenantChanged = previousTenantSlugRef.current !== tenantSlug
+    previousTenantSlugRef.current = tenantSlug
+    if (tenantChanged) {
+      setCourts([])
+    }
     const loadCourts = async () => {
+      setCourtsLoading(true)
       try {
-        const cacheKey = tenantSlug ? `courts_cache_${tenantSlug}` : 'courts_cache'
+        const cacheKey = tenantSlug ? `courts_cache_v2_${tenantSlug}` : 'courts_cache_v2'
         const cachedStr = typeof window !== 'undefined' ? localStorage.getItem(cacheKey) : null
         if (cachedStr) {
           try {
@@ -408,11 +429,13 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
         console.error('Error al cargar canchas:', err)
         setNotification({ message: 'Error al cargar canchas', type: 'warning' })
         setTimeout(() => setNotification(null), 3000)
+      } finally {
+        setCourtsLoading(false)
       }
     }
     loadCourts()
     return () => {}
-  }, [tenantSlug, router])
+  }, [tenantSlug, router, courtsCacheBuster])
 
   // Tras volver de Mercado Pago (éxito), la URL viene con ?section=turnos (y opcionalmente &bookingId=xxx): abrir Mis Turnos, limpiar la URL
   useEffect(() => {
@@ -445,34 +468,50 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
    const {
      slots: rawSlots,
      loading: slotsLoading,
+     hasFetchedOnce: slotsFetchedOnce,
      error: slotsError,
      refreshSlots,
      isRefreshing: isRefreshingSlots,
      courtName: currentCourtName
    } = useOptimizedSlots(selectedCourt, selectedDate, tenantSlug)
 
+  const normalizeSlotTimes = useCallback((slot: any) => {
+    const rawRange = typeof slot?.timeRange === 'string' ? slot.timeRange : ''
+    const [rangeStart = '', rangeEnd = ''] = rawRange.split(' - ').map((part: string) => part.trim())
+    const startTime = String(slot?.startTime || slot?.time || rangeStart || '').trim()
+    const endTime = String(slot?.endTime || rangeEnd || '').trim()
+    const timeRange = startTime && endTime
+      ? `${startTime} - ${endTime}`
+      : (rawRange || startTime)
+    return { startTime, endTime, timeRange }
+  }, [])
+
   // Convertir Slot[] a TimeSlot[] con useMemo para evitar recreaciÃ³n constante
   const timeSlots: TimeSlot[] = useMemo(() => {
-    return rawSlots?.map(slot => ({
-      id: slot.id,
-      time: slot.startTime || '',
-      startTime: slot.startTime || '',
-      endTime: slot.endTime || '',
-      timeRange: `${slot.startTime || ''} - ${slot.endTime || ''}`,
-      available: slot.isAvailable ?? false,
-      isAvailable: slot.isAvailable ?? false,
-      price: slot.price || 0,
-      courtId: selectedCourt,
-      courtName: currentCourtName,
-      date: selectedDate,
-      duration: 90
-    })) || []
-  }, [rawSlots, selectedCourt, currentCourtName, selectedDate])
+    return rawSlots?.map(slot => {
+      const { startTime, endTime, timeRange } = normalizeSlotTimes(slot)
+      return {
+        id: slot.id,
+        time: startTime,
+        startTime,
+        endTime,
+        timeRange,
+        available: slot.isAvailable ?? false,
+        isAvailable: slot.isAvailable ?? false,
+        price: slot.price || 0,
+        courtId: selectedCourt,
+        courtName: currentCourtName,
+        date: selectedDate,
+        duration: 90
+      }
+    }) || []
+  }, [rawSlots, selectedCourt, currentCourtName, selectedDate, normalizeSlotTimes])
   
   const {
      slotsByCourt: rawSlotsByCourt,
      ratesByCourt: hookRatesByCourt,
      loading: multipleSlotsLoading,
+     hasFetchedOnce: multipleSlotsFetchedOnce,
      error: multipleSlotsError,
      refreshAllSlots: refreshMultipleSlots,
      refreshCourtSlots,
@@ -489,6 +528,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const { isConnected } = useDashboardRealTimeUpdates({
     enabled: shouldUseRealTime,
     onDataUpdate: () => {
+      setCourtsCacheBuster((prev) => prev + 1)
       if (isUnifiedView) {
         refreshMultipleSlots()
       } else {
@@ -644,12 +684,13 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       const court = courts.find(c => c.id === courtId)
       if (court && slots) {
         slots.forEach(slot => {
+          const { startTime, endTime, timeRange } = normalizeSlotTimes(slot)
           allSlots.push({
             id: slot.id,
-            time: slot.startTime || '',
-            startTime: slot.startTime || '',
-            endTime: slot.endTime || '',
-            timeRange: `${slot.startTime || ''} - ${slot.endTime || ''}`,
+            time: startTime,
+            startTime,
+            endTime,
+            timeRange,
             available: slot.isAvailable ?? false,
             isAvailable: slot.isAvailable ?? false,
             price: slot.price || 0,
@@ -667,7 +708,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
       if (!a.startTime || !b.startTime) return 0
       return a.startTime.localeCompare(b.startTime)
     })
-  }, [rawSlotsByCourt, courts, selectedDate])
+  }, [rawSlotsByCourt, courts, selectedDate, normalizeSlotTimes])
 
   // Slots para renderizar (unificado o individual) - memoizado para evitar re-renderizados
   const slotsForRender = useMemo(() => {
@@ -693,7 +734,10 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     } else {
       result = filteredTimeSlots || []
     }
-    return result
+    return result.filter((slot) => {
+      const start = String(slot.startTime || slot.time || '').trim()
+      return start.length > 0
+    })
   }, [isUnifiedView, unifiedTimeSlots, filteredTimeSlots, showOnlyOpen, selectedDate])
   
   // Persistir modo oscuro en localStorage
@@ -801,6 +845,7 @@ const scrollToNextAvailable = () => {
     
     // Estado de canchas
     courts,
+    courtsLoading,
     selectedCourt,
     setSelectedCourt,
     
@@ -831,6 +876,8 @@ const scrollToNextAvailable = () => {
     loading,
     slotsLoading: isUnifiedView ? multipleSlotsLoading : slotsLoading,
     multipleSlotsLoading,
+    slotsFetchedOnce,
+    multipleSlotsFetchedOnce,
     slotsError: isUnifiedView ? multipleSlotsError : slotsError,
     multipleSlotsError,
     

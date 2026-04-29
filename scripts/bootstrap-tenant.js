@@ -169,9 +169,10 @@ async function main() {
       tenantId,
       name: nameCourt,
       description: nameCourt,
+      courtType: 'OUTDOOR',
       basePrice: DEFAULTS.basePrice,
       priceMultiplier: 1.0,
-      features: JSON.stringify([]),
+      features: JSON.stringify({ color: 'from-green-400 to-green-600', bgColor: 'bg-green-100', textColor: 'text-green-700' }),
       operatingHours: JSON.stringify({ start: DEFAULTS.operatingStart, end: DEFAULTS.operatingEnd, slot_duration: DEFAULTS.slotDurationMinutes }),
       isActive: true,
     };

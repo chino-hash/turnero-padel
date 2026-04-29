@@ -32,10 +32,13 @@ export interface CourtFeatures {
   textColor: string;
 }
 
+export type CourtType = 'OUTDOOR' | 'INDOOR';
+
 export interface Court {
   id: string;
   name: string;
   description: string | null;
+  courtType: CourtType;
   // Alinear con Prisma: camelCase y obligatorio
   basePrice: number;
   priceMultiplier: number;

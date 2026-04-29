@@ -170,6 +170,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  let rawBody: unknown = null
   try {
     const session = await auth()
     
@@ -190,15 +191,28 @@ export async function PUT(request: Request) {
     const isSuperAdmin = await isSuperAdminUser(user)
     const userTenantId = await getUserTenantIdSafe(user)
 
-    const raw = await request.json()
-    const parsed = courtUpdateSchema.safeParse(raw)
+    rawBody = await request.json()
+    const parsed = courtUpdateSchema.safeParse(rawBody)
     if (!parsed.success) {
+      console.error('PUT /api/courts - validación fallida', {
+        zodErrors: formatZodErrors(parsed.error),
+        rawBody,
+      })
       return NextResponse.json(
         createErrorResponse('Datos inválidos', undefined, formatZodErrors(parsed.error)),
         { status: 400 }
       )
     }
     const { id, ...updateData } = parsed.data
+    console.info('PUT /api/courts - payload validado', {
+      id,
+      updateKeys: Object.keys(updateData),
+      courtType: updateData.courtType ?? null,
+      tenantId: updateData.tenantId ?? null,
+      isActive: updateData.isActive ?? null,
+      userTenantId,
+      isSuperAdmin,
+    })
 
     // Obtener court existente para validación y tenantId del evento
     const { prisma } = await import('../../../lib/database/neon-config')
@@ -234,9 +248,17 @@ export async function PUT(request: Request) {
     
     return NextResponse.json(court)
   } catch (error) {
-    console.error('Error en PUT /api/courts:', error)
+    const errorWithCode = error as { code?: string; meta?: unknown; stack?: string } | null
+    console.error('Error en PUT /api/courts (debug):', {
+      message: error instanceof Error ? error.message : 'Error interno del servidor',
+      code: errorWithCode?.code ?? null,
+      meta: errorWithCode?.meta ?? null,
+      stack: errorWithCode?.stack ?? null,
+      rawBody,
+    })
+    const message = error instanceof Error ? error.message : 'Error interno del servidor'
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: message },
       { status: 500 }
     )
   }

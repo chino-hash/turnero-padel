@@ -106,6 +106,7 @@ function PadelBookingPage() {
     showOnlyOpen,
     setShowOnlyOpen,
     courts,
+    courtsLoading,
     currentBookings,
     pastBookings,
     adminBookings,
@@ -115,6 +116,8 @@ function PadelBookingPage() {
     ratesByCourt,
     slotsLoading,
     multipleSlotsLoading,
+    slotsFetchedOnce,
+    multipleSlotsFetchedOnce,
     slotsError,
     multipleSlotsError,
     retrySlots,
@@ -164,10 +167,27 @@ function PadelBookingPage() {
     )
   }, [currentBookings])
 
-  const homeSlotsLoading = useMemo(
-    () => (isUnifiedView ? multipleSlotsLoading : Boolean(selectedCourt) && slotsLoading),
-    [isUnifiedView, multipleSlotsLoading, selectedCourt, slotsLoading]
-  )
+  /** Grilla de inicio: loading ampliado — canchas aún no listas, o vista por cancha sin cancha elegida cuando ya hay canchas */
+  const homeSlotsLoading = useMemo(() => {
+    if (isUnifiedView) {
+      if (courtsLoading) return true
+      if (courts.length > 0 && !multipleSlotsFetchedOnce) return true
+      return multipleSlotsLoading
+    }
+    if (courtsLoading) return true
+    if (courts.length > 0 && !selectedCourt) return true
+    if (Boolean(selectedCourt) && !slotsFetchedOnce) return true
+    return Boolean(selectedCourt) && slotsLoading
+  }, [
+    isUnifiedView,
+    courtsLoading,
+    courts.length,
+    multipleSlotsLoading,
+    multipleSlotsFetchedOnce,
+    selectedCourt,
+    slotsFetchedOnce,
+    slotsLoading,
+  ])
   
   // Los useEffect de persistencia ahora están en el contexto global
 
@@ -247,8 +267,14 @@ function PadelBookingPage() {
   }, [])
 
   useEffect(() => {
+    let ticking = false
     const handleScroll = () => {
-      setScrollY(window.scrollY || 0)
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        setScrollY(window.scrollY || 0)
+        ticking = false
+      })
     }
     handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
@@ -834,26 +860,35 @@ function PadelBookingPage() {
   const backgroundOverlay = isDarkMode
     ? 0.22 + scrollProgress * 0.56
     : 0.08 + scrollProgress * 0.42
-  const topShade = isDarkMode
-    ? 0.28 + scrollProgress * 0.42
-    : 0.12 + scrollProgress * 0.3
 
   return (
     <div className="dashboard-theme font-sans min-h-screen relative overflow-x-hidden">
-      {/* Fondo sticky con zoom + blur progresivo al hacer scroll */}
+      {/*
+        Fondo: imagen ancha (hero) + cover. En móvil vertical, bg-top prioriza cielo/claridad arriba;
+        desde md, centro para desktop panorámico. Degradado fijo aclara arriba y oscurece abajo (léxico UI).
+        Capa extra al scroll: blur suave + oscurecimiento (sin duplicar gradiente base).
+      */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-300 will-change-transform"
+          className="absolute inset-0 min-h-[100dvh] bg-cover bg-no-repeat bg-top md:bg-center transition-transform duration-300 will-change-transform"
           style={{
-            backgroundImage: "url('/padel%20larga.jpeg')",
+            backgroundImage: "url('/padel-dashboard-hero.png')",
             transform: 'scale(1)',
           }}
         />
         <div
+          className="absolute inset-0"
+          style={{
+            background: isDarkMode
+              ? 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0.35) 52%, rgba(0,0,0,0.72) 100%)'
+              : 'linear-gradient(to bottom, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 22%, rgba(0,0,0,0.28) 70%, rgba(0,0,0,0.5) 100%)',
+          }}
+          aria-hidden="true"
+        />
+        <div
           className="absolute inset-0 transition-all duration-300"
           style={{
-            backgroundColor: `rgba(0, 0, 0, ${backgroundOverlay})`,
-            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,${topShade}), rgba(0,0,0,${backgroundOverlay}))`,
+            backgroundColor: `rgba(0, 0, 0, ${backgroundOverlay * 0.85})`,
             backdropFilter: `blur(${backgroundBlur}px)`,
             WebkitBackdropFilter: `blur(${backgroundBlur}px)`,
           }}

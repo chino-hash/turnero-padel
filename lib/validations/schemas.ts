@@ -68,6 +68,7 @@ export const courtCreateSchema = z.object({
   name: z.string().min(1, 'El nombre de la cancha es requerido').max(100, 'El nombre es demasiado largo'),
   description: z.string().max(500, 'La descripción es demasiado larga').optional(),
   pricePerHour: positiveNumberSchema,
+  courtType: z.enum(['OUTDOOR', 'INDOOR']).default('OUTDOOR'),
   isActive: z.boolean().default(true),
   features: z.array(z.string()).default([]),
   maxPlayers: z.number().int().min(2, 'Mínimo 2 jugadores').max(8, 'Máximo 8 jugadores').default(4),
@@ -327,7 +328,7 @@ export function getModelSchema(model: string, operation: 'create' | 'update'): a
 export const modelPermissions = {
   Tenant: { read: 'SUPER_ADMIN', create: 'SUPER_ADMIN', update: 'SUPER_ADMIN', delete: 'SUPER_ADMIN' },
   User: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
-  Court: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },
+  Court: { read: 'USER', create: 'SUPER_ADMIN', update: 'ADMIN', delete: 'ADMIN' },
   Booking: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' },
   BookingPlayer: { read: 'USER', create: 'USER', update: 'USER', delete: 'ADMIN' },
   Payment: { read: 'USER', create: 'ADMIN', update: 'ADMIN', delete: 'ADMIN' },

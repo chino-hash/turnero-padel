@@ -11,7 +11,7 @@ import SlotModal from './SlotModal'
 import { TimeSlot, Court } from '../types/types'
 import { useAppState } from './providers/AppStateProvider'
 import { useRealTimeUpdates } from '../hooks/useRealTimeUpdates'
-import { getCourtHexForDisplay } from '../lib/court-colors'
+import { getCourtHexByType } from '../lib/court-colors'
 import { useTenantSlugFromPath } from '@/lib/tenant/TenantSlugFromPathContext'
 
 const EMPTY_HOME_CARD = {
@@ -33,9 +33,9 @@ const DEFAULT_HOME_CARD_COPY = {
   iconImage: '',
 }
 
-/** Listado de canchas: 2 columnas hasta lg y 3 en lg, con justify-center para centrar la última fila incompleta */
+/** Listado de canchas: siempre 2 columnas (misma `gap` que el contenedor: gap-2 → 0.5rem, sm:gap-3 → 0.75rem). Tarjetas más anchas = horarios y texto más legibles. */
 const COURT_CARD_LIST_CELL =
-  'w-[calc((100%-0.5rem)/2)] sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)] shrink-0 min-w-0'
+  'w-[calc((100%-0.5rem)/2)] sm:w-[calc((100%-0.75rem)/2)] shrink-0 min-w-0'
 
 interface HomeSectionProps {
   isVisible: boolean
@@ -278,6 +278,7 @@ export default function HomeSection({
     id: 'unknown',
     name: 'Cancha',
     description: null,
+    courtType: 'OUTDOOR',
     basePrice: 24000,
     priceMultiplier: 1,
     isActive: true,
@@ -289,19 +290,12 @@ export default function HomeSection({
   }
   const selectedCourtData = courts.find((court) => court.id === selectedCourt)
   const availableDays = getAvailableDays()
-  // Color hex para el ícono/ilustración de la cancha seleccionada en la tarjeta superior
-  const getCourtNumber = (name: string, id?: string) => {
-    const lower = (name || '').toLowerCase().trim()
-    const m = lower.match(/cancha\s*(\d+)/i)
-    if (m) return Number(m[1])
-    if (id === 'cmew6nvsd0001u2jcngxgt8au' || lower.includes(' a') || lower.startsWith('a')) return 1
-    if (id === 'cmew6nvsd0002u2jcc24nirbn' || lower.includes(' b') || lower.startsWith('b')) return 2
-    if (id === 'cmew6nvi40000u2jcmer3av60' || lower.includes(' c') || lower.startsWith('c')) return 3
-    return 0
-  }
-  const paletteHex = ['#8b5cf6', '#ef4444', '#008000', '#ff9933', '#f54ea2', '#00c4b4', '#e2e8f0']
-  const selectedNumber = getCourtNumber(selectedCourtData?.name || '', selectedCourtData?.id)
-  const selectedCourtHex = selectedNumber > 0 ? paletteHex[(selectedNumber - 1) % paletteHex.length] : '#ffffff'
+  const courtsById = useMemo(() => {
+    const map = new Map<string, Court>()
+    for (const court of courts) map.set(court.id, court)
+    return map
+  }, [courts])
+  const selectedCourtHex = getCourtHexByType(selectedCourtData?.courtType)
 
   // Court.color ahora usa clases Tailwind originales (from-... to-...)
 
@@ -525,16 +519,18 @@ export default function HomeSection({
         {/* Court Selection Cards — flex + anchos fijos para centrar filas incompletas (p. ej. 5 canchas) */}
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-3 p-1 -m-1">
           {creationModeActive && (() => {
-            const items = [1, 2, 3, 4, 5, 6, 7]
+            const items = [
+              { key: 'OUTDOOR', label: 'Exterior', hex: getCourtHexByType('OUTDOOR') },
+              { key: 'INDOOR', label: 'Interior', hex: getCourtHexByType('INDOOR') },
+            ]
             return (
               <div className={`w-full mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
                 <div className="flex flex-wrap gap-2 items-center">
-                  {items.map((n) => {
-                    const hex = paletteHex[(n - 1) % paletteHex.length]
+                  {items.map((item) => {
                     return (
-                      <div key={n} className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded" style={{ backgroundColor: hex }}></div>
-                        <div className="text-xs">{`Cancha ${n}`}</div>
+                      <div key={item.key} className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded" style={{ backgroundColor: item.hex }}></div>
+                        <div className="text-xs">{item.label}</div>
                       </div>
                     )
                   })}
@@ -544,12 +540,7 @@ export default function HomeSection({
           })()}
           {!creationModeActive && courts.map((court) => {
             const rate = ratesByCourt[court.id] ?? 0
-            // Calcular precio final de cancha y precio por persona desde datos de la cancha
-            const finalCourtPrice = Math.round((((court as any)?.basePrice ?? (court as any)?.base_price ?? 24000) * (court?.priceMultiplier ?? 1)))
-            const pricePerPerson = Math.round(finalCourtPrice / 4)
-            // Color hex histórico para que el div de cancha coincida exactamente con el color del nombre
-            const num = getCourtNumber(court.name || '', court.id)
-            const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
+            const courtHex = getCourtHexByType(court.courtType)
             const lightenHex = (hex: string, factor = 0.85) => {
               const clean = hex.replace('#', '')
               const r = parseInt(clean.substring(0, 2), 16)
@@ -573,7 +564,7 @@ export default function HomeSection({
                   setIsUnifiedView(false)
                 }}
                 data-testid="court-card"
-                className={`${COURT_CARD_LIST_CELL} relative rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 p-2.5 sm:p-3 lg:p-4 ${selectedCourt === court.id
+                className={`${COURT_CARD_LIST_CELL} relative rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 p-2 sm:p-2.5 lg:p-3 ${selectedCourt === court.id
                     ? isDarkMode
                       ? 'bg-black/70 border-[#BEF264]/35 shadow-2xl backdrop-blur-[22px]'
                       : `border-border shadow-xl`
@@ -581,9 +572,9 @@ export default function HomeSection({
                   }`}
                 style={selectedCourt === court.id && !isDarkMode ? { backgroundColor: selectedBg } : undefined}
               >
-                {/* Availability Badge — compacto en móvil */}
+                {/* Disponibilidad: prioridad visual 1 (porcentaje destacado) */}
                 <div
-                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-black/70' : 'bg-white/65'
+                  className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded-md md:rounded-lg px-1.5 py-1 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
                     }`}
                 >
                   {(() => {
@@ -591,21 +582,21 @@ export default function HomeSection({
                     const rateText = showLoadingRate ? '—%' : `${rate}%`
                     return (
                       <div
-                        className={`tabular-nums text-[9px] sm:text-[11px] md:text-xs font-normal sm:font-medium leading-none ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                        className={`tabular-nums text-xs sm:text-sm md:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
                           }`}
                       >
                         {rateText}
                       </div>
                     )
                   })()}
-                  <div className="text-[8px] sm:text-[9px] md:text-xs text-gray-500 sm:text-gray-600 leading-none mt-px sm:mt-0.5">
+                  <div className="text-[9px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-0.5 font-medium">
                     Disponible
                   </div>
                 </div>
 
                 {/* Court Illustration */}
                 <div
-                  className={"mx-auto mb-2 sm:mb-3 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"}
+                  className={"mx-auto mb-1.5 sm:mb-2 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"}
                   style={{ backgroundColor: courtHex }}
                 >
                   {/* Court lines */}
@@ -615,22 +606,13 @@ export default function HomeSection({
                   </div>
                 </div>
 
-                {/* Court Name */}
+                {/* Nombre de cancha: prioridad 3 */}
                 <div
                   data-testid="court-name"
-                  className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 line-clamp-2 min-h-[2rem] sm:min-h-0 ${isDarkMode ? 'text-white' : 'text-black'
+                  className={`text-xs sm:text-sm font-semibold line-clamp-2 text-center ${isDarkMode ? 'text-white/90' : 'text-gray-800'
                     }`}
                 >
                   {court.name}
-                </div>
-
-                {/* Price (una sola línea; en móvil el texto se parte en dos líneas si hace falta) */}
-                <div
-                  className={`text-sm sm:text-base lg:text-xl font-bold transition-colors duration-300 ease-in-out leading-snug ${isDarkMode ? '' : 'text-black'}`}
-                  style={isDarkMode ? { color: courtHex } : undefined}
-                >
-                  ${pricePerPerson.toLocaleString()}{' '}
-                  <span className="text-[10px] sm:text-sm lg:text-base font-semibold sm:font-bold">por persona</span>
                 </div>
               </button>
             )
@@ -641,10 +623,7 @@ export default function HomeSection({
                 <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) > 0).map((court) => {
                     const rate = ratesByCourt[court.id] ?? 0
-                    const finalCourtPrice = Math.round((((court as any)?.basePrice ?? (court as any)?.base_price ?? 24000) * (court?.priceMultiplier ?? 1)))
-                    const pricePerPerson = Math.round(finalCourtPrice / 4)
-                    const num = getCourtNumber(court.name || '', court.id)
-                    const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
+                    const courtHex = getCourtHexByType(court.courtType)
                     const lightenHex = (hex: string, factor = 0.85) => {
                       const clean = hex.replace('#', '')
                       const r = parseInt(clean.substring(0, 2), 16)
@@ -668,23 +647,23 @@ export default function HomeSection({
                           setIsUnifiedView(false)
                         }}
                         data-testid="court-card"
-                        className={`${COURT_CARD_LIST_CELL} relative p-2.5 sm:p-3 lg:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
+                        className={`${COURT_CARD_LIST_CELL} relative p-2 sm:p-2.5 lg:p-3 rounded-xl sm:rounded-2xl border transition-all duration-300 transform hover:scale-[1.02] sm:hover:scale-105 ${isDarkMode ? 'bg-black/40 border-white/15 backdrop-blur-[22px]' : 'bg-white/40 border-white/60 backdrop-blur-[22px]'
                           } shadow-md`}
                         style={!isDarkMode ? { backgroundColor: selectedBg } : undefined}
                       >
                         <div
-                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded sm:rounded-md md:rounded-lg px-1 py-px sm:px-2 sm:py-1 ${isDarkMode ? 'bg-black/70' : 'bg-white/65'
+                          className={`absolute top-1.5 left-1.5 sm:top-3 sm:left-3 backdrop-blur-sm rounded-md md:rounded-lg px-1.5 py-1 sm:px-2.5 sm:py-1.5 ${isDarkMode ? 'bg-black/75' : 'bg-white/70'
                             }`}
                         >
                           <div
-                            className={`tabular-nums text-[9px] sm:text-[11px] md:text-xs font-normal sm:font-medium leading-none ${isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                            className={`tabular-nums text-xs sm:text-sm md:text-base font-bold leading-none ${isDarkMode ? 'text-gray-100' : 'text-gray-900'
                               }`}
                           >{`${rate}%`}</div>
-                          <div className="text-[8px] sm:text-[9px] md:text-xs text-gray-500 sm:text-gray-600 leading-none mt-px sm:mt-0.5">
+                          <div className="text-[9px] sm:text-[10px] md:text-[11px] text-muted-foreground leading-none mt-0.5 font-medium">
                             Disponible
                           </div>
                         </div>
-                        <div className={"mx-auto mb-2 sm:mb-3 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"} style={{ backgroundColor: courtHex }}></div>
+                        <div className={"mx-auto mb-1.5 sm:mb-2 w-12 h-[4.5rem] sm:w-16 sm:h-24 lg:w-20 lg:h-28 rounded-md sm:rounded-lg border-2 border-white/30 relative"} style={{ backgroundColor: courtHex }}></div>
                         <div className={`text-xs sm:text-sm font-medium mb-1 sm:mb-2 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>{court.name}</div>
                         <div className={"text-xs text-muted-foreground"}>{`Nueva cancha creada`}</div>
                       </button>
@@ -695,8 +674,7 @@ export default function HomeSection({
               <div id="courts-other" className="w-full">
                 <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                   {courts.filter(c => (ratesByCourt[c.id] ?? 0) <= 0).map((court) => {
-                    const num = getCourtNumber(court.name || '', court.id)
-                    const courtHex = num > 0 ? paletteHex[(num - 1) % paletteHex.length] : '#4b5563'
+                    const courtHex = getCourtHexByType(court.courtType)
                     return (
                       <div key={court.id} className={`${COURT_CARD_LIST_CELL} relative p-4 rounded-2xl border ${isDarkMode ? 'bg-black/35 border-white/15 backdrop-blur-[22px]' : 'bg-white/35 border-white/60 backdrop-blur-[22px]'} opacity-70`}>
                         <div className="text-xs">{court.name}</div>
@@ -982,37 +960,39 @@ export default function HomeSection({
 
           {/* Right Column - Time Slots Grid */}
           <div className="flex-1" data-testid="slots-grid">
-            <div className="flex items-center justify-between mb-3" data-testid="slots-header">
-              <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-                Horarios disponibles
-              </h3>
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={handleRefreshSlots}
-                  variant="outline"
-                  size="sm"
-                  disabled={isRefreshing}
-                  className={`flex items-center gap-2 ${isDarkMode ? 'border-white/15 bg-black/40 text-gray-200 hover:bg-black/50 backdrop-blur-[22px]' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
-                  data-testid="refresh-slots-btn"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Actualizando...' : 'Actualizar'}
-                </Button>
-                <div className="flex items-center gap-2" data-testid="slot-count">
-                  <Filter className={`w-4 h-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
-                  <span className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-                    {slotsForRender.filter(s => {
-                      const available = s.status === 'available' || s.isAvailable || s.available
-                      const isToday = new Date().toDateString() === selectedDate.toDateString()
-                      const start = s.startTime || s.time
-                      if (!start) return false
-                      const [h, m] = start.split(':').map(Number)
-                      const slotDate = new Date(selectedDate)
-                      slotDate.setHours(h, m, 0, 0)
-                      const isPast = isToday && slotDate < new Date()
-                      return available && !isPast
-                    }).length} disponibles
-                  </span>
+            <div className="mb-3 space-y-2" data-testid="slots-header">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+                  Horarios disponibles
+                </h3>
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={handleRefreshSlots}
+                    variant="outline"
+                    size="sm"
+                    disabled={isRefreshing}
+                    className={`flex items-center gap-2 ${isDarkMode ? 'border-white/15 bg-black/40 text-gray-200 hover:bg-black/50 backdrop-blur-[22px]' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                    data-testid="refresh-slots-btn"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Actualizando...' : 'Actualizar'}
+                  </Button>
+                  <div className="flex items-center gap-2" data-testid="slot-count">
+                    <Filter className={`w-4 h-4 ${isDarkMode ? "text-gray-400" : "text-gray-600"}`} />
+                    <span className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
+                      {slotsForRender.filter(s => {
+                        const available = s.status === 'available' || s.isAvailable || s.available
+                        const isToday = new Date().toDateString() === selectedDate.toDateString()
+                        const start = s.startTime || s.time
+                        if (!start) return false
+                        const [h, m] = start.split(':').map(Number)
+                        const slotDate = new Date(selectedDate)
+                        slotDate.setHours(h, m, 0, 0)
+                        const isPast = isToday && slotDate < new Date()
+                        return available && !isPast
+                      }).length} disponibles
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1035,7 +1015,7 @@ export default function HomeSection({
                 aria-label="Cargando horarios"
               >
                 {Array.from({ length: 15 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[80px] w-full rounded-lg" />
+                  <Skeleton key={i} className="h-[76px] w-full rounded-lg" />
                 ))}
               </div>
             )}
@@ -1061,7 +1041,7 @@ export default function HomeSection({
 
             {/* Slots Grid - 5 Columns Layout */}
             {!loading && !error && (
-              <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 p-4 rounded-lg ${isDarkMode ? 'bg-transparent' : 'border bg-card border-border'}`}>
+              <div className={`grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 rounded-lg ${isDarkMode ? 'bg-transparent' : 'border bg-card border-border'}`}>
                 {!hasAvailableSlots ? (
                   <div className="col-span-full flex items-center justify-center py-12">
                     <div
@@ -1080,10 +1060,11 @@ export default function HomeSection({
                     const isAvailable = slot.status === 'available' || slot.isAvailable || slot.available
                     const courtName = slot.courtName || slot.court || `Cancha ${slot.courtId?.replace('court-', '') || '1'}`
                     const timeRange = slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : slot.startTime || slot.time
-                    const pricePerPerson = slot.pricePerPerson ?? Math.round(((slot.finalPrice ?? slot.price ?? 6000) / 4))
 
-                    // Misma paleta que la sección de canchas (por número de cancha)
-                    const courtColor = getCourtHexForDisplay(slot.courtId || '', courtName)
+                    const slotCourt =
+                      (slot.courtId ? courtsById.get(slot.courtId) : undefined) ||
+                      courts.find((court) => court.name === courtName)
+                    const courtColor = getCourtHexByType(slotCourt?.courtType)
 
                     const isTodaySelected = new Date().toDateString() === selectedDate.toDateString()
                     const slotStartStr = slot.startTime || slot.time
@@ -1106,21 +1087,44 @@ export default function HomeSection({
                         data-testid="time-slot"
                         className={`rounded-lg border-[1.5px] transition-all duration-200 text-center flex flex-col items-center justify-center gap-0.5 disabled:opacity-60 disabled:grayscale ${!isClickable
                             ? isDarkMode
-                              ? "p-1 md:p-1 min-h-[64px] md:min-h-[68px] text-sm bg-black/40 border-white/15 border-[2px] backdrop-blur-[22px] cursor-not-allowed"
-                              : "p-1 md:p-1 min-h-[64px] md:min-h-[68px] text-sm bg-card border-border/80 border-[2px] cursor-not-allowed"
+                              ? 'px-1.5 py-2 min-h-[64px] md:min-h-[68px] text-sm bg-black/40 border-white/15 border-[2px] backdrop-blur-[22px] cursor-not-allowed'
+                              : 'px-1.5 py-2 min-h-[64px] md:min-h-[68px] text-sm bg-card border-border/80 border-[2px] cursor-not-allowed'
                             : isSelected
                               ? isDarkMode
-                                ? "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-black/55 border-[color:var(--electric-teal)] border-[2px] shadow-md backdrop-blur-[22px]"
-                                : "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md"
+                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/55 border-[color:var(--electric-teal)] border-[2px] shadow-md backdrop-blur-[22px]'
+                                : 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-card border-[color:var(--electric-teal)] border-[2px] shadow-md'
                               : isDarkMode
-                                ? "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-black/45 border-white/15 border-[2px] transform hover:scale-105 hover:shadow-sm backdrop-blur-[22px]"
-                                : "p-2 md:p-2 min-h-[78px] md:min-h-[80px] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm"
+                                ? 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-black/45 border-white/15 border-[2px] transform hover:scale-105 hover:shadow-sm backdrop-blur-[22px]'
+                                : 'p-2 md:p-2 min-h-[76px] md:min-h-[80px] bg-card border-border border-[2px] transform hover:scale-105 hover:shadow-sm'
                           }`}
                       >
-                        {/* Court Name - Top with specific color */}
+                        {/* Prioridad 1: hora — lo más escaneable */}
+                        <div
+                          className={`w-full leading-none tracking-tight text-card-foreground ${isClickable
+                              ? 'text-base font-extrabold sm:text-lg md:text-xl lg:text-2xl'
+                              : 'text-xs font-bold sm:text-sm'
+                            }`}
+                          data-testid="slot-time-range"
+                        >
+                          {timeRange}
+                        </div>
+
+                        {/* Prioridad 2: disponibilidad */}
+                        <span
+                          data-testid="slot-status-badge"
+                          className={
+                            isClickable
+                              ? "badge-disponible !py-0.5 !px-2 !text-[0.65rem] sm:!text-[0.75rem]"
+                              : "badge-reservado !py-0.5 !px-2 !text-[0.65rem] sm:!text-xs"
+                          }
+                        >
+                          {!isClickable ? "No disponible" : "Disponible"}
+                        </span>
+
+                        {/* Prioridad 3: cancha */}
                         <div
                           data-testid="slot-court-name"
-                          className={`line-clamp-1 w-full ${isClickable ? 'text-[11px] sm:text-xs font-medium leading-tight' : 'text-[10px] font-medium leading-tight'} px-0.5`}
+                          className={`line-clamp-1 w-full max-w-full px-0.5 ${isClickable ? 'text-[10px] sm:text-[11px] font-medium leading-tight' : 'text-[9px] font-medium leading-tight'}`}
                           style={{
                             color: !isClickable
                               ? (isDarkMode ? '#6b7280' : '#9ca3af')
@@ -1128,32 +1132,6 @@ export default function HomeSection({
                           }}
                         >
                           {courtName}
-                        </div>
-
-                        {/* Time Range - Second */}
-                        <div
-                          className={`w-full text-card-foreground leading-none tracking-tight ${isClickable ? 'text-[11px] font-bold sm:text-sm md:text-base lg:text-lg' : 'text-[10px] font-semibold sm:text-xs'}`}
-                        >
-                          {timeRange}
-                        </div>
-
-                        {/* Availability Status Badge */}
-                        <span
-                          data-testid="slot-status-badge"
-                          className={
-                            isClickable
-                              ? "badge-disponible !py-0.5 !px-1.5 !text-[0.65rem] sm:!text-[0.8rem]"
-                              : "badge-reservado !py-0.5 !px-1.5 !text-[0.65rem] sm:!text-xs"
-                          }
-                        >
-                          {!isClickable ? "No disponible" : "Disponible"}
-                        </span>
-
-                        {/* Price - Bottom */}
-                        <div
-                          className={`w-full leading-tight text-muted-foreground ${isClickable ? 'text-[10px] sm:text-xs font-medium' : 'text-[10px] font-medium'}`}
-                        >
-                          ${pricePerPerson.toLocaleString()} por persona
                         </div>
                       </button>
                     )

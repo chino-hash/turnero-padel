@@ -13,6 +13,7 @@ interface OptimizedSlotsState {
   loading: boolean
   error: string | null
   courtName?: string
+  hasFetchedOnce: boolean
   refreshSlots: () => Promise<void>
   isRefreshing: boolean
 }
@@ -28,6 +29,7 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false)
   const [courtName, setCourtName] = useState<string | undefined>(undefined)
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -53,6 +55,7 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
       } else {
         setLoading(false)
       }
+      setHasFetchedOnce(false)
       setError(null)
       setSlots([])
       setRate(0)
@@ -80,6 +83,7 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
       setRate(cached.data.summary?.rate ?? 0)
       setCourtName(cached.data.courtName)
       setLoading(false)
+      setHasFetchedOnce(true)
       setError(null)
       return
     }
@@ -88,15 +92,16 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
     abortControllerRef.current = new AbortController()
     const signal = abortControllerRef.current.signal
 
+    if (isManualRefresh) {
+      setIsRefreshing(true)
+    } else {
+      // Marcar loading antes del debounce evita flashes de "sin turnos" durante la espera inicial.
+      setLoading(true)
+    }
+    setError(null)
+
     // Debounce la petición para evitar múltiples llamadas
     fetchTimeoutRef.current = setTimeout(async () => {
-      if (isManualRefresh) {
-        setIsRefreshing(true)
-      } else {
-        setLoading(true)
-      }
-      setError(null)
-      
       try {
         const dateStr = ymd(currentDate)
         const params = new URLSearchParams({ courtId, date: dateStr, force: 'true' })
@@ -127,6 +132,7 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
         setSlots(null)
         setRate(0)
       } finally {
+        setHasFetchedOnce(true)
         setLoading(false)
         setIsRefreshing(false)
       }
@@ -163,6 +169,7 @@ export const useOptimizedSlots = (courtId: string, date: Date, tenantSlug?: stri
     rate, 
     loading, 
     error, 
+    hasFetchedOnce,
     refreshSlots,
     isRefreshing,
     courtName 
@@ -174,6 +181,7 @@ interface OptimizedMultipleSlotsState {
   ratesByCourt: Record<string, number>
   loading: boolean
   error: string | null
+  hasFetchedOnce: boolean
   refreshAllSlots: () => Promise<void>
   refreshCourtSlots: (courtId: string) => Promise<void>
   isRefreshing: boolean
@@ -189,6 +197,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasFetchedOnce, setHasFetchedOnce] = useState(false)
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
 
@@ -260,6 +269,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
       } else {
         setLoading(false)
       }
+      setHasFetchedOnce(false)
       setError(null)
       setSlotsByCourt({})
       setRatesByCourt({})
@@ -269,14 +279,15 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
       clearTimeout(fetchTimeoutRef.current)
     }
 
+    if (isManualRefresh) {
+      setIsRefreshing(true)
+    } else {
+      // Mantener loading activo durante el debounce para evitar estado intermedio vacío.
+      setLoading(true)
+    }
+    setError(null)
+
     fetchTimeoutRef.current = setTimeout(async () => {
-      if (isManualRefresh) {
-        setIsRefreshing(true)
-      } else {
-        setLoading(true)
-      }
-      setError(null)
-      
       try {
         const entries = await Promise.allSettled(
           courts.map(court => fetchSlotsForCourt(court, isManualRefresh))
@@ -312,6 +323,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
         setSlotsByCourt({})
         setRatesByCourt({})
       } finally {
+        setHasFetchedOnce(true)
         setLoading(false)
         setIsRefreshing(false)
       }
@@ -366,6 +378,7 @@ export const useOptimizedMultipleSlots = (courts: Array<{id: string}>, date: Dat
     ratesByCourt, 
     loading, 
     error,
+    hasFetchedOnce,
     refreshAllSlots,
     refreshCourtSlots,
     isRefreshing

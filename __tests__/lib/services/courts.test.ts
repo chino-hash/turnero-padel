@@ -41,17 +41,16 @@ describe('Courts Service', () => {
 
   const mockCourt: Court = {
     id: 'court-123',
+    tenantId: 'tenant-1',
     name: 'Cancha 1',
     description: 'Cancha de pádel techada',
+    courtType: 'OUTDOOR',
     basePrice: 1000,
     priceMultiplier: 1.2,
-    features: ['techada', 'iluminacion'],
-    operatingHours: {
-      start: '08:00',
-      end: '22:00',
-      slot_duration: 90,
-    },
+    features: JSON.stringify({ color: 'from-green-400 to-green-600', bgColor: 'bg-green-100', textColor: 'text-green-700' }),
+    operatingHours: JSON.stringify({ start: '08:00', end: '22:00', slot_duration: 90 }),
     isActive: true,
+    deletedAt: null,
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
   }
@@ -121,8 +120,10 @@ describe('Courts Service', () => {
       name: 'Nueva Cancha',
       description: 'Cancha nueva',
       basePrice: 1500,
+      courtType: 'OUTDOOR' as const,
       priceMultiplier: 1.0,
       features: ['techada'],
+      tenantId: 'tenant-1',
       operatingHours: {
         start: '09:00',
         end: '21:00',
@@ -153,6 +154,7 @@ describe('Courts Service', () => {
       const minimalData = {
         name: 'Cancha Mínima',
         basePrice: 1000,
+        tenantId: 'tenant-1',
       }
       const createdCourt = { ...mockCourt, ...minimalData }
       mockPrisma.court.create.mockResolvedValue(createdCourt)

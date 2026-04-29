@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/database/neon-config'
 import { DEFAULT_COURT_VALUES, getDefaultOperatingHoursJson } from '@/lib/constants/court-defaults'
 import { tryEncrypt } from '@/lib/encryption/credential-encryption'
-import { getCourtFeaturesByIndex } from '@/lib/court-colors'
+import { getCourtFeaturesByType } from '@/lib/court-colors'
 import { getPlanDefaultCourts } from '@/lib/subscription-plans'
 import { isSuperAdminUser, type User as PermissionsUser } from '@/lib/utils/permissions'
 import { Prisma } from '@prisma/client'
@@ -212,12 +212,13 @@ export async function POST(request: NextRequest) {
             tenantId: tenant.id,
             name: `Cancha ${n}`,
             description: `Cancha ${n}`,
+            courtType: 'OUTDOOR',
             basePrice: DEFAULT_COURT_VALUES.basePrice,
             priceMultiplier: 1,
-            features: JSON.stringify(getCourtFeaturesByIndex(n)),
+            features: JSON.stringify(getCourtFeaturesByType('OUTDOOR')),
             operatingHours: operatingHoursJson,
             isActive: true,
-          },
+          } as any,
         })
       }
 

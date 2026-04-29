@@ -76,7 +76,8 @@ export default function TenantDetailPage() {
   const [adminsLoading, setAdminsLoading] = useState(false)
   const [adminEmail, setAdminEmail] = useState('')
   const [adminAdding, setAdminAdding] = useState(false)
-  const [courts, setCourts] = useState<Array<{ id: string; name: string; basePrice: number; tenantId: string | null; isActive?: boolean }>>([])
+  const [courts, setCourts] = useState<Array<{ id: string; name: string; basePrice: number; tenantId: string | null; isActive?: boolean; courtType?: 'OUTDOOR' | 'INDOOR' }>>([])
+  const [newCourtType, setNewCourtType] = useState<'OUTDOOR' | 'INDOOR'>('OUTDOOR')
   const [courtsLoading, setCourtsLoading] = useState(false)
   const [configSettings, setConfigSettings] = useState<Record<string, string>>({})
   const [configLoading, setConfigLoading] = useState(false)
@@ -379,6 +380,7 @@ export default function TenantDetailPage() {
     const form = e.target as HTMLFormElement
     const name = (form.querySelector('[name="courtName"]') as HTMLInputElement)?.value?.trim()
     const basePriceRaw = (form.querySelector('[name="courtBasePrice"]') as HTMLInputElement)?.value?.trim() || '0'
+    const courtType = newCourtType
     const basePrice = parseFloat(basePriceRaw)
     if (!name || !tenantIdForSections) {
       toast.error('Nombre y tenant requeridos')
@@ -394,12 +396,13 @@ export default function TenantDetailPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ name, basePrice, tenantId: tenantIdForSections, isActive: true }),
+        body: JSON.stringify({ name, basePrice, courtType, tenantId: tenantIdForSections, isActive: true }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
         toast.success('Cancha creada')
         form.reset()
+        setNewCourtType('OUTDOOR')
         const r = await fetch(`/api/courts?tenantId=${tenantIdForSections}`, { credentials: 'include', cache: 'no-store' })
         if (r.ok) { const list = await r.json(); setCourts(Array.isArray(list) ? list : []) }
       } else {
@@ -811,7 +814,11 @@ export default function TenantDetailPage() {
                   <ul className="text-sm space-y-2">
                     {courts.map((c) => (
                       <li key={c.id} className="flex justify-between items-center">
-                        <span>{c.name} — ${c.basePrice}{c.isActive === false ? ' — Inactiva' : ' — Activa'}</span>
+                        <span>
+                          {c.name} — ${c.basePrice}
+                          {` — ${c.courtType === 'INDOOR' ? 'Interior' : 'Exterior'}`}
+                          {c.isActive === false ? ' — Inactiva' : ' — Activa'}
+                        </span>
                         <Button type="button" variant="outline" size="sm" onClick={() => handleDeleteCourt(c.id)}>Eliminar</Button>
                       </li>
                     ))}
@@ -826,6 +833,18 @@ export default function TenantDetailPage() {
                   <div>
                     <Label>Precio base</Label>
                     <Input name="courtBasePrice" type="text" inputMode="decimal" defaultValue="24000" placeholder="24000" className="w-24" />
+                  </div>
+                  <div>
+                    <Label>Tipo</Label>
+                    <Select value={newCourtType} onValueChange={(v: 'OUTDOOR' | 'INDOOR') => setNewCourtType(v)}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OUTDOOR">Exterior</SelectItem>
+                        <SelectItem value="INDOOR">Interior</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button type="submit" disabled={courtsLoading}>{courtsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Agregar cancha'}</Button>
                 </form>

@@ -18,6 +18,8 @@ export type CourtColorFeatures = {
   textColor: string
 }
 
+export type CourtType = 'OUTDOOR' | 'INDOOR'
+
 /** Hex para uso en estilos inline (dashboard, slots), alineado con COURT_COLOR_PALETTE */
 export const COURT_COLOR_HEX = [
   '#8b5cf6', // purple
@@ -28,6 +30,35 @@ export const COURT_COLOR_HEX = [
   '#06b6d4', // cyan
   '#6b7280', // gray
 ] as const
+
+export const COURT_TYPE_COLORS: Record<CourtType, CourtColorFeatures & { hex: string }> = {
+  OUTDOOR: {
+    color: 'from-green-400 to-green-600',
+    bgColor: 'bg-green-100',
+    textColor: 'text-green-700',
+    hex: '#16a34a',
+  },
+  INDOOR: {
+    color: 'from-blue-400 to-blue-600',
+    bgColor: 'bg-blue-100',
+    textColor: 'text-blue-700',
+    hex: '#2563eb',
+  },
+}
+
+export function normalizeCourtType(type?: string | null): CourtType {
+  return type === 'INDOOR' ? 'INDOOR' : 'OUTDOOR'
+}
+
+export function getCourtFeaturesByType(type?: string | null): CourtColorFeatures {
+  const normalizedType = normalizeCourtType(type)
+  const item = COURT_TYPE_COLORS[normalizedType]
+  return { color: item.color, bgColor: item.bgColor, textColor: item.textColor }
+}
+
+export function getCourtHexByType(type?: string | null): string {
+  return COURT_TYPE_COLORS[normalizeCourtType(type)].hex
+}
 
 /**
  * Devuelve el objeto de features (color, bgColor, textColor) para la cancha
