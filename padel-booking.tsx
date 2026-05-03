@@ -838,7 +838,6 @@ function PadelBookingPage() {
     )
   }
 
-  // Evita re-renders durante el scroll para prevenir artefactos visuales en móvil.
   const backgroundOverlay = isDarkMode ? 0.34 : 0.16
 
   return (
@@ -848,12 +847,13 @@ function PadelBookingPage() {
         desde md, centro para desktop panorámico. Degradado fijo aclara arriba y oscurece abajo (léxico UI).
         Oscurecimiento sobre la imagen (desenfoque en la imagen; asset WebP optimizado; sin backdrop-blur).
       */}
-      <div className="pointer-events-none fixed inset-0 z-0">
+      <div className="pointer-events-none fixed inset-0 z-0 isolate">
         <div
-          className="absolute inset-0 min-h-[100dvh] bg-cover bg-no-repeat bg-top md:bg-center transition-transform duration-300 will-change-transform"
+          className="absolute inset-0 bg-cover bg-no-repeat bg-top md:bg-center"
           style={{
             backgroundImage: "url('/padel-dashboard-blur.webp')",
-            transform: 'scale(1)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
           }}
         />
         <div
