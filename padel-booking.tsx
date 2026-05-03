@@ -839,7 +839,6 @@ function PadelBookingPage() {
   }
 
   // Evita re-renders durante el scroll para prevenir artefactos visuales en móvil.
-  const backgroundBlur = isDarkMode ? 4 : 2
   const backgroundOverlay = isDarkMode ? 0.34 : 0.16
 
   return (
@@ -847,13 +846,13 @@ function PadelBookingPage() {
       {/*
         Fondo: imagen ancha (hero) + cover. En móvil vertical, bg-top prioriza cielo/claridad arriba;
         desde md, centro para desktop panorámico. Degradado fijo aclara arriba y oscurece abajo (léxico UI).
-        Capa extra al scroll: blur suave + oscurecimiento (sin duplicar gradiente base).
+        Oscurecimiento sobre la imagen (desenfoque en la imagen; asset WebP optimizado; sin backdrop-blur).
       */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div
           className="absolute inset-0 min-h-[100dvh] bg-cover bg-no-repeat bg-top md:bg-center transition-transform duration-300 will-change-transform"
           style={{
-            backgroundImage: "url('/padel-dashboard-hero.png')",
+            backgroundImage: "url('/padel-dashboard-blur.webp')",
             transform: 'scale(1)',
           }}
         />
@@ -870,8 +869,6 @@ function PadelBookingPage() {
           className="absolute inset-0 transition-all duration-300"
           style={{
             backgroundColor: `rgba(0, 0, 0, ${backgroundOverlay * 0.85})`,
-            backdropFilter: `blur(${backgroundBlur}px)`,
-            WebkitBackdropFilter: `blur(${backgroundBlur}px)`,
           }}
         />
       </div>
